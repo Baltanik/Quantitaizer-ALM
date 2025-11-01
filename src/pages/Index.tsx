@@ -10,6 +10,7 @@ import {
   fetchHistoricalFedData, 
   fetchRecentSignals,
   subscribeToFedData,
+  triggerFedDataFetch,
   FedData,
   Signal
 } from "@/services/fedData";
@@ -30,15 +31,30 @@ const Index = () => {
       fetchRecentSignals(10)
     ]);
 
-    if (latest) setLatestData(latest);
-    if (historical.length > 0) {
-      setHistoricalData(historical);
-      // Set previous data as the second most recent
-      if (historical.length > 1) {
-        setPreviousData(historical[1]);
+    // Se non ci sono dati, trigghera il fetch automaticamente
+    if (!latest || historical.length === 0) {
+      console.log('No data found, triggering automatic fetch...');
+      await triggerFedDataFetch();
+      // Ricarica dopo il fetch
+      const [newLatest, newHistorical, newSignals] = await Promise.all([
+        fetchLatestFedData(),
+        fetchHistoricalFedData(90),
+        fetchRecentSignals(10)
+      ]);
+      if (newLatest) setLatestData(newLatest);
+      if (newHistorical.length > 0) {
+        setHistoricalData(newHistorical);
+        if (newHistorical.length > 1) setPreviousData(newHistorical[1]);
       }
+      if (newSignals) setSignals(newSignals);
+    } else {
+      if (latest) setLatestData(latest);
+      if (historical.length > 0) {
+        setHistoricalData(historical);
+        if (historical.length > 1) setPreviousData(historical[1]);
+      }
+      if (recentSignals) setSignals(recentSignals);
     }
-    if (recentSignals) setSignals(recentSignals);
     
     setLoading(false);
   };
