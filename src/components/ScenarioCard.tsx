@@ -2,9 +2,12 @@ import { TrendingUp, TrendingDown, Minus, LineChart, AlertTriangle, Info } from 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { FedData, ScenarioState } from "@/services/fedData";
+import { deriveScenario, canShowBullish, getContextColor, getRiskColor } from "@/utils/scenarioEngine";
 
 interface ScenarioCardProps {
   scenario: string | null;
+  currentData?: FedData | null;
 }
 
 const scenarioConfig = {
@@ -73,9 +76,34 @@ const scenarioConfig = {
   },
 };
 
-export function ScenarioCard({ scenario }: ScenarioCardProps) {
+export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
   const config = scenarioConfig[scenario as keyof typeof scenarioConfig] || scenarioConfig.neutral;
   const Icon = config.icon;
+
+  // Calcola qualificatori scenario se abbiamo i dati
+  let scenarioState: ScenarioState | null = null;
+  if (currentData) {
+    try {
+      scenarioState = deriveScenario({
+        walcl: currentData.walcl || 0,
+        dWalcl_4w: currentData.d_walcl_4w || 0,
+        wresbal: currentData.wresbal || 0,
+        dWresbal_4w: currentData.d_wresbal_4w || 0,
+        rrpon: currentData.rrpontsyd || 0,
+        dRrpon_4w: currentData.d_rrpontsyd_4w || 0,
+        sofr: currentData.sofr || 0,
+        iorb: currentData.iorb || 0,
+        vix: currentData.vix || 20, // Default neutrale
+        hyOAS: currentData.hy_oas || 4.5, // Default neutrale
+        t10y3m: currentData.t10y3m || 1, // Default neutrale
+        dT10y3m_4w: currentData.d_t10y3m_4w || 0,
+        dxyBroad: currentData.dxy_broad || 100, // Default neutrale
+        dDxy_4w: currentData.d_dxy_4w || 0
+      });
+    } catch (error) {
+      console.warn('Error calculating scenario qualifiers:', error);
+    }
+  }
 
   return (
     <Card className="bg-slate-800 border-slate-600 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 relative overflow-hidden">
@@ -116,6 +144,62 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
             </p>
           </div>
         </div>
+
+        {/* Scenario Qualifiers */}
+        {scenarioState && (
+          <>
+            <div className="flex flex-wrap gap-2">
+              {/* Context Badge */}
+              <Badge className={`${getContextColor(scenarioState.context)} border`}>
+                {scenarioState.context.replace('_', ' ').toUpperCase()}
+              </Badge>
+              
+              {/* Risk Level Badge */}
+              <Badge className={`${getRiskColor(scenarioState.risk_level)} border`}>
+                Rischio: {scenarioState.risk_level.toUpperCase()}
+              </Badge>
+              
+              {/* Sustainability Badge */}
+              <Badge variant="outline" className="text-slate-300">
+                Sostenibilità: {scenarioState.sustainability.toUpperCase()}
+              </Badge>
+              
+              {/* Confidence Badge */}
+              <Badge variant="outline" className="text-slate-300">
+                Confidenza: {scenarioState.confidence.toUpperCase()}
+              </Badge>
+            </div>
+
+            {/* Warning Banner per Risk Elevato */}
+            {scenarioState.risk_level !== 'normale' && (
+              <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h5 className="font-semibold text-red-400 text-sm">Attenzione Investitori</h5>
+                  <p className="text-sm text-red-300">
+                    Questo pattern è associato a stress di mercato. La liquidità può sostenere i prezzi 
+                    temporaneamente ma non significa risk-on sostenibile. Valuta sempre risk management appropriato.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Drivers List */}
+            {scenarioState.drivers.length > 0 && (
+              <div className="space-y-2">
+                <h5 className="font-semibold text-sm text-slate-300">Drivers Chiave:</h5>
+                <div className="grid gap-1">
+                  {scenarioState.drivers.map((driver, index) => (
+                    <div key={index} className="flex items-center gap-2 text-sm text-slate-400">
+                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
+                      {driver}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         <Separator />
 

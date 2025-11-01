@@ -106,6 +106,43 @@ export function MetricsGrid({ currentData, previousData, historicalData }: Metri
         historicalData={createHistoricalArray('dtb1yr')}
         unit="%"
       />
+      {/* Nuovi indicatori - temporaneamente commentati finché non abbiamo i dati */}
+      {currentData.vix !== undefined && (
+        <MetricCard
+          title="VIX"
+          value={currentData.vix}
+          previousValue={previousData?.vix}
+          historicalData={createHistoricalArray('vix')}
+          unit=""
+        />
+      )}
+      {currentData.hy_oas !== undefined && (
+        <MetricCard
+          title="HY OAS"
+          value={currentData.hy_oas}
+          previousValue={previousData?.hy_oas}
+          historicalData={createHistoricalArray('hy_oas')}
+          format="bps"
+        />
+      )}
+      {currentData.t10y3m !== undefined && (
+        <MetricCard
+          title="Curva 10Y-3M"
+          value={currentData.t10y3m}
+          previousValue={previousData?.t10y3m}
+          historicalData={createHistoricalArray('t10y3m')}
+          format="bps"
+        />
+      )}
+      {currentData.dxy_broad !== undefined && (
+        <MetricCard
+          title="Dollar Index"
+          value={currentData.dxy_broad}
+          previousValue={previousData?.dxy_broad}
+          historicalData={createHistoricalArray('dxy_broad')}
+          unit=""
+        />
+      )}
     </div>
   );
 }

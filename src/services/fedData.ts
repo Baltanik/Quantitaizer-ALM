@@ -1,5 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// Nuovi types per sistema qualificazione scenari
+export type Context = 'stress_guidato' | 'crescita_guidata' | 'ambiguo';
+export type Sustainability = 'bassa' | 'media' | 'alta';
+export type RiskLevel = 'normale' | 'elevato' | 'alto';
+export type Confidence = 'bassa' | 'media' | 'alta';
+
 export interface FedData {
   id: number;
   date: string;
@@ -15,8 +21,35 @@ export interface FedData {
   dtb1yr: number | null;
   us10y: number | null;
   scenario: string | null;
+  // Nuovi indicatori di mercato
+  vix: number | null;
+  hy_oas: number | null;
+  t10y3m: number | null;
+  dxy_broad: number | null;
+  // Delta a 4 settimane
+  d_walcl_4w: number | null;
+  d_wresbal_4w: number | null;
+  d_rrpontsyd_4w: number | null;
+  d_t10y3m_4w: number | null;
+  d_dxy_4w: number | null;
+  // Qualificatori scenario
+  context: Context | null;
+  sustainability: Sustainability | null;
+  risk_level: RiskLevel | null;
+  confidence: Confidence | null;
+  drivers: string[] | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ScenarioState {
+  scenario: string;
+  context: Context;
+  sustainability: Sustainability;
+  risk_level: RiskLevel;
+  confidence: Confidence;
+  drivers: string[];
+  date: string;
 }
 
 export interface Signal {

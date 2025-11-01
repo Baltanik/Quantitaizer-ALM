@@ -5,9 +5,9 @@ import { getMetricDescription } from "@/lib/metricDescriptions";
 
 interface MetricCardProps {
   title: string;
-  value: number | null;
-  previousValue?: number | null;
-  historicalData?: Array<{ value: number | null }>;
+  value: number | null | undefined;
+  previousValue?: number | null | undefined;
+  historicalData?: Array<{ value: number | null | undefined }>;
   unit?: string;
   format?: 'number' | 'bps' | 'billion';
 }
@@ -20,8 +20,8 @@ export function MetricCard({
   unit = '', 
   format = 'number' 
 }: MetricCardProps) {
-  const formatValue = (val: number | null) => {
-    if (val === null) return 'N/A';
+  const formatValue = (val: number | null | undefined) => {
+    if (val === null || val === undefined || isNaN(val)) return 'N/A';
     
     switch (format) {
       case 'bps':
@@ -45,7 +45,7 @@ export function MetricCard({
   };
 
   const getTrend = () => {
-    if (!value || value === null) return null;
+    if (!value || value === null || value === undefined || isNaN(value)) return null;
     
     // Debug logging per tutti i principali indicatori
     if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie'].includes(title)) {

@@ -207,7 +207,10 @@ const Index = () => {
           <>
             {/* Scenario Attuale */}
             <section className="space-y-6">
-              <ScenarioCard scenario={latestData?.scenario ?? null} />
+              <ScenarioCard 
+                scenario={latestData?.scenario ?? null} 
+                currentData={latestData}
+              />
             </section>
 
             {/* Metriche Rapide */}

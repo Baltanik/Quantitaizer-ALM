@@ -39,7 +39,11 @@ Deno.serve(async (req) => {
       'RPONTTLD',
       'DTB3',
       'DTB1YR',
-      'DGS10' // 10-Year Treasury (us10y)
+      'DGS10', // 10-Year Treasury (us10y)
+      'VIXCLS', // VIX Volatility Index
+      'BAMLH0A0HYM2', // High Yield Option Adjusted Spread
+      'T10Y3M' // 10-Year Treasury Constant Maturity Minus 3-Month Treasury
+      // DXY rimosso - verrà preso da Yahoo Finance
     ];
 
     // Fetch data from 2021 to today
@@ -70,7 +74,13 @@ Deno.serve(async (req) => {
         const json: SeriesResponse = await response.json();
         
         if (json.observations && json.observations.length > 0) {
-          const key = seriesId.toLowerCase().replace('dgs10', 'us10y');
+          // Map FRED series names to database field names
+          let key = seriesId.toLowerCase();
+          if (seriesId === 'DGS10') key = 'us10y';
+          if (seriesId === 'VIXCLS') key = 'vix';
+          if (seriesId === 'BAMLH0A0HYM2') key = 'hy_oas';
+          if (seriesId === 'T10Y3M') key = 't10y3m';
+          
           seriesData[key] = json.observations;
           
           // Get last 5 values for debugging
@@ -92,7 +102,46 @@ Deno.serve(async (req) => {
     }
     
     console.log(`\n📊 Fetch Summary: ${Object.keys(seriesData).length} series fetched successfully`);
-    console.log(`Missing series:`, series.filter(s => !seriesData[s.toLowerCase().replace('dgs10', 'us10y')]));
+    
+    // === FETCH DXY PROXY FROM FRED ===
+    // DXY reale non disponibile su FRED, uso DEXUSEU (USD/EUR) come proxy
+    // DEXUSEU range tipico: 0.85-1.25 (inverso del DXY trend)
+    console.log('\n🔄 Fetching DXY proxy (DEXUSEU) from FRED...');
+    try {
+      const dxyUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=DEXUSEU&api_key=${fredApiKey}&file_type=json&observation_start=${startDate}&observation_end=${endDate}`;
+      
+      const dxyResponse = await fetch(dxyUrl);
+      
+      if (dxyResponse.ok) {
+        const json: SeriesResponse = await dxyResponse.json();
+        
+        if (json.observations && json.observations.length > 0) {
+          // Convertiamo USD/EUR in un indice che si muove come il DXY
+          // DXY tipico: 90-110, USD/EUR tipico: 0.85-1.25
+          // Approssimiamo: DXY ≈ 100 / USD/EUR
+          const dxyData: FedDataPoint[] = json.observations.map(obs => ({
+            date: obs.date,
+            value: obs.value === '.' ? '.' : (100 / parseFloat(obs.value)).toFixed(5)
+          }));
+          
+          seriesData['dxy_broad'] = dxyData;
+          console.log(`✅ DXY (proxy DEXUSEU): ${dxyData.length} observations fetched`);
+          console.log(`   Last 5 values:`);
+          dxyData.slice(-5).forEach(obs => {
+            console.log(`     ${obs.date}: ${obs.value}`);
+          });
+        } else {
+          console.error(`❌ No observations for DEXUSEU`);
+          seriesData['dxy_broad'] = [];
+        }
+      } else {
+        console.error(`❌ Failed to fetch DEXUSEU: ${dxyResponse.status}`);
+        seriesData['dxy_broad'] = [];
+      }
+    } catch (error) {
+      console.error(`❌ Error fetching DXY proxy:`, error);
+      seriesData['dxy_broad'] = [];
+    }
 
     // Generate complete date range (all days from 2021 to today)
     const allDates: string[] = [];
@@ -142,6 +191,14 @@ Deno.serve(async (req) => {
       // Determine scenario
       data.scenario = determineScenario(data);
       scenarioCounts[data.scenario as keyof typeof scenarioCounts]++;
+      
+      // Derive scenario qualifiers
+      const scenarioState = deriveScenarioQualifiers(data);
+      data.context = scenarioState.context;
+      data.sustainability = scenarioState.sustainability;
+      data.risk_level = scenarioState.risk_level;
+      data.confidence = scenarioState.confidence;
+      data.drivers = scenarioState.drivers;
       
       // Debug dettagliato per l'ultimo giorno
       if (date === allDates[allDates.length - 1]) {
@@ -259,94 +316,76 @@ Deno.serve(async (req) => {
 });
 
 function determineScenario(data: any): string {
-  const { walcl, sofr_iorb_spread, wresbal } = data;
+  const { d_walcl_4w, d_wresbal_4w, d_rrpontsyd_4w } = data;
 
   // UNITÀ DI MISURA:
-  // - walcl: millions ($M) → divide by 1,000,000 for trillions
-  // - wresbal: billions ($B) → divide by 1,000 for trillions  
-  // - sofr_iorb_spread: decimal (0.01 = 1 basis point)
+  // - d_walcl_4w: millions ($M) → delta a 4 settimane
+  // - d_wresbal_4w: billions ($B) → delta a 4 settimane
+  // - d_rrpontsyd_4w: billions ($B) → delta a 4 settimane
 
   // Data validation
   const isValidData = 
-    walcl !== null && walcl > 0 &&
-    wresbal !== null && wresbal > 0 &&
-    sofr_iorb_spread !== null;
+    d_walcl_4w !== null &&
+    d_wresbal_4w !== null &&
+    d_rrpontsyd_4w !== null;
 
   if (!isValidData) {
     console.error('❌ INVALID DATA for scenario calculation:', {
-      walcl, wresbal, sofr_iorb_spread
+      d_walcl_4w, d_wresbal_4w, d_rrpontsyd_4w
     });
     console.error('⚠️ Returning NEUTRAL due to missing data');
     return 'neutral';
   }
 
-  // Conversioni per readability
-  const walclTrillion = walcl / 1000000;  // $T
-  const wresbalTrillion = wresbal / 1000;  // $T
-  const spreadBps = sofr_iorb_spread * 100;  // basis points
-
   // Debug logging dettagliato
-  console.log('🔍 Scenario Calculation - Raw Values:', {
-    walcl_millions: walcl,
-    wresbal_billions: wresbal,
-    spread_decimal: sofr_iorb_spread
+  console.log('🔍 Scenario Calculation (DELTA-BASED) - Raw Values:', {
+    d_walcl_4w_millions: d_walcl_4w,
+    d_wresbal_4w_billions: d_wresbal_4w,
+    d_rrpontsyd_4w_billions: d_rrpontsyd_4w
   });
 
   console.log('🔍 Scenario Calculation - Readable:', {
-    walcl: `$${walclTrillion.toFixed(2)}T`,
-    wresbal: `$${wresbalTrillion.toFixed(2)}T`,
-    spread: `${spreadBps.toFixed(2)}bps`
+    balance_sheet_change: `${d_walcl_4w > 0 ? '+' : ''}$${(d_walcl_4w / 1000).toFixed(1)}B`,
+    reserves_change: `${d_wresbal_4w > 0 ? '+' : ''}$${d_wresbal_4w.toFixed(1)}B`,
+    rrp_change: `${d_rrpontsyd_4w > 0 ? '+' : ''}$${d_rrpontsyd_4w.toFixed(1)}B`
   });
 
-  // Range validation (sanity checks)
-  if (walcl < 5000000 || walcl > 10000000) {
-    console.warn(`⚠️ WALCL out of expected range: $${walclTrillion.toFixed(2)}T (expected $5T-$10T)`);
-  }
-  if (wresbal < 1000 || wresbal > 5000) {
-    console.warn(`⚠️ WRESBAL out of expected range: $${wresbalTrillion.toFixed(2)}T (expected $1T-$5T)`);
-  }
-  if (Math.abs(sofr_iorb_spread) > 1.0) {
-    console.warn(`⚠️ SPREAD out of expected range: ${spreadBps.toFixed(2)}bps (expected -100bps to +100bps)`);
-  }
+  console.log('🎯 Checking Scenario Conditions (Soglie Macro Validate)...');
 
-  // Updated thresholds based on current market conditions (Nov 2024)
-  // Current levels: WALCL ~$7.0T, WRESBAL ~$3.2T, SPREAD ~8bps
-
-  console.log('🎯 Checking Scenario Conditions...');
-
-  // Full QE: Very large balance sheet and reserves (CHECK FIRST)
-  const qeCondition = walcl > 8000000 && wresbal > 4000;
-  console.log(`   QE: WALCL > $8.0T (${walcl > 8000000}) && WRESBAL > $4.0T (${wresbal > 4000}) = ${qeCondition}`);
+  // === QE AGGRESSIVO ===
+  // Soglia: Bilancio +$20B E Riserve +$100B (4 settimane)
+  // Fonte: Ricerca Fed - indica intervento significativo
+  const qeCondition = d_walcl_4w > 20000 && d_wresbal_4w > 100;
+  console.log(`   QE: ΔBS > $20B (${d_walcl_4w > 20000}) && ΔRiserve > $100B (${d_wresbal_4w > 100}) = ${qeCondition}`);
   
   if (qeCondition) {
-    console.log('✅ Scenario: QE detected');
+    console.log('✅ Scenario: QE - Espansione aggressiva rilevata');
     return 'qe';
   }
 
-  // Stealth QE: Balance sheet expansion with tight spread
-  // SOGLIA ABBASSATA: WALCL > $6.5T (era $6.8T) per matchare dati attuali
-  const stealthQeCondition = 
-    walcl > 6500000 && 
-    sofr_iorb_spread < 0.20 && 
-    wresbal > 2500;
-  
-  console.log(`   STEALTH_QE: WALCL > $6.5T (${walcl > 6500000}) && SPREAD < 20bps (${sofr_iorb_spread < 0.20}) && WRESBAL > $2.5T (${wresbal > 2500}) = ${stealthQeCondition}`);
+  // === STEALTH QE ===
+  // Soglia: Riserve in aumento OPPURE RRP in drenaggio >$20B
+  // Fonte: Letteratura Fed - rotazione liquidità da RRP a riserve è stimolativa
+  const stealthQeCondition = d_wresbal_4w > 0 || d_rrpontsyd_4w < -20;
+  console.log(`   STEALTH_QE: ΔRiserve > 0 (${d_wresbal_4w > 0}) || ΔRRP < -$20B (${d_rrpontsyd_4w < -20}) = ${stealthQeCondition}`);
   
   if (stealthQeCondition) {
-    console.log('✅ Scenario: STEALTH_QE detected');
+    console.log('✅ Scenario: STEALTH_QE - Rotazione liquidità o espansione graduale');
     return 'stealth_qe';
   }
 
-  // QT: Shrinking balance sheet with wide spread
-  const qtCondition = walcl < 6500000 && sofr_iorb_spread > 0.25;
-  console.log(`   QT: WALCL < $6.5T (${walcl < 6500000}) && SPREAD > 25bps (${sofr_iorb_spread > 0.25}) = ${qtCondition}`);
+  // === QT (QUANTITATIVE TIGHTENING) ===
+  // Soglia: Bilancio -$20B O Riserve -$100B (4 settimane)
+  // Fonte: Thresholds standard per contrazione Fed
+  const qtCondition = d_walcl_4w < -20000 || d_wresbal_4w < -100;
+  console.log(`   QT: ΔBS < -$20B (${d_walcl_4w < -20000}) || ΔRiserve < -$100B (${d_wresbal_4w < -100}) = ${qtCondition}`);
   
   if (qtCondition) {
-    console.log('✅ Scenario: QT detected');
+    console.log('✅ Scenario: QT - Contrazione attiva rilevata');
     return 'qt';
   }
 
-  console.log('✅ Scenario: NEUTRAL (no conditions met)');
+  console.log('✅ Scenario: NEUTRAL - Nessun movimento significativo');
   return 'neutral';
 }
 
@@ -407,4 +446,77 @@ function generateSignal(data: any): any {
 
   console.log('ℹ️ No specific signal generated');
   return null;
+}
+
+function deriveScenarioQualifiers(inputs: any): {
+  context: string;
+  sustainability: string;
+  risk_level: string;
+  confidence: string;
+  drivers: string[];
+} {
+  // === CONTEGGIO SEGNALI STRESS vs GROWTH ===
+  // Usiamo indicatori macro validate
+  
+  const stressSignals = [
+    (inputs.vix || 0) > 22, // VIX elevato (>22 = incertezza elevata)
+    (inputs.hy_oas || 0) > 5.5, // High Yield spread widening (>5.5% = stress credito)
+    (inputs.d_dxy_4w || 0) > 0.5, // Dollar in rafforzamento (flight to safety)
+    (inputs.t10y3m || 0) < 0 && (inputs.d_t10y3m_4w || 0) < 0, // Curva invertita e in peggioramento
+    (inputs.sofr_iorb_spread || 0) > 0 // SOFR > IORB (tensione liquidità)
+  ].filter(Boolean).length;
+  
+  const growthSignals = [
+    (inputs.vix || 100) < 16, // VIX basso (<16 = bassa volatilità)
+    (inputs.hy_oas || 100) < 4.0, // High Yield spread stretto (<4% = fiducia credito)
+    (inputs.d_dxy_4w || 0) < -0.5, // Dollar in indebolimento (risk-on)
+    (inputs.t10y3m || 0) > 0 || (inputs.d_t10y3m_4w || 0) > 0, // Curva normale o in miglioramento
+    (inputs.d_wresbal_4w || 0) > 0 && (inputs.d_rrpontsyd_4w || 0) < 0 // Rotazione liquidità positiva
+  ].filter(Boolean).length;
+  
+  // === 1) CONTEXT ===
+  let context = 'ambiguo';
+  if (stressSignals >= 2 && stressSignals > growthSignals) {
+    context = 'stress_guidato';
+  } else if (growthSignals >= 2 && growthSignals > stressSignals) {
+    context = 'crescita_guidata';
+  }
+  
+  // === 2) SUSTAINABILITY ===
+  // Rotazione liquidità sana: riserve in aumento + RRP in drenaggio
+  const rotationOk = (inputs.d_wresbal_4w || 0) > 0 && (inputs.d_rrpontsyd_4w || 0) < 0;
+  let sustainability = 'media';
+  
+  if (rotationOk && growthSignals >= 2) {
+    sustainability = 'alta';
+  } else if (context === 'stress_guidato' || (!rotationOk && (inputs.d_walcl_4w || 0) > 0)) {
+    sustainability = 'bassa';
+  }
+  
+  // === 3) RISK LEVEL ===
+  let risk_level = 'elevato';
+  
+  if (context === 'crescita_guidata' && sustainability !== 'bassa') {
+    risk_level = 'normale';
+  } else if (context === 'stress_guidato' && ((inputs.vix || 0) > 24 || (inputs.hy_oas || 0) > 6.0)) {
+    risk_level = 'alto';
+  }
+  
+  // === 4) CONFIDENCE ===
+  // Basato sul numero di segnali concordi
+  const votes = Math.max(stressSignals, growthSignals);
+  const confidence = votes >= 3 ? 'alta' : votes === 2 ? 'media' : 'bassa';
+  
+  // === 5) DRIVERS ===
+  // Lista dei fattori chiave che influenzano lo scenario
+  const drivers: string[] = [];
+  if ((inputs.d_wresbal_4w || 0) > 0) drivers.push('Riserve in aumento');
+  if ((inputs.d_rrpontsyd_4w || 0) < 0) drivers.push('RRP in drenaggio');
+  if ((inputs.vix || 0) > 22) drivers.push('VIX elevato');
+  if ((inputs.hy_oas || 0) > 5.5) drivers.push('HY OAS in widening');
+  if ((inputs.d_dxy_4w || 0) > 0.5) drivers.push('USD in rafforzamento');
+  if ((inputs.t10y3m || 0) < 0) drivers.push('Curva invertita');
+  if ((inputs.sofr_iorb_spread || 0) > 0) drivers.push('SOFR > IORB (tensione)');
+  
+  return { context, sustainability, risk_level, confidence, drivers };
 }
