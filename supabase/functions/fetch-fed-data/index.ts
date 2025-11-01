@@ -117,16 +117,21 @@ Deno.serve(async (req) => {
       recordsToInsert.push(data);
     }
 
-    console.log(`Inserting ${recordsToInsert.length} records into database`);
+    console.log(`Inserting ${recordsToInsert.length} records into database in batches`);
 
-    // Insert all records (batch upsert)
-    const { error: upsertError } = await supabase
-      .from('fed_data')
-      .upsert(recordsToInsert, { onConflict: 'date' });
+    // Insert records in smaller batches to avoid timeout
+    const batchSize = 100;
+    for (let i = 0; i < recordsToInsert.length; i += batchSize) {
+      const batch = recordsToInsert.slice(i, i + batchSize);
+      const { error: upsertError } = await supabase
+        .from('fed_data')
+        .upsert(batch, { onConflict: 'date' });
 
-    if (upsertError) {
-      console.error('Database error:', upsertError);
-      throw upsertError;
+      if (upsertError) {
+        console.error(`Database error in batch ${i}-${i + batch.length}:`, upsertError);
+        throw upsertError;
+      }
+      console.log(`Inserted batch ${i / batchSize + 1}/${Math.ceil(recordsToInsert.length / batchSize)}`);
     }
 
     // Generate signal for latest data

@@ -21,54 +21,85 @@ const Index = () => {
   const [historicalData, setHistoricalData] = useState<FedData[]>([]);
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   const loadData = async () => {
-    setLoading(true);
+    if (isLoadingData) return; // Prevent multiple simultaneous calls
     
-    const [latest, historical, recentSignals] = await Promise.all([
-      fetchLatestFedData(),
-      fetchHistoricalFedData(90),
-      fetchRecentSignals(10)
-    ]);
-
-    // Se non ci sono dati, trigghera il fetch automaticamente
-    if (!latest || historical.length === 0) {
-      console.log('No data found, triggering automatic fetch...');
-      await triggerFedDataFetch();
-      // Ricarica dopo il fetch
-      const [newLatest, newHistorical, newSignals] = await Promise.all([
+    setIsLoadingData(true);
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const [latest, historical, recentSignals] = await Promise.all([
         fetchLatestFedData(),
         fetchHistoricalFedData(90),
         fetchRecentSignals(10)
       ]);
-      if (newLatest) setLatestData(newLatest);
-      if (newHistorical.length > 0) {
-        setHistoricalData(newHistorical);
-        if (newHistorical.length > 1) setPreviousData(newHistorical[1]);
+
+      // Se non ci sono dati, trigghera il fetch automaticamente (solo una volta)
+      if (!latest || historical.length === 0) {
+        console.log('No data found, triggering automatic fetch...');
+        const result = await triggerFedDataFetch();
+        
+        if (!result.success) {
+          setError('Errore nel recupero dati dalla Fed. Riprova più tardi.');
+          setLoading(false);
+          setIsLoadingData(false);
+          return;
+        }
+        
+        // Ricarica dopo il fetch (attendi un po' per dare tempo al DB)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const [newLatest, newHistorical, newSignals] = await Promise.all([
+          fetchLatestFedData(),
+          fetchHistoricalFedData(90),
+          fetchRecentSignals(10)
+        ]);
+        
+        if (newLatest) setLatestData(newLatest);
+        if (newHistorical.length > 0) {
+          setHistoricalData(newHistorical);
+          if (newHistorical.length > 1) setPreviousData(newHistorical[1]);
+        }
+        if (newSignals) setSignals(newSignals);
+      } else {
+        if (latest) setLatestData(latest);
+        if (historical.length > 0) {
+          setHistoricalData(historical);
+          if (historical.length > 1) setPreviousData(historical[1]);
+        }
+        if (recentSignals) setSignals(recentSignals);
       }
-      if (newSignals) setSignals(newSignals);
-    } else {
-      if (latest) setLatestData(latest);
-      if (historical.length > 0) {
-        setHistoricalData(historical);
-        if (historical.length > 1) setPreviousData(historical[1]);
-      }
-      if (recentSignals) setSignals(recentSignals);
+    } catch (err) {
+      console.error('Error loading data:', err);
+      setError('Errore nel caricamento dei dati. Riprova più tardi.');
+    } finally {
+      setLoading(false);
+      setIsLoadingData(false);
     }
-    
-    setLoading(false);
   };
 
   useEffect(() => {
     loadData();
 
-    // Subscribe to real-time updates
+    // Subscribe to real-time updates (limitato per evitare loop)
+    let reloadTimeout: NodeJS.Timeout;
     const channel = subscribeToFedData((payload) => {
       console.log('Real-time update:', payload);
-      loadData();
+      // Debounce: attendi 3 secondi prima di ricaricare
+      clearTimeout(reloadTimeout);
+      reloadTimeout = setTimeout(() => {
+        if (!isLoadingData) {
+          loadData();
+        }
+      }, 3000);
     });
 
     return () => {
+      clearTimeout(reloadTimeout);
       channel.unsubscribe();
     };
   }, []);
@@ -81,6 +112,16 @@ const Index = () => {
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-20 space-y-4">
+            <p className="text-destructive text-lg">{error}</p>
+            <button 
+              onClick={() => loadData()} 
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Riprova
+            </button>
           </div>
         ) : (
           <>
