@@ -92,9 +92,9 @@ export function Header({ lastUpdate, onRefresh }: HeaderProps) {
           </div>
         </div>
         
-        {/* Last Update - Mobile Friendly */}
+        {/* Last Update - Always Bottom */}
         {lastUpdate && (
-          <div className="absolute top-4 right-4 md:bottom-4 md:top-auto text-right">
+          <div className="absolute bottom-4 left-4 text-left">
             <p className="text-xs text-slate-500">Ultimo Aggiornamento</p>
             <p className="text-xs font-mono text-slate-400">
               {new Date(lastUpdate).toLocaleString('it-IT', {
