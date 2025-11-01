@@ -122,9 +122,24 @@ const Index = () => {
         console.log('   Are they the same?', result.historical[0]?.sofr === result.latest?.sofr);
         
         if (result.historical.length > 1) {
-          setPreviousData(result.historical[1]);
-          console.log('   Previous data (index 1) SOFR:', result.historical[1]?.sofr);
-          console.log('   Previous data date:', result.historical[1]?.date);
+          // Se il valore del giorno precedente è uguale a quello corrente, cerca un valore diverso
+          let previousIndex = 1;
+          while (previousIndex < result.historical.length && 
+                 result.historical[previousIndex]?.sofr === result.latest?.sofr) {
+            previousIndex++;
+          }
+          
+          if (previousIndex < result.historical.length) {
+            setPreviousData(result.historical[previousIndex]);
+            console.log('   Previous data (index', previousIndex + ') SOFR:', result.historical[previousIndex]?.sofr);
+            console.log('   Previous data date:', result.historical[previousIndex]?.date);
+          } else {
+            // Se tutti i valori sono uguali, usa comunque l'index 1
+            setPreviousData(result.historical[1]);
+            console.log('   All values are the same, using index 1');
+            console.log('   Previous data (index 1) SOFR:', result.historical[1]?.sofr);
+            console.log('   Previous data date:', result.historical[1]?.date);
+          }
         }
         
         console.log(`✅ Historical data loaded: ${result.historical.length} records`);

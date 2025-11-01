@@ -47,8 +47,8 @@ export function MetricCard({
   const getTrend = () => {
     if (!value || value === null) return null;
     
-    // Debug logging per SOFR
-    if (title === 'SOFR') {
+    // Debug logging per tutti i principali indicatori
+    if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie'].includes(title)) {
       console.log('🔍 TREND CALCULATION DEBUG for', title);
       console.log('   Current value:', value);
       console.log('   Previous value:', previousValue);
@@ -59,13 +59,13 @@ export function MetricCard({
     if (previousValue !== null && previousValue !== undefined && !isNaN(previousValue) && previousValue !== 0) {
       const change = ((value - previousValue) / Math.abs(previousValue)) * 100;
       
-      if (title === 'SOFR') {
+      if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie'].includes(title)) {
         console.log('   ✅ Using previousValue:', previousValue);
         console.log('   ✅ Calculated change:', change.toFixed(4) + '%');
       }
       
       return change;
-    } else if (title === 'SOFR') {
+    } else if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie'].includes(title)) {
       console.log('   ❌ previousValue not usable:', previousValue, typeof previousValue);
     }
     
@@ -82,7 +82,7 @@ export function MetricCard({
     
     const change = ((value - lastHistoricalValue) / Math.abs(lastHistoricalValue)) * 100;
     
-    if (title === 'SOFR') {
+    if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie'].includes(title)) {
       console.log('   Using historical value:', lastHistoricalValue);
       console.log('   Calculated change:', change.toFixed(4) + '%');
     }
