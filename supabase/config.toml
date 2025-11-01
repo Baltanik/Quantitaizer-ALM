@@ -1,1 +1,4 @@
 project_id = "tolaojeqjcoskegelule"
+
+[functions.fetch-fed-data]
+verify_jwt = false
