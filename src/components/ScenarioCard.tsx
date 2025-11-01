@@ -78,15 +78,26 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
   const Icon = config.icon;
 
   return (
-    <Card className={`${config.bgClass} border-2`}>
+    <Card className="bg-slate-900/80 border-slate-800 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 relative overflow-hidden">
+      {/* Data Processing Animation - Light Beam Perimeter */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-300 to-transparent animate-pulse shadow-lg shadow-emerald-400/50" style={{animationDuration: '2s'}}></div>
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-300 to-transparent animate-pulse shadow-lg shadow-emerald-400/50" style={{animationDuration: '2.5s', animationDelay: '0.5s'}}></div>
+      <div className="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-transparent via-emerald-300 to-transparent animate-pulse shadow-lg shadow-emerald-400/50" style={{animationDuration: '3s', animationDelay: '1s'}}></div>
+      <div className="absolute right-0 top-0 w-1 h-full bg-gradient-to-b from-transparent via-emerald-300 to-transparent animate-pulse shadow-lg shadow-emerald-400/50" style={{animationDuration: '2.8s', animationDelay: '1.5s'}}></div>
+      
+      {/* Flowing Data Stream */}
+      <div className="absolute top-2 right-4 flex items-center gap-1 opacity-80">
+        <div className="w-1 h-1 bg-emerald-400 rounded-full animate-ping delay-100"></div>
+        <div className="w-1 h-1 bg-emerald-400 rounded-full animate-ping delay-300"></div>
+        <div className="w-1 h-1 bg-emerald-400 rounded-full animate-ping delay-500"></div>
+        <span className="text-xs text-emerald-400 font-mono ml-2 animate-pulse">LIVE</span>
+      </div>
+      
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
             Scenario di Mercato Attuale
           </CardTitle>
-          <Badge variant={config.badgeVariant} className="text-xs font-semibold px-3">
-            ATTIVO
-          </Badge>
         </div>
       </CardHeader>
       
@@ -137,8 +148,11 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
               return (
                 <div
                   key={index}
-                  className="flex items-start gap-3 p-3 rounded-lg bg-card/50 border border-border/50"
+                  className="flex items-start gap-3 p-3 rounded-lg bg-card/50 border border-border/50 hover:bg-card/70 transition-all duration-300 relative"
                 >
+                  {/* Data processing indicator */}
+                  <div className="absolute top-1 right-1 w-1 h-1 bg-emerald-400/40 rounded-full animate-ping" style={{animationDelay: `${index * 200}ms`}}></div>
+                  
                   <div className="p-1.5 rounded-md bg-muted">
                     <IndicatorIcon className="h-3.5 w-3.5 text-muted-foreground" />
                   </div>

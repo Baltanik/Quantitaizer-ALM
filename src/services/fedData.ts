@@ -29,66 +29,113 @@ export interface Signal {
 }
 
 export async function fetchLatestFedData(): Promise<FedData | null> {
-  const { data, error } = await supabase
-    .from('fed_data')
-    .select('*')
-    .order('date', { ascending: false })
-    .limit(1)
-    .single();
+  try {
+    const { data, error } = await Promise.race([
+      supabase
+        .from('fed_data')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(1)
+        .single(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 10000)
+      )
+    ]) as any;
 
-  if (error) {
-    console.error('Error fetching latest Fed data:', error);
+    if (error) {
+      console.error('Error fetching latest Fed data:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Timeout or error fetching latest Fed data:', error);
     return null;
   }
-
-  return data;
 }
 
 export async function fetchHistoricalFedData(limit: number = 90): Promise<FedData[]> {
-  const { data, error } = await supabase
-    .from('fed_data')
-    .select('*')
-    .order('date', { ascending: false })
-    .limit(limit);
+  try {
+    const { data, error } = await Promise.race([
+      supabase
+        .from('fed_data')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(limit),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 15000)
+      )
+    ]) as any;
 
-  if (error) {
-    console.error('Error fetching historical Fed data:', error);
+    if (error) {
+      console.error('Error fetching historical Fed data:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Timeout or error fetching historical Fed data:', error);
     return [];
   }
-
-  return data || [];
 }
 
 export async function fetchRecentSignals(limit: number = 10): Promise<Signal[]> {
-  const { data, error } = await supabase
-    .from('signals')
-    .select('*')
-    .order('date', { ascending: false })
-    .limit(limit);
+  try {
+    const { data, error } = await Promise.race([
+      supabase
+        .from('signals')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(limit),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 8000)
+      )
+    ]) as any;
 
-  if (error) {
-    console.error('Error fetching signals:', error);
+    if (error) {
+      console.error('Error fetching signals:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Timeout or error fetching signals:', error);
     return [];
   }
-
-  return data || [];
 }
 
 export async function triggerFedDataFetch(): Promise<{ success: boolean; error?: string }> {
   try {
-    const { data, error } = await supabase.functions.invoke('fetch-fed-data');
+    console.log('🔄 Triggering Fed data fetch...');
+    
+    const { data, error } = await Promise.race([
+      supabase.functions.invoke('fetch-fed-data'),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Edge function timeout (60s)')), 60000)
+      )
+    ]) as any;
     
     if (error) {
-      console.error('Error triggering Fed data fetch:', error);
-      return { success: false, error: error.message };
+      console.error('❌ Error triggering Fed data fetch:', error);
+      
+      // Gestione errori specifici
+      if (error.message?.includes('FRED_API_KEY')) {
+        return { success: false, error: 'FRED API Key non configurata in Supabase' };
+      }
+      if (error.message?.includes('rate limit')) {
+        return { success: false, error: 'Rate limit FRED API raggiunto. Riprova tra 1 ora.' };
+      }
+      
+      return { success: false, error: error.message || 'Errore sconosciuto' };
     }
 
-    return { success: true };
+    console.log('✅ Fed data fetch completed successfully');
+    return { success: true, data };
   } catch (error) {
-    console.error('Error triggering Fed data fetch:', error);
+    console.error('❌ Timeout or error triggering Fed data fetch:', error);
     return { 
       success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      error: error instanceof Error ? error.message : 'Timeout o errore di rete' 
     };
   }
 }
