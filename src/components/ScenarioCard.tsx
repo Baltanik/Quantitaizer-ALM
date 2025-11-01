@@ -108,10 +108,10 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
             <Icon className={`h-10 w-10 ${config.textClass}`} />
           </div>
           <div className="flex-1 space-y-1">
-            <h3 className={`text-3xl font-bold ${config.textClass}`}>
+            <h3 className="text-3xl font-bold text-white">
               {config.label}
             </h3>
-            <p className="text-base text-muted-foreground">
+            <p className="text-base text-slate-300">
               {config.description}
             </p>
           </div>
@@ -127,7 +127,7 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
             </div>
             <h4 className="font-semibold text-sm">Analisi Situazione</h4>
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed pl-8">
+          <p className="text-sm text-slate-300 leading-relaxed pl-8">
             {config.analysis}
           </p>
         </div>
@@ -157,10 +157,10 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
                     <IndicatorIcon className="h-3.5 w-3.5 text-muted-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground">
+                    <p className="text-xs font-medium text-white">
                       {indicator.label}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-xs text-slate-400 mt-0.5">
                       {indicator.status}
                     </p>
                   </div>
