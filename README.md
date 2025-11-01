@@ -1,73 +1,81 @@
-# Welcome to your Lovable project
+# QUANTITAIZER ALM - Analisi Liquidità Monetaria
 
-## Project info
+🚀 **Dashboard professionale per analisi liquidità Federal Reserve in tempo reale**
 
-**URL**: https://lovable.dev/projects/3d5dc257-c31c-4bab-b9b1-c89e7dc30870
+Monitora SOFR, IORB, bilancio Fed e scenari QE/QT. Strumento essenziale per trader, investitori e analisti finanziari.
 
-## How can I edit this code?
+**Live Demo**: https://www.quantitaizeralm.com/
 
-There are several ways of editing your application.
+## 🎯 Caratteristiche
 
-**Use Lovable**
+- **Dati Real-Time**: Aggiornamento quotidiano via FRED API
+- **Scenario Detection**: Rilevamento automatico QE/Stealth QE/QT/Neutral
+- **Metriche Chiave**: SOFR, IORB, spread, bilancio Fed, riserve bancarie
+- **Design Professionale**: UI moderna con effetti neurali
+- **Mobile Optimized**: Perfetto su tutti i dispositivi
+- **SEO Ottimizzato**: Meta tag completi per condivisioni social
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/3d5dc257-c31c-4bab-b9b1-c89e7dc30870) and start prompting.
+## 🛠️ Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React, TypeScript, Tailwind CSS, Vite
+- **Backend**: Supabase (PostgreSQL, Edge Functions)
+- **Data Source**: FRED API (Federal Reserve Economic Data)
+- **UI Components**: shadcn/ui, Lucide React
+- **Charts**: Recharts
+- **Deployment**: Vercel/Netlify compatible
 
-**Use your preferred IDE**
+## 🚀 Quick Start
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. **Clone repository**
+   ```bash
+   git clone https://github.com/Baltanik/fed-watch.git
+   cd fed-watch
+   ```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-Follow these steps:
+3. **Environment setup**
+   ```bash
+   # Copy environment template
+   cp .env.example .env.local
+   
+   # Add your FRED API key
+   VITE_FRED_API_KEY=your_fred_api_key_here
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+4. **Start development server**
+   ```bash
+   npm run dev
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 📊 Metriche Monitorate
 
-# Step 3: Install the necessary dependencies.
-npm i
+- **SOFR**: Secured Overnight Financing Rate
+- **IORB**: Interest on Reserve Balances  
+- **Spread SOFR-IORB**: Indicatore stress liquidità
+- **Bilancio Fed (WALCL)**: Total Assets Federal Reserve
+- **Riserve Bancarie (WRESBAL)**: Reserve Balances
+- **Reverse Repo (RRPONTSYD)**: Overnight Reverse Repo
+- **Treasury Bills**: 3M, 1Y, 10Y rates
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## 🎯 Scenari Rilevati
 
-**Edit a file directly in GitHub**
+- **Stealth QE**: Espansione bilancio con spread bassi
+- **QE**: Quantitative Easing ufficiale
+- **QT**: Quantitative Tightening
+- **Neutral**: Condizioni monetarie stabili
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📱 Supporto
 
-**Use GitHub Codespaces**
+Per supporto tecnico contatta: [@baltanikz](https://t.me/baltanikz)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 📄 License
 
-## What technologies are used for this project?
+MIT License - Vedi [LICENSE](LICENSE) per dettagli.
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/3d5dc257-c31c-4bab-b9b1-c89e7dc30870) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+**Made with ❤️ for the trading community**
