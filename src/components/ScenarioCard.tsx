@@ -78,7 +78,7 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
   const Icon = config.icon;
 
   return (
-    <Card className="bg-slate-900/90 border-slate-700 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 relative overflow-hidden">
+    <Card className="bg-slate-800 border-slate-600 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 relative overflow-hidden">
       {/* Data Processing Animation - Light Beam Perimeter */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-300 to-transparent animate-pulse shadow-lg shadow-emerald-400/50" style={{animationDuration: '2s'}}></div>
       <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-300 to-transparent animate-pulse shadow-lg shadow-emerald-400/50" style={{animationDuration: '2.5s', animationDelay: '0.5s'}}></div>
@@ -93,15 +93,15 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
         <span className="text-xs text-emerald-400 font-mono ml-2 animate-pulse">LIVE</span>
       </div>
       
-      <CardHeader className="pb-4 relative z-10">
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">
+          <CardTitle className="text-sm font-medium text-slate-300 uppercase tracking-wider">
             Scenario di Mercato Attuale
           </CardTitle>
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-6 relative z-10">
+      <CardContent className="space-y-6">
         {/* Hero Section */}
         <div className="flex items-start gap-4">
           <div className={`p-4 rounded-xl ${config.bgClass} ring-2 ring-${config.color}/20`}>
@@ -111,7 +111,7 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
             <h3 className="text-3xl font-bold text-white">
               {config.label}
             </h3>
-            <p className="text-base text-slate-300">
+            <p className="text-base text-slate-200">
               {config.description}
             </p>
           </div>
@@ -127,7 +127,7 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
             </div>
             <h4 className="font-semibold text-sm">Analisi Situazione</h4>
           </div>
-          <p className="text-sm text-slate-300 leading-relaxed pl-8">
+          <p className="text-sm text-slate-200 leading-relaxed pl-8">
             {config.analysis}
           </p>
         </div>
@@ -160,7 +160,7 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
                     <p className="text-xs font-medium text-white">
                       {indicator.label}
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-300 mt-0.5">
                       {indicator.status}
                     </p>
                   </div>
