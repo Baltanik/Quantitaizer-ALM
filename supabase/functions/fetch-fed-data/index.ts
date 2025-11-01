@@ -42,59 +42,90 @@ Deno.serve(async (req) => {
       'DGS10' // 10-Year Treasury (us10y)
     ];
 
-    const data: any = {};
-    const today = new Date().toISOString().split('T')[0];
+    // Calculate date 90 days ago
+    const today = new Date();
+    const ninetyDaysAgo = new Date(today);
+    ninetyDaysAgo.setDate(today.getDate() - 90);
+    
+    const startDate = ninetyDaysAgo.toISOString().split('T')[0];
+    const endDate = today.toISOString().split('T')[0];
 
-    // Fetch each series from FRED
+    console.log(`Fetching data from ${startDate} to ${endDate}`);
+
+    // Fetch historical data for each series (last 90 days)
+    const seriesData: { [key: string]: FedDataPoint[] } = {};
+    
     for (const seriesId of series) {
       try {
-        const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${fredApiKey}&file_type=json&sort_order=desc&limit=1`;
+        const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${fredApiKey}&file_type=json&observation_start=${startDate}&observation_end=${endDate}`;
         console.log(`Fetching ${seriesId}...`);
         
         const response = await fetch(url);
         const json: SeriesResponse = await response.json();
         
         if (json.observations && json.observations.length > 0) {
-          const value = parseFloat(json.observations[0].value);
           const key = seriesId.toLowerCase().replace('dgs10', 'us10y');
-          data[key] = isNaN(value) ? null : value;
-          console.log(`${seriesId}: ${data[key]}`);
+          seriesData[key] = json.observations;
+          console.log(`${seriesId}: ${json.observations.length} observations`);
         }
       } catch (error) {
         console.error(`Error fetching ${seriesId}:`, error);
-        data[seriesId.toLowerCase()] = null;
+        seriesData[seriesId.toLowerCase()] = [];
       }
     }
 
-    // Calculate SOFR-IORB spread
-    if (data.sofr !== null && data.iorb !== null) {
-      data.sofr_iorb_spread = data.sofr - data.iorb;
+    // Get all unique dates from all series
+    const allDates = new Set<string>();
+    Object.values(seriesData).forEach(observations => {
+      observations.forEach(obs => allDates.add(obs.date));
+    });
+
+    const sortedDates = Array.from(allDates).sort();
+    console.log(`Processing ${sortedDates.length} unique dates`);
+
+    // Process each date
+    const recordsToInsert = [];
+    for (const date of sortedDates) {
+      const data: any = { date };
+      
+      // Get value for each series on this date
+      Object.entries(seriesData).forEach(([key, observations]) => {
+        const obs = observations.find(o => o.date === date);
+        const value = obs ? parseFloat(obs.value) : null;
+        data[key] = isNaN(value as number) ? null : value;
+      });
+
+      // Calculate SOFR-IORB spread
+      if (data.sofr !== null && data.iorb !== null) {
+        data.sofr_iorb_spread = data.sofr - data.iorb;
+      }
+
+      // Determine scenario
+      data.scenario = determineScenario(data);
+      
+      recordsToInsert.push(data);
     }
 
-    // Determine scenario based on market conditions
-    const scenario = determineScenario(data);
-    data.scenario = scenario;
-    data.date = today;
+    console.log(`Inserting ${recordsToInsert.length} records into database`);
 
-    console.log('Calculated scenario:', scenario);
-
-    // Insert or update in database
+    // Insert all records (batch upsert)
     const { error: upsertError } = await supabase
       .from('fed_data')
-      .upsert([data], { onConflict: 'date' });
+      .upsert(recordsToInsert, { onConflict: 'date' });
 
     if (upsertError) {
       console.error('Database error:', upsertError);
       throw upsertError;
     }
 
-    // Generate signal if needed
-    const signal = generateSignal(data);
+    // Generate signal for latest data
+    const latestData = recordsToInsert[recordsToInsert.length - 1];
+    const signal = generateSignal(latestData);
     if (signal) {
       console.log('Generated signal:', signal);
       const { error: signalError } = await supabase
         .from('signals')
-        .insert([{ ...signal, date: today }]);
+        .insert([{ ...signal, date: latestData.date }]);
       
       if (signalError) {
         console.error('Signal insert error:', signalError);
@@ -106,8 +137,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        data,
-        scenario,
+        recordsInserted: recordsToInsert.length,
+        latestData,
         signal 
       }),
       { 
