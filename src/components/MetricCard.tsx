@@ -59,14 +59,21 @@ export function MetricCard({
     if (previousValue !== null && previousValue !== undefined && !isNaN(previousValue) && Math.abs(previousValue) > 0.001) {
       const change = ((value - previousValue) / Math.abs(previousValue)) * 100;
       
-      // Controllo di sanità: variazioni >100% sono sospette per dati Fed
-      if (Math.abs(change) > 100) {
+      // Controllo di sanità: soglie diverse per strumenti diversi
+      let maxChange = 100; // Default per tassi e bilanci
+      
+      // Strumenti di emergenza Fed possono avere variazioni più ampie
+      if (['Repo ON', 'Repo Term', 'Reverse Repo'].includes(title)) {
+        maxChange = 2000; // Fino a 2000% per strumenti di emergenza
+      }
+      
+      if (Math.abs(change) > maxChange) {
         if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie', 'Repo ON', 'Repo Term'].includes(title)) {
-          console.log('   🚨 SUSPICIOUS CHANGE for', title);
+          console.log('   🚨 CHANGE TOO HIGH for', title);
           console.log('   Current:', value, 'Previous:', previousValue);
-          console.log('   Change:', change.toFixed(4) + '% (TOO HIGH - RETURNING NULL)');
+          console.log('   Change:', change.toFixed(4) + '% (EXCEEDS', maxChange + '% - RETURNING NULL)');
         }
-        return null; // Non mostrare variazioni assurde
+        return null;
       }
       
       if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie', 'Repo ON', 'Repo Term'].includes(title)) {
@@ -93,11 +100,16 @@ export function MetricCard({
     const change = ((value - lastHistoricalValue) / Math.abs(lastHistoricalValue)) * 100;
     
     // Controllo di sanità anche per dati storici
-    if (Math.abs(change) > 100) {
+    let maxChange = 100; // Default per tassi e bilanci
+    if (['Repo ON', 'Repo Term', 'Reverse Repo'].includes(title)) {
+      maxChange = 2000; // Fino a 2000% per strumenti di emergenza
+    }
+    
+    if (Math.abs(change) > maxChange) {
       if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie', 'Repo ON', 'Repo Term'].includes(title)) {
-        console.log('   🚨 SUSPICIOUS HISTORICAL CHANGE for', title);
+        console.log('   🚨 HISTORICAL CHANGE TOO HIGH for', title);
         console.log('   Current:', value, 'Historical:', lastHistoricalValue);
-        console.log('   Change:', change.toFixed(4) + '% (TOO HIGH - RETURNING NULL)');
+        console.log('   Change:', change.toFixed(4) + '% (EXCEEDS', maxChange + '% - RETURNING NULL)');
       }
       return null;
     }
