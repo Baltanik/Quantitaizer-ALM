@@ -113,13 +113,13 @@ export function CombinedChart({ data }: CombinedChartProps) {
   return (
     <Card className="col-span-full">
       <CardHeader>
-        <CardTitle className="text-xl">All Indicators Combined - Scenario Analysis</CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Normalized 0-100 scale • Background colors show QE/QT scenarios • Hover to highlight
+        <CardTitle className="text-2xl font-bold">All Indicators - Scenario Analysis</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Normalized 0-100 scale • Background colors show QE/QT scenarios • Hover to highlight individual indicators
         </p>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={500}>
+        <ResponsiveContainer width="100%" height={600}>
           <ComposedChart data={chartData}>
             <defs>
               {scenarioZones.map((zone, idx) => (
@@ -150,9 +150,10 @@ export function CombinedChart({ data }: CombinedChartProps) {
                   label={{
                     value: zone.scenario.toUpperCase().replace('_', ' '),
                     position: 'top',
-                    fill: 'hsl(var(--muted-foreground))',
-                    fontSize: 10,
-                    fontWeight: 600
+                    fill: 'hsl(var(--foreground))',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    opacity: 0.7
                   }}
                 />
               );

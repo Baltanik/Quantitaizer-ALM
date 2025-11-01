@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Line, Area, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { FedData } from "@/services/fedData";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface ChartsProps {
   data: FedData[];
@@ -33,17 +34,20 @@ export function Charts({ data }: ChartsProps) {
   }));
 
   return (
-    <div className="space-y-8">
+    <Accordion type="multiple" className="w-full space-y-4">
       {/* Interest Rates */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold border-l-4 border-primary pl-3">Interest Rates</h3>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">SOFR-IORB Spread</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+      <AccordionItem value="interest-rates" className="border rounded-lg px-4">
+        <AccordionTrigger className="text-lg font-semibold hover:no-underline">
+          Interest Rates
+        </AccordionTrigger>
+        <AccordionContent className="pt-4">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">SOFR-IORB Spread</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
                 <ComposedChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis 
@@ -78,12 +82,12 @@ export function Charts({ data }: ChartsProps) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">SOFR vs IORB</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">SOFR vs IORB</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
                 <ComposedChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis 
@@ -126,12 +130,12 @@ export function Charts({ data }: ChartsProps) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Treasury Bills</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Treasury Bills</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
                 <ComposedChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis 
@@ -173,19 +177,23 @@ export function Charts({ data }: ChartsProps) {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-        </div>
-      </div>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
 
       {/* Fed Balance & Liquidity */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold border-l-4 border-primary pl-3">Fed Balance & Liquidity</h3>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Fed Balance Sheet (WALCL)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+      <AccordionItem value="fed-balance" className="border rounded-lg px-4">
+        <AccordionTrigger className="text-lg font-semibold hover:no-underline">
+          Fed Balance & Liquidity
+        </AccordionTrigger>
+        <AccordionContent className="pt-4">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Fed Balance Sheet (WALCL)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
                 <ComposedChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis 
@@ -220,12 +228,12 @@ export function Charts({ data }: ChartsProps) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Reserve Balances (WRESBAL)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Reserve Balances (WRESBAL)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
                 <ComposedChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis 
@@ -260,12 +268,12 @@ export function Charts({ data }: ChartsProps) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Reverse Repo (RRP)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Reverse Repo (RRP)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
                 <ComposedChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis 
@@ -299,19 +307,23 @@ export function Charts({ data }: ChartsProps) {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-        </div>
-      </div>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
 
       {/* Repo Operations */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold border-l-4 border-primary pl-3">Repo Operations</h3>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Repo Overnight (RPONTSYD)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+      <AccordionItem value="repo-operations" className="border rounded-lg px-4">
+        <AccordionTrigger className="text-lg font-semibold hover:no-underline">
+          Repo Operations
+        </AccordionTrigger>
+        <AccordionContent className="pt-4">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Repo Overnight (RPONTSYD)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
                 <ComposedChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis 
@@ -346,12 +358,12 @@ export function Charts({ data }: ChartsProps) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Repo Term (RPONTTLD)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Repo Term (RPONTTLD)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
                 <ComposedChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis 
@@ -385,8 +397,9 @@ export function Charts({ data }: ChartsProps) {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-        </div>
-      </div>
-    </div>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }

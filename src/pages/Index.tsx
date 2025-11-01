@@ -78,33 +78,47 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header lastUpdate={latestData?.updated_at} />
       
-      <main className="container mx-auto px-4 py-8 space-y-8">
+      <main className="container mx-auto px-4 py-8 space-y-12">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
           </div>
         ) : (
           <>
-            <ScenarioCard scenario={latestData?.scenario ?? null} />
-            
-            <MetricsGrid 
-              currentData={latestData} 
-              previousData={previousData}
-              historicalData={historicalData}
-            />
+            {/* Hero Section */}
+            <section className="space-y-6">
+              <ScenarioCard scenario={latestData?.scenario ?? null} />
+              <CombinedChart data={historicalData} />
+            </section>
 
-            <CombinedChart data={historicalData} />
+            {/* Quick Metrics */}
+            <section className="space-y-4">
+              <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Quick Metrics</h2>
+              <MetricsGrid 
+                currentData={latestData} 
+                previousData={previousData}
+                historicalData={historicalData}
+              />
+            </section>
             
-            <Charts data={historicalData} />
+            {/* Detailed Analysis */}
+            <section className="space-y-4">
+              <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Detailed Analysis</h2>
+              <Charts data={historicalData} />
+            </section>
             
-            <div className="grid gap-6 lg:grid-cols-3">
-              <div className="lg:col-span-2">
-                <DataTable data={historicalData} />
+            {/* Data Deep Dive */}
+            <section className="space-y-4">
+              <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Data Deep Dive</h2>
+              <div className="grid gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                  <DataTable data={historicalData} />
+                </div>
+                <div>
+                  <AlertPanel signals={signals} />
+                </div>
               </div>
-              <div>
-                <AlertPanel signals={signals} />
-              </div>
-            </div>
+            </section>
           </>
         )}
       </main>

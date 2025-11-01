@@ -10,9 +10,9 @@ interface MetricsGridProps {
 export function MetricsGrid({ currentData, previousData, historicalData }: MetricsGridProps) {
   if (!currentData) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="h-40 bg-card animate-pulse rounded-lg" />
+          <div key={i} className="h-32 bg-card animate-pulse rounded-lg" />
         ))}
       </div>
     );
@@ -24,7 +24,7 @@ export function MetricsGrid({ currentData, previousData, historicalData }: Metri
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
       <MetricCard
         title="SOFR"
         value={currentData.sofr}
