@@ -1,12 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Line, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { FedData } from "@/services/fedData";
+import { useState } from "react";
 
 interface CombinedChartProps {
   data: FedData[];
 }
 
 export function CombinedChart({ data }: CombinedChartProps) {
+  const [hoveredLine, setHoveredLine] = useState<string | null>(null);
+
   // Normalize all values to 0-100 scale for comparison
   const normalizeValue = (value: number | null, min: number, max: number): number | null => {
     if (value === null) return null;
@@ -16,7 +19,8 @@ export function CombinedChart({ data }: CombinedChartProps) {
 
   // Calculate min/max for each metric
   const getMinMax = (key: keyof FedData) => {
-    const values = data.map(d => d[key] as number).filter(v => v !== null);
+    const values = data.map(d => d[key] as number).filter(v => v !== null && !isNaN(v));
+    if (values.length === 0) return { min: 0, max: 100 };
     return { min: Math.min(...values), max: Math.max(...values) };
   };
 
@@ -47,131 +51,86 @@ export function CombinedChart({ data }: CombinedChartProps) {
     dtb1yr: normalizeValue(d.dtb1yr, ranges.dtb1yr.min, ranges.dtb1yr.max),
   }));
 
+  const getStrokeWidth = (lineKey: string) => {
+    if (!hoveredLine) return 1;
+    return hoveredLine === lineKey ? 3 : 0.5;
+  };
+
+  const getOpacity = (lineKey: string) => {
+    if (!hoveredLine) return 0.8;
+    return hoveredLine === lineKey ? 1 : 0.2;
+  };
+
+  const lineConfig = [
+    { key: 'spread', name: 'SOFR-IORB Spread', color: 'hsl(var(--chart-3))', primary: true },
+    { key: 'walcl', name: 'Fed Balance', color: 'hsl(var(--primary))', primary: true },
+    { key: 'wresbal', name: 'Reserves', color: 'hsl(var(--success))', primary: true },
+    { key: 'sofr', name: 'SOFR', color: 'hsl(var(--chart-1))' },
+    { key: 'iorb', name: 'IORB', color: 'hsl(var(--chart-2))' },
+    { key: 'rrpontsyd', name: 'RRP', color: 'hsl(var(--warning))' },
+    { key: 'rpontsyd', name: 'Repo ON', color: 'hsl(var(--chart-4))' },
+    { key: 'rponttld', name: 'Repo Term', color: 'hsl(var(--chart-5))' },
+    { key: 'dtb3', name: '3M T-Bill', color: 'hsl(var(--accent))' },
+    { key: 'dtb1yr', name: '1Y T-Bill', color: 'hsl(var(--destructive))' },
+  ];
+
   return (
     <Card className="col-span-full">
       <CardHeader>
-        <CardTitle className="text-xl">All Indicators Combined (Normalized 0-100)</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          All metrics scaled to 0-100 for comparison - shows relative trends across all indicators
+        <CardTitle className="text-lg">All Indicators Combined</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Normalized 0-100 scale • Hover to highlight • Gaps indicate missing data
         </p>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={500}>
+        <ResponsiveContainer width="100%" height={400}>
           <ComposedChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
             <XAxis 
               dataKey="date" 
               stroke="hsl(var(--muted-foreground))"
-              style={{ fontSize: '12px' }}
+              style={{ fontSize: '10px' }}
+              tick={{ fill: 'hsl(var(--muted-foreground))' }}
             />
             <YAxis 
               stroke="hsl(var(--muted-foreground))"
-              style={{ fontSize: '12px' }}
-              label={{ value: 'Normalized Value (0-100)', angle: -90, position: 'insideLeft' }}
+              style={{ fontSize: '10px' }}
+              tick={{ fill: 'hsl(var(--muted-foreground))' }}
               domain={[0, 100]}
+              ticks={[0, 25, 50, 75, 100]}
             />
             <Tooltip 
               contentStyle={{ 
                 backgroundColor: 'hsl(var(--card))',
                 border: '1px solid hsl(var(--border))',
-                borderRadius: '8px'
+                borderRadius: '6px',
+                fontSize: '11px',
+                padding: '8px'
               }}
-              formatter={(value: any) => value?.toFixed(2)}
+              formatter={(value: any) => value?.toFixed(1)}
             />
-            <Legend />
-            
-            {/* Primary indicators */}
-            <Line 
-              type="monotone" 
-              dataKey="sofr" 
-              stroke="hsl(var(--chart-1))" 
-              strokeWidth={2}
-              name="SOFR"
-              dot={false}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="iorb" 
-              stroke="hsl(var(--chart-2))" 
-              strokeWidth={2}
-              name="IORB"
-              dot={false}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="spread" 
-              stroke="hsl(var(--chart-3))" 
-              strokeWidth={3}
-              name="SOFR-IORB Spread"
-              dot={false}
+            <Legend 
+              wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+              iconSize={10}
+              onMouseEnter={(e) => setHoveredLine(String(e.dataKey))}
+              onMouseLeave={() => setHoveredLine(null)}
             />
             
-            {/* Balance sheet indicators */}
-            <Line 
-              type="monotone" 
-              dataKey="walcl" 
-              stroke="hsl(var(--primary))" 
-              strokeWidth={3}
-              name="Fed Balance Sheet"
-              dot={false}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="wresbal" 
-              stroke="hsl(var(--success))" 
-              strokeWidth={2}
-              name="Reserve Balances"
-              dot={false}
-            />
-            
-            {/* Repo indicators */}
-            <Line 
-              type="monotone" 
-              dataKey="rrpontsyd" 
-              stroke="hsl(var(--warning))" 
-              strokeWidth={1.5}
-              name="Reverse Repo"
-              dot={false}
-              strokeDasharray="5 5"
-            />
-            <Line 
-              type="monotone" 
-              dataKey="rpontsyd" 
-              stroke="hsl(var(--chart-4))" 
-              strokeWidth={1.5}
-              name="Repo ON"
-              dot={false}
-              strokeDasharray="3 3"
-            />
-            <Line 
-              type="monotone" 
-              dataKey="rponttld" 
-              stroke="hsl(var(--chart-5))" 
-              strokeWidth={1.5}
-              name="Repo Term"
-              dot={false}
-              strokeDasharray="3 3"
-            />
-            
-            {/* Treasury rates */}
-            <Line 
-              type="monotone" 
-              dataKey="dtb3" 
-              stroke="hsl(var(--accent))" 
-              strokeWidth={1.5}
-              name="3M Treasury"
-              dot={false}
-              opacity={0.7}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="dtb1yr" 
-              stroke="hsl(var(--destructive))" 
-              strokeWidth={1.5}
-              name="1Y Treasury"
-              dot={false}
-              opacity={0.7}
-            />
+            {lineConfig.map((line) => (
+              <Line
+                key={line.key}
+                type="monotone"
+                dataKey={line.key}
+                stroke={line.color}
+                strokeWidth={getStrokeWidth(line.key)}
+                name={line.name}
+                dot={false}
+                connectNulls={false}
+                opacity={getOpacity(line.key)}
+                onMouseEnter={() => setHoveredLine(line.key)}
+                onMouseLeave={() => setHoveredLine(null)}
+              />
+            ))}
           </ComposedChart>
         </ResponsiveContainer>
       </CardContent>
