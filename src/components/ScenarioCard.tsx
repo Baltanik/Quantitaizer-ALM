@@ -78,7 +78,7 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
   const Icon = config.icon;
 
   return (
-    <Card className="bg-slate-900/80 border-slate-800 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 relative overflow-hidden">
+    <Card className="bg-slate-900/90 border-slate-700 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 relative overflow-hidden">
       {/* Data Processing Animation - Light Beam Perimeter */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-300 to-transparent animate-pulse shadow-lg shadow-emerald-400/50" style={{animationDuration: '2s'}}></div>
       <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-300 to-transparent animate-pulse shadow-lg shadow-emerald-400/50" style={{animationDuration: '2.5s', animationDelay: '0.5s'}}></div>
@@ -93,15 +93,15 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
         <span className="text-xs text-emerald-400 font-mono ml-2 animate-pulse">LIVE</span>
       </div>
       
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-4 relative z-10">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+          <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">
             Scenario di Mercato Attuale
           </CardTitle>
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 relative z-10">
         {/* Hero Section */}
         <div className="flex items-start gap-4">
           <div className={`p-4 rounded-xl ${config.bgClass} ring-2 ring-${config.color}/20`}>

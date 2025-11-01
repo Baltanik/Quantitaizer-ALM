@@ -69,21 +69,21 @@ export function Header({ lastUpdate, onRefresh }: HeaderProps) {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-0.5 h-32 bg-gradient-to-b from-transparent via-emerald-400/20 to-transparent animate-pulse delay-500"></div>
       </div>
       
-      <div className="container mx-auto px-4 py-8 relative z-10">
+      <div className="container mx-auto px-4 py-8 relative z-20">
         <div className="flex items-center justify-center">
-          <div className="text-center">
+          <div className="text-center relative z-30">
             {/* Main Title - Clean and Professional */}
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white mb-2 tracking-tight">
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white mb-2 tracking-tight drop-shadow-lg">
               QUANTITAIZER
             </h1>
             
             {/* ALM Subtitle */}
-            <h2 className="text-xl md:text-3xl font-bold text-emerald-400 tracking-[0.2em] mb-4">
+            <h2 className="text-xl md:text-3xl font-bold text-emerald-400 tracking-[0.2em] mb-4 drop-shadow-lg">
               ALM
             </h2>
             
             {/* Description */}
-            <p className="text-lg md:text-xl text-slate-400 font-light tracking-wide">
+            <p className="text-lg md:text-xl text-slate-300 font-light tracking-wide drop-shadow-md">
               Analisi Liquidità Monetaria
             </p>
             
