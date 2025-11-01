@@ -14,7 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bitcoin_data: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: number
+          price: number | null
+          volume: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: number
+          price?: number | null
+          volume?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: number
+          price?: number | null
+          volume?: number | null
+        }
+        Relationships: []
+      }
+      fed_data: {
+        Row: {
+          created_at: string | null
+          date: string
+          dtb1yr: number | null
+          dtb3: number | null
+          id: number
+          iorb: number | null
+          rpontsyd: number | null
+          rponttld: number | null
+          rrpontsyd: number | null
+          scenario: string | null
+          sofr: number | null
+          sofr_iorb_spread: number | null
+          updated_at: string | null
+          us10y: number | null
+          walcl: number | null
+          wresbal: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          dtb1yr?: number | null
+          dtb3?: number | null
+          id?: number
+          iorb?: number | null
+          rpontsyd?: number | null
+          rponttld?: number | null
+          rrpontsyd?: number | null
+          scenario?: string | null
+          sofr?: number | null
+          sofr_iorb_spread?: number | null
+          updated_at?: string | null
+          us10y?: number | null
+          walcl?: number | null
+          wresbal?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          dtb1yr?: number | null
+          dtb3?: number | null
+          id?: number
+          iorb?: number | null
+          rpontsyd?: number | null
+          rponttld?: number | null
+          rrpontsyd?: number | null
+          scenario?: string | null
+          sofr?: number | null
+          sofr_iorb_spread?: number | null
+          updated_at?: string | null
+          us10y?: number | null
+          walcl?: number | null
+          wresbal?: number | null
+        }
+        Relationships: []
+      }
+      signals: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          date: string
+          description: string | null
+          id: number
+          signal_type: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          date: string
+          description?: string | null
+          id?: number
+          signal_type?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          date?: string
+          description?: string | null
+          id?: number
+          signal_type?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
