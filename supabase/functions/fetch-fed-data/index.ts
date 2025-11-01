@@ -106,9 +106,9 @@ Deno.serve(async (req) => {
         data[key] = lastValues[key];
       });
 
-      // Calculate SOFR-IORB spread (in basis points)
+      // Calculate SOFR-IORB spread (already in basis points)
       if (data.sofr !== null && data.iorb !== null) {
-        data.sofr_iorb_spread = Number(((data.sofr - data.iorb) * 100).toFixed(2));
+        data.sofr_iorb_spread = Number((data.sofr - data.iorb).toFixed(2));
       } else {
         data.sofr_iorb_spread = null;
       }
@@ -184,21 +184,22 @@ Deno.serve(async (req) => {
 function determineScenario(data: any): string {
   const { walcl, sofr_iorb_spread, wresbal } = data;
 
-  // Convert walcl to billions if needed (API returns in millions)
-  const walclBillions = walcl / 1000;
+  // walcl is in millions, wresbal is in billions
+  // Current levels: walcl ~6,587,034 million = $6.587 trillion
+  //                 wresbal ~2,848 billion = $2.848 trillion
 
   // Stealth QE: Balance sheet expansion with tight spread
-  if (walclBillions > 7000 && sofr_iorb_spread !== null && sofr_iorb_spread < 15 && wresbal > 2700) {
+  if (walcl > 7200000 && sofr_iorb_spread !== null && sofr_iorb_spread < 0.15 && wresbal > 2700) {
     return 'stealth_qe';
   }
 
   // Full QE: Large balance sheet and reserves
-  if (walclBillions > 7200 && wresbal > 3000) {
+  if (walcl > 7500000 && wresbal > 3000) {
     return 'qe';
   }
 
   // QT: Shrinking balance sheet with wide spread
-  if (walclBillions < 6800 && sofr_iorb_spread !== null && sofr_iorb_spread > 20) {
+  if (walcl < 7000000 && sofr_iorb_spread !== null && sofr_iorb_spread > 0.20) {
     return 'qt';
   }
 
@@ -208,11 +209,11 @@ function determineScenario(data: any): string {
 function generateSignal(data: any): any {
   const { sofr_iorb_spread, wresbal, scenario } = data;
 
-  // High stress signal
-  if (sofr_iorb_spread > 25) {
+  // High stress signal (spread > 0.25 percentage points = 25 bps)
+  if (sofr_iorb_spread !== null && sofr_iorb_spread > 0.25) {
     return {
       signal_type: 'high_stress',
-      description: `SOFR-IORB spread elevated at ${sofr_iorb_spread.toFixed(2)} bps - potential liquidity stress`,
+      description: `SOFR-IORB spread elevated at ${sofr_iorb_spread.toFixed(2)}% - potential liquidity stress`,
       confidence: 85
     };
   }
