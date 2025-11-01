@@ -47,18 +47,44 @@ export function MetricCard({
   const getTrend = () => {
     if (!value || value === null) return null;
     
-    // Get previous value from historical data (penultimate valid value)
+    // Debug logging per SOFR
+    if (title === 'SOFR') {
+      console.log('🔍 TREND CALCULATION DEBUG for', title);
+      console.log('   Current value:', value);
+      console.log('   Previous value:', previousValue);
+      console.log('   Historical data length:', historicalData.length);
+    }
+    
+    // Prima prova a usare previousValue se disponibile
+    if (previousValue !== null && previousValue !== undefined && previousValue !== 0) {
+      const change = ((value - previousValue) / Math.abs(previousValue)) * 100;
+      
+      if (title === 'SOFR') {
+        console.log('   Using previousValue:', previousValue);
+        console.log('   Calculated change:', change.toFixed(4) + '%');
+      }
+      
+      return change;
+    }
+    
+    // Altrimenti usa l'ultimo valore valido dall'array storico
     const validHistoricalValues = historicalData
       .filter(d => d.value !== null && d.value !== undefined && !isNaN(d.value))
       .map(d => d.value);
     
-    if (validHistoricalValues.length < 2) return null;
+    if (validHistoricalValues.length === 0) return null;
     
-    // Take the second-to-last value as previous (last is current)
-    const previousValue = validHistoricalValues[validHistoricalValues.length - 2];
-    if (!previousValue || previousValue === 0) return null;
+    // Prendi l'ultimo valore storico come precedente
+    const lastHistoricalValue = validHistoricalValues[validHistoricalValues.length - 1];
+    if (!lastHistoricalValue || lastHistoricalValue === 0) return null;
     
-    const change = ((value - previousValue) / Math.abs(previousValue)) * 100;
+    const change = ((value - lastHistoricalValue) / Math.abs(lastHistoricalValue)) * 100;
+    
+    if (title === 'SOFR') {
+      console.log('   Using historical value:', lastHistoricalValue);
+      console.log('   Calculated change:', change.toFixed(4) + '%');
+    }
+    
     return change;
   };
 
