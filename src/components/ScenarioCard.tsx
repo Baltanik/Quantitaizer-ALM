@@ -1,6 +1,7 @@
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, LineChart, AlertTriangle, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 interface ScenarioCardProps {
   scenario: string | null;
@@ -13,9 +14,14 @@ const scenarioConfig = {
     icon: TrendingUp,
     description: "Espansione bilancio Fed con spread contratti",
     analysis: "La Fed sta espandendo il proprio bilancio in modo silenzioso, iniettando liquidità nel sistema finanziario. Lo spread SOFR-IORB rimane contenuto, indicando condizioni di mercato stabili nonostante l'aumento della liquidità. Questo scenario è tipicamente positivo per gli asset rischiosi.",
-    indicators: "• Bilancio Fed in crescita\n• Spread SOFR-IORB < 10 bps\n• Riserve bancarie in aumento",
-    bgClass: "bg-success/10 border-success/20",
+    indicators: [
+      { icon: TrendingUp, label: "Bilancio Fed", status: "In crescita" },
+      { icon: LineChart, label: "Spread SOFR-IORB", status: "< 10 bps" },
+      { icon: TrendingUp, label: "Riserve bancarie", status: "In aumento" }
+    ],
+    bgClass: "bg-success/5 border-success/30",
     textClass: "text-success",
+    badgeVariant: "default" as const,
   },
   qe: {
     label: "Quantitative Easing",
@@ -23,9 +29,15 @@ const scenarioConfig = {
     icon: TrendingUp,
     description: "Espansione monetaria attiva da parte della Fed",
     analysis: "La Federal Reserve sta attivamente espandendo il proprio bilancio attraverso acquisti di titoli, iniettando massiccia liquidità nel sistema bancario. Questo aumenta le riserve e riduce i tassi di interesse, stimolando prestiti e investimenti. Storicamente molto favorevole per mercati azionari e asset rischiosi.",
-    indicators: "• Bilancio Fed in forte crescita\n• Acquisti attivi di treasury/MBS\n• Riserve bancarie in rapida espansione\n• Pressione ribassista sui tassi",
-    bgClass: "bg-success/10 border-success/20",
+    indicators: [
+      { icon: TrendingUp, label: "Bilancio Fed", status: "Forte crescita" },
+      { icon: TrendingUp, label: "Acquisti attivi", status: "Treasury/MBS" },
+      { icon: TrendingUp, label: "Riserve bancarie", status: "Rapida espansione" },
+      { icon: TrendingDown, label: "Tassi", status: "Pressione ribassista" }
+    ],
+    bgClass: "bg-success/5 border-success/30",
     textClass: "text-success",
+    badgeVariant: "default" as const,
   },
   qt: {
     label: "Quantitative Tightening",
@@ -33,9 +45,15 @@ const scenarioConfig = {
     icon: TrendingDown,
     description: "Contrazione del bilancio Fed",
     analysis: "La Fed sta riducendo il proprio bilancio lasciando scadere i titoli senza reinvestirli, drenando liquidità dal sistema finanziario. Questo riduce le riserve bancarie e può causare stress sui mercati. Lo spread SOFR-IORB tende ad ampliarsi indicando stress nella liquidità. Generalmente negativo per asset rischiosi.",
-    indicators: "• Bilancio Fed in contrazione\n• Riserve bancarie in calo\n• Spread SOFR-IORB in espansione (> 15 bps)\n• Possibili tensioni di liquidità",
-    bgClass: "bg-destructive/10 border-destructive/20",
+    indicators: [
+      { icon: TrendingDown, label: "Bilancio Fed", status: "In contrazione" },
+      { icon: TrendingDown, label: "Riserve bancarie", status: "In calo" },
+      { icon: TrendingUp, label: "Spread SOFR-IORB", status: "> 15 bps" },
+      { icon: AlertTriangle, label: "Liquidità", status: "Tensioni possibili" }
+    ],
+    bgClass: "bg-destructive/5 border-destructive/30",
     textClass: "text-destructive",
+    badgeVariant: "destructive" as const,
   },
   neutral: {
     label: "Neutrale",
@@ -43,9 +61,15 @@ const scenarioConfig = {
     icon: Minus,
     description: "Condizioni monetarie stabili",
     analysis: "La Fed mantiene una politica neutrale senza espandere né contrarre significativamente il bilancio. Le condizioni di liquidità sono stabili, con spread contenuti e riserve costanti. Questo scenario riflette un equilibrio tra domanda e offerta di liquidità nel sistema bancario.",
-    indicators: "• Bilancio Fed stabile\n• Spread SOFR-IORB nella norma (5-15 bps)\n• Riserve bancarie stabili\n• Operazioni repo/reverse repo equilibrate",
-    bgClass: "bg-warning/10 border-warning/20",
+    indicators: [
+      { icon: Minus, label: "Bilancio Fed", status: "Stabile" },
+      { icon: LineChart, label: "Spread SOFR-IORB", status: "5-15 bps (normale)" },
+      { icon: Minus, label: "Riserve bancarie", status: "Stabili" },
+      { icon: Info, label: "Repo/Reverse Repo", status: "Equilibrati" }
+    ],
+    bgClass: "bg-warning/5 border-warning/30",
     textClass: "text-warning",
+    badgeVariant: "secondary" as const,
   },
 };
 
@@ -54,43 +78,81 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
   const Icon = config.icon;
 
   return (
-    <Card className={`${config.bgClass} border-2 shadow-lg`}>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          Scenario di Mercato Attuale
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center gap-4">
-          <div className={`p-3 rounded-lg ${config.bgClass}`}>
-            <Icon className={`h-8 w-8 ${config.textClass}`} />
-          </div>
-          <div className="flex-1">
-            <h3 className={`text-2xl font-bold ${config.textClass}`}>
-              {config.label}
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              {config.description}
-            </p>
-          </div>
-          <Badge variant={config.color as any} className="text-xs">
+    <Card className={`${config.bgClass} border-2`}>
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            Scenario di Mercato Attuale
+          </CardTitle>
+          <Badge variant={config.badgeVariant} className="text-xs font-semibold px-3">
             ATTIVO
           </Badge>
         </div>
-        
-        <div className="pt-4 border-t border-border/50 space-y-3">
-          <div>
-            <h4 className="font-semibold text-sm mb-2">📊 Analisi</h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {config.analysis}
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        {/* Hero Section */}
+        <div className="flex items-start gap-4">
+          <div className={`p-4 rounded-xl ${config.bgClass} ring-2 ring-${config.color}/20`}>
+            <Icon className={`h-10 w-10 ${config.textClass}`} />
+          </div>
+          <div className="flex-1 space-y-1">
+            <h3 className={`text-3xl font-bold ${config.textClass}`}>
+              {config.label}
+            </h3>
+            <p className="text-base text-muted-foreground">
+              {config.description}
             </p>
           </div>
-          
-          <div>
-            <h4 className="font-semibold text-sm mb-2">🎯 Indicatori Chiave</h4>
-            <pre className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line font-sans">
-              {config.indicators}
-            </pre>
+        </div>
+
+        <Separator />
+
+        {/* Analysis Section */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-primary/10">
+              <LineChart className="h-4 w-4 text-primary" />
+            </div>
+            <h4 className="font-semibold text-sm">Analisi Situazione</h4>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed pl-8">
+            {config.analysis}
+          </p>
+        </div>
+
+        <Separator />
+
+        {/* Indicators Grid */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-primary/10">
+              <Info className="h-4 w-4 text-primary" />
+            </div>
+            <h4 className="font-semibold text-sm">Indicatori Chiave</h4>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 pl-8">
+            {config.indicators.map((indicator, index) => {
+              const IndicatorIcon = indicator.icon;
+              return (
+                <div
+                  key={index}
+                  className="flex items-start gap-3 p-3 rounded-lg bg-card/50 border border-border/50"
+                >
+                  <div className="p-1.5 rounded-md bg-muted">
+                    <IndicatorIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground">
+                      {indicator.label}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {indicator.status}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </CardContent>
