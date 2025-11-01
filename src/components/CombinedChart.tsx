@@ -10,6 +10,18 @@ interface CombinedChartProps {
 export function CombinedChart({ data }: CombinedChartProps) {
   const [hoveredLine, setHoveredLine] = useState<string | null>(null);
 
+  // Forward fill missing values with last known value
+  const forwardFill = (values: (number | null)[]): (number | null)[] => {
+    let lastValue: number | null = null;
+    return values.map(v => {
+      if (v !== null && !isNaN(v)) {
+        lastValue = v;
+        return v;
+      }
+      return lastValue;
+    });
+  };
+
   // Normalize all values to 0-100 scale for comparison
   const normalizeValue = (value: number | null, min: number, max: number): number | null => {
     if (value === null) return null;
@@ -37,18 +49,33 @@ export function CombinedChart({ data }: CombinedChartProps) {
     dtb1yr: getMinMax('dtb1yr'),
   };
 
-  const chartData = [...data].reverse().map(d => ({
+  // Apply forward fill to each metric
+  const reversedData = [...data].reverse();
+  const filledData = {
+    sofr: forwardFill(reversedData.map(d => d.sofr)),
+    iorb: forwardFill(reversedData.map(d => d.iorb)),
+    spread: forwardFill(reversedData.map(d => d.sofr_iorb_spread)),
+    walcl: forwardFill(reversedData.map(d => d.walcl)),
+    wresbal: forwardFill(reversedData.map(d => d.wresbal)),
+    rrpontsyd: forwardFill(reversedData.map(d => d.rrpontsyd)),
+    rpontsyd: forwardFill(reversedData.map(d => d.rpontsyd)),
+    rponttld: forwardFill(reversedData.map(d => d.rponttld)),
+    dtb3: forwardFill(reversedData.map(d => d.dtb3)),
+    dtb1yr: forwardFill(reversedData.map(d => d.dtb1yr)),
+  };
+
+  const chartData = reversedData.map((d, i) => ({
     date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    sofr: normalizeValue(d.sofr, ranges.sofr.min, ranges.sofr.max),
-    iorb: normalizeValue(d.iorb, ranges.iorb.min, ranges.iorb.max),
-    spread: normalizeValue(d.sofr_iorb_spread, ranges.spread.min, ranges.spread.max),
-    walcl: normalizeValue(d.walcl, ranges.walcl.min, ranges.walcl.max),
-    wresbal: normalizeValue(d.wresbal, ranges.wresbal.min, ranges.wresbal.max),
-    rrpontsyd: normalizeValue(d.rrpontsyd, ranges.rrpontsyd.min, ranges.rrpontsyd.max),
-    rpontsyd: normalizeValue(d.rpontsyd, ranges.rpontsyd.min, ranges.rpontsyd.max),
-    rponttld: normalizeValue(d.rponttld, ranges.rponttld.min, ranges.rponttld.max),
-    dtb3: normalizeValue(d.dtb3, ranges.dtb3.min, ranges.dtb3.max),
-    dtb1yr: normalizeValue(d.dtb1yr, ranges.dtb1yr.min, ranges.dtb1yr.max),
+    sofr: normalizeValue(filledData.sofr[i], ranges.sofr.min, ranges.sofr.max),
+    iorb: normalizeValue(filledData.iorb[i], ranges.iorb.min, ranges.iorb.max),
+    spread: normalizeValue(filledData.spread[i], ranges.spread.min, ranges.spread.max),
+    walcl: normalizeValue(filledData.walcl[i], ranges.walcl.min, ranges.walcl.max),
+    wresbal: normalizeValue(filledData.wresbal[i], ranges.wresbal.min, ranges.wresbal.max),
+    rrpontsyd: normalizeValue(filledData.rrpontsyd[i], ranges.rrpontsyd.min, ranges.rrpontsyd.max),
+    rpontsyd: normalizeValue(filledData.rpontsyd[i], ranges.rpontsyd.min, ranges.rpontsyd.max),
+    rponttld: normalizeValue(filledData.rponttld[i], ranges.rponttld.min, ranges.rponttld.max),
+    dtb3: normalizeValue(filledData.dtb3[i], ranges.dtb3.min, ranges.dtb3.max),
+    dtb1yr: normalizeValue(filledData.dtb1yr[i], ranges.dtb1yr.min, ranges.dtb1yr.max),
   }));
 
   const getStrokeWidth = (lineKey: string) => {
@@ -125,7 +152,7 @@ export function CombinedChart({ data }: CombinedChartProps) {
                 strokeWidth={getStrokeWidth(line.key)}
                 name={line.name}
                 dot={false}
-                connectNulls={false}
+                connectNulls={true}
                 opacity={getOpacity(line.key)}
                 onMouseEnter={() => setHoveredLine(line.key)}
                 onMouseLeave={() => setHoveredLine(null)}
