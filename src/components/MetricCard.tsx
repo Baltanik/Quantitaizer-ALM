@@ -56,17 +56,27 @@ export function MetricCard({
     }
     
     // Prima prova a usare previousValue se disponibile
-    if (previousValue !== null && previousValue !== undefined && !isNaN(previousValue) && previousValue !== 0) {
+    if (previousValue !== null && previousValue !== undefined && !isNaN(previousValue) && Math.abs(previousValue) > 0.001) {
       const change = ((value - previousValue) / Math.abs(previousValue)) * 100;
       
-      if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie'].includes(title)) {
+      // Controllo di sanità: variazioni >100% sono sospette per dati Fed
+      if (Math.abs(change) > 100) {
+        if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie', 'Repo ON', 'Repo Term'].includes(title)) {
+          console.log('   🚨 SUSPICIOUS CHANGE for', title);
+          console.log('   Current:', value, 'Previous:', previousValue);
+          console.log('   Change:', change.toFixed(4) + '% (TOO HIGH - RETURNING NULL)');
+        }
+        return null; // Non mostrare variazioni assurde
+      }
+      
+      if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie', 'Repo ON', 'Repo Term'].includes(title)) {
         console.log('   ✅ Using previousValue:', previousValue);
         console.log('   ✅ Calculated change:', change.toFixed(4) + '%');
       }
       
       return change;
-    } else if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie'].includes(title)) {
-      console.log('   ❌ previousValue not usable:', previousValue, typeof previousValue);
+    } else if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie', 'Repo ON', 'Repo Term'].includes(title)) {
+      console.log('   ❌ previousValue not usable:', previousValue, typeof previousValue, 'abs:', Math.abs(previousValue || 0));
     }
     
     // Altrimenti usa l'ultimo valore valido dall'array storico
@@ -78,11 +88,21 @@ export function MetricCard({
     
     // Prendi l'ultimo valore storico come precedente
     const lastHistoricalValue = validHistoricalValues[validHistoricalValues.length - 1];
-    if (!lastHistoricalValue || lastHistoricalValue === 0) return null;
+    if (!lastHistoricalValue || Math.abs(lastHistoricalValue) <= 0.001) return null;
     
     const change = ((value - lastHistoricalValue) / Math.abs(lastHistoricalValue)) * 100;
     
-    if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie'].includes(title)) {
+    // Controllo di sanità anche per dati storici
+    if (Math.abs(change) > 100) {
+      if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie', 'Repo ON', 'Repo Term'].includes(title)) {
+        console.log('   🚨 SUSPICIOUS HISTORICAL CHANGE for', title);
+        console.log('   Current:', value, 'Historical:', lastHistoricalValue);
+        console.log('   Change:', change.toFixed(4) + '% (TOO HIGH - RETURNING NULL)');
+      }
+      return null;
+    }
+    
+    if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie', 'Repo ON', 'Repo Term'].includes(title)) {
       console.log('   Using historical value:', lastHistoricalValue);
       console.log('   Calculated change:', change.toFixed(4) + '%');
     }
