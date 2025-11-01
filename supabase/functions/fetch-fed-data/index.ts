@@ -106,9 +106,11 @@ Deno.serve(async (req) => {
         data[key] = lastValues[key];
       });
 
-      // Calculate SOFR-IORB spread
+      // Calculate SOFR-IORB spread (in basis points)
       if (data.sofr !== null && data.iorb !== null) {
-        data.sofr_iorb_spread = data.sofr - data.iorb;
+        data.sofr_iorb_spread = Number(((data.sofr - data.iorb) * 100).toFixed(2));
+      } else {
+        data.sofr_iorb_spread = null;
       }
 
       // Determine scenario
@@ -182,18 +184,21 @@ Deno.serve(async (req) => {
 function determineScenario(data: any): string {
   const { walcl, sofr_iorb_spread, wresbal } = data;
 
+  // Convert walcl to billions if needed (API returns in millions)
+  const walclBillions = walcl / 1000;
+
   // Stealth QE: Balance sheet expansion with tight spread
-  if (walcl > 7200 && sofr_iorb_spread < 15 && wresbal > 2700) {
+  if (walclBillions > 7000 && sofr_iorb_spread !== null && sofr_iorb_spread < 15 && wresbal > 2700) {
     return 'stealth_qe';
   }
 
   // Full QE: Large balance sheet and reserves
-  if (walcl > 7500 && wresbal > 3000) {
+  if (walclBillions > 7200 && wresbal > 3000) {
     return 'qe';
   }
 
   // QT: Shrinking balance sheet with wide spread
-  if (walcl < 7000 && sofr_iorb_spread > 20) {
+  if (walclBillions < 6800 && sofr_iorb_spread !== null && sofr_iorb_spread > 20) {
     return 'qt';
   }
 

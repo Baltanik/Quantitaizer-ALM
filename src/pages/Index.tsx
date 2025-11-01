@@ -84,24 +84,7 @@ const Index = () => {
 
   useEffect(() => {
     loadData();
-
-    // Subscribe to real-time updates (limitato per evitare loop)
-    let reloadTimeout: NodeJS.Timeout;
-    const channel = subscribeToFedData((payload) => {
-      console.log('Real-time update:', payload);
-      // Debounce: attendi 3 secondi prima di ricaricare
-      clearTimeout(reloadTimeout);
-      reloadTimeout = setTimeout(() => {
-        if (!isLoadingData) {
-          loadData();
-        }
-      }, 3000);
-    });
-
-    return () => {
-      clearTimeout(reloadTimeout);
-      channel.unsubscribe();
-    };
+    // Real-time subscription rimossa - i dati vengono aggiornati solo una volta al giorno
   }, []);
 
   return (
