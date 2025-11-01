@@ -112,9 +112,21 @@ const Index = () => {
       
       if (result.historical && result.historical.length > 0) {
         setHistoricalData(result.historical);
+        
+        // DEBUG: Mostra la struttura dei dati storici
+        console.log('📊 HISTORICAL DATA STRUCTURE:');
+        console.log('   Total records:', result.historical.length);
+        console.log('   First 3 dates:', result.historical.slice(0, 3).map(d => d.date));
+        console.log('   Latest historical SOFR:', result.historical[0]?.sofr);
+        console.log('   Current data SOFR:', result.latest?.sofr);
+        console.log('   Are they the same?', result.historical[0]?.sofr === result.latest?.sofr);
+        
         if (result.historical.length > 1) {
           setPreviousData(result.historical[1]);
+          console.log('   Previous data (index 1) SOFR:', result.historical[1]?.sofr);
+          console.log('   Previous data date:', result.historical[1]?.date);
         }
+        
         console.log(`✅ Historical data loaded: ${result.historical.length} records`);
       }
       

@@ -56,15 +56,17 @@ export function MetricCard({
     }
     
     // Prima prova a usare previousValue se disponibile
-    if (previousValue !== null && previousValue !== undefined && previousValue !== 0) {
+    if (previousValue !== null && previousValue !== undefined && !isNaN(previousValue) && previousValue !== 0) {
       const change = ((value - previousValue) / Math.abs(previousValue)) * 100;
       
       if (title === 'SOFR') {
-        console.log('   Using previousValue:', previousValue);
-        console.log('   Calculated change:', change.toFixed(4) + '%');
+        console.log('   ✅ Using previousValue:', previousValue);
+        console.log('   ✅ Calculated change:', change.toFixed(4) + '%');
       }
       
       return change;
+    } else if (title === 'SOFR') {
+      console.log('   ❌ previousValue not usable:', previousValue, typeof previousValue);
     }
     
     // Altrimenti usa l'ultimo valore valido dall'array storico
