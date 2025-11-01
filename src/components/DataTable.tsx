@@ -11,8 +11,8 @@ interface DataTableProps {
 export function DataTable({ data }: DataTableProps) {
   const exportToCSV = () => {
     const headers = [
-      'Date', 'SOFR', 'IORB', 'Spread', 'WALCL', 'WRESBAL', 
-      'RRPONTSYD', 'RPONTSYD', 'RPONTTLD', 'DTB3', 'DTB1YR', 'US10Y', 'Scenario'
+      'Data', 'SOFR', 'IORB', 'Spread', 'Bilancio Fed', 'Riserve', 
+      'Reverse Repo', 'Repo ON', 'Repo Term', 'T-Bill 3M', 'T-Bill 1Y', 'T-Note 10Y', 'Scenario'
     ];
     
     const csvData = data.map(d => [
@@ -48,10 +48,10 @@ export function DataTable({ data }: DataTableProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg">Historical Data</CardTitle>
+        <CardTitle className="text-lg">Dati Storici</CardTitle>
         <Button onClick={exportToCSV} size="sm" variant="outline" className="gap-2">
           <Download className="h-4 w-4" />
-          Export CSV
+          Esporta CSV
         </Button>
       </CardHeader>
       <CardContent>
@@ -59,12 +59,12 @@ export function DataTable({ data }: DataTableProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
+                <TableHead>Data</TableHead>
                 <TableHead>SOFR</TableHead>
                 <TableHead>IORB</TableHead>
                 <TableHead>Spread</TableHead>
-                <TableHead>WALCL</TableHead>
-                <TableHead>WRESBAL</TableHead>
+                <TableHead>Bilancio Fed</TableHead>
+                <TableHead>Riserve</TableHead>
                 <TableHead>Scenario</TableHead>
               </TableRow>
             </TableHeader>
@@ -72,7 +72,7 @@ export function DataTable({ data }: DataTableProps) {
               {data.slice(0, 30).map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className="font-mono text-xs">
-                    {new Date(row.date).toLocaleDateString()}
+                    {new Date(row.date).toLocaleDateString('it-IT')}
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     {row.sofr?.toFixed(2) ?? 'N/A'}

@@ -35,16 +35,20 @@ export function Charts({ data }: ChartsProps) {
 
   return (
     <Accordion type="multiple" className="w-full space-y-4">
-      {/* Interest Rates */}
+      {/* Tassi di Interesse */}
       <AccordionItem value="interest-rates" className="border rounded-lg px-4">
         <AccordionTrigger className="text-lg font-semibold hover:no-underline">
-          Interest Rates
+          📈 Tassi di Interesse
         </AccordionTrigger>
         <AccordionContent className="pt-4">
+          <p className="text-sm text-muted-foreground mb-4">
+            Tassi chiave del mercato monetario USA e Treasury Bills. Lo spread SOFR-IORB è l'indicatore primario delle condizioni di liquidità.
+          </p>
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">SOFR-IORB Spread</CardTitle>
+                <CardTitle className="text-base">Spread SOFR-IORB</CardTitle>
+                <p className="text-xs text-muted-foreground">Indicatore principale stress liquidità (bps)</p>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
@@ -85,6 +89,7 @@ export function Charts({ data }: ChartsProps) {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">SOFR vs IORB</CardTitle>
+                <p className="text-xs text-muted-foreground">Tasso mercato vs tasso Fed (%)</p>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
@@ -133,6 +138,7 @@ export function Charts({ data }: ChartsProps) {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Treasury Bills</CardTitle>
+                <p className="text-xs text-muted-foreground">Rendimenti T-Bills 3M e 1Y (%)</p>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
@@ -181,16 +187,20 @@ export function Charts({ data }: ChartsProps) {
         </AccordionContent>
       </AccordionItem>
 
-      {/* Fed Balance & Liquidity */}
+      {/* Bilancio Fed & Liquidità */}
       <AccordionItem value="fed-balance" className="border rounded-lg px-4">
         <AccordionTrigger className="text-lg font-semibold hover:no-underline">
-          Fed Balance & Liquidity
+          💰 Bilancio Fed & Liquidità
         </AccordionTrigger>
         <AccordionContent className="pt-4">
+          <p className="text-sm text-muted-foreground mb-4">
+            Bilancio della Federal Reserve e liquidità nel sistema bancario. L'andamento del bilancio determina se siamo in QE (crescita) o QT (contrazione).
+          </p>
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Fed Balance Sheet (WALCL)</CardTitle>
+                <CardTitle className="text-base">Bilancio Fed (WALCL)</CardTitle>
+                <p className="text-xs text-muted-foreground">Total Assets Federal Reserve (Trilioni $)</p>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
@@ -230,7 +240,8 @@ export function Charts({ data }: ChartsProps) {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Reserve Balances (WRESBAL)</CardTitle>
+                <CardTitle className="text-base">Riserve Bancarie (WRESBAL)</CardTitle>
+                <p className="text-xs text-muted-foreground">Liquidità banche presso Fed (Trilioni $)</p>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
@@ -271,6 +282,7 @@ export function Charts({ data }: ChartsProps) {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Reverse Repo (RRP)</CardTitle>
+                <p className="text-xs text-muted-foreground">Liquidità parcheggiata presso Fed (Trilioni $)</p>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
@@ -311,16 +323,20 @@ export function Charts({ data }: ChartsProps) {
         </AccordionContent>
       </AccordionItem>
 
-      {/* Repo Operations */}
+      {/* Operazioni Repo */}
       <AccordionItem value="repo-operations" className="border rounded-lg px-4">
         <AccordionTrigger className="text-lg font-semibold hover:no-underline">
-          Repo Operations
+          🔄 Operazioni Repo
         </AccordionTrigger>
         <AccordionContent className="pt-4">
+          <p className="text-sm text-muted-foreground mb-4">
+            Operazioni di prestito della Fed alle banche. Aumenti significativi indicano stress di liquidità nel sistema bancario.
+          </p>
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Repo Overnight (RPONTSYD)</CardTitle>
+                <CardTitle className="text-base">Repo Overnight</CardTitle>
+                <p className="text-xs text-muted-foreground">Prestiti giornalieri Fed (Miliardi $)</p>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
@@ -360,7 +376,8 @@ export function Charts({ data }: ChartsProps) {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Repo Term (RPONTTLD)</CardTitle>
+                <CardTitle className="text-base">Repo Term</CardTitle>
+                <p className="text-xs text-muted-foreground">Prestiti a termine Fed (Miliardi $)</p>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>

@@ -11,12 +11,12 @@ const signalConfig = {
   high_stress: {
     icon: AlertTriangle,
     color: "destructive",
-    label: "High Stress",
+    label: "Alto Stress",
   },
   qe_starting: {
     icon: TrendingUp,
     color: "success",
-    label: "QE Signal",
+    label: "Segnale QE",
   },
   normal: {
     icon: Info,
@@ -31,13 +31,13 @@ export function AlertPanel({ signals }: AlertPanelProps) {
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <AlertTriangle className="h-5 w-5" />
-          Recent Signals
+          Segnali Recenti
         </CardTitle>
       </CardHeader>
       <CardContent>
         {signals.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            No signals detected
+            Nessun segnale rilevato
           </p>
         ) : (
           <div className="space-y-3">
@@ -61,9 +61,9 @@ export function AlertPanel({ signals }: AlertPanelProps) {
                       <span className="text-xs text-muted-foreground">
                         {new Date(signal.date).toLocaleDateString()}
                       </span>
-                      {signal.confidence && (
+                       {signal.confidence && (
                         <span className="text-xs text-muted-foreground">
-                          {signal.confidence}% confidence
+                          {signal.confidence}% affidabilità
                         </span>
                       )}
                     </div>

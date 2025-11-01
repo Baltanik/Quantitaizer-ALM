@@ -40,21 +40,21 @@ export function MetricsGrid({ currentData, previousData, historicalData }: Metri
         format="bps"
       />
       <MetricCard
-        title="SOFR-IORB Spread"
+        title="Spread SOFR-IORB"
         value={currentData.sofr_iorb_spread}
         previousValue={previousData?.sofr_iorb_spread}
         historicalData={createHistoricalArray('sofr_iorb_spread')}
         format="bps"
       />
       <MetricCard
-        title="Fed Balance Sheet"
+        title="Bilancio Fed"
         value={currentData.walcl}
         previousValue={previousData?.walcl}
         historicalData={createHistoricalArray('walcl')}
         format="billion"
       />
       <MetricCard
-        title="Reserve Balances"
+        title="Riserve Bancarie"
         value={currentData.wresbal}
         previousValue={previousData?.wresbal}
         historicalData={createHistoricalArray('wresbal')}
@@ -82,14 +82,14 @@ export function MetricsGrid({ currentData, previousData, historicalData }: Metri
         format="billion"
       />
       <MetricCard
-        title="3M Treasury"
+        title="Treasury 3M"
         value={currentData.dtb3}
         previousValue={previousData?.dtb3}
         historicalData={createHistoricalArray('dtb3')}
         unit="%"
       />
       <MetricCard
-        title="1Y Treasury"
+        title="Treasury 1Y"
         value={currentData.dtb1yr}
         previousValue={previousData?.dtb1yr}
         historicalData={createHistoricalArray('dtb1yr')}

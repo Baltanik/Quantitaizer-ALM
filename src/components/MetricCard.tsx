@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
+import { MetricInfo } from "./MetricInfo";
 
 interface MetricCardProps {
   title: string;
@@ -59,8 +60,9 @@ export function MetricCard({
   return (
     <Card className="hover:border-primary/50 transition-all duration-300 relative overflow-hidden">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-medium text-muted-foreground uppercase">
+        <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-2">
           {title}
+          <MetricInfo title={title} description="" />
         </CardTitle>
       </CardHeader>
       <CardContent>

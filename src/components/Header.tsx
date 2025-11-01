@@ -13,14 +13,14 @@ export function Header({ lastUpdate }: HeaderProps) {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    toast.info("Fetching latest Fed data...");
+    toast.info("Recupero ultimi dati Fed...");
     
     const result = await triggerFedDataFetch();
     
     if (result.success) {
-      toast.success("Fed data updated successfully");
+      toast.success("Dati Fed aggiornati con successo");
     } else {
-      toast.error(`Failed to fetch data: ${result.error}`);
+      toast.error(`Errore nel recupero dati: ${result.error}`);
     }
     
     setIsRefreshing(false);
@@ -35,16 +35,16 @@ export function Header({ lastUpdate }: HeaderProps) {
               QUANTITAIZER
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Monetary Liquidity Engine
+              Motore di Analisi Liquidità Monetaria
             </p>
           </div>
           
           <div className="flex items-center gap-4">
             {lastUpdate && (
               <div className="hidden md:block text-right">
-                <p className="text-xs text-muted-foreground">Last Update</p>
+                <p className="text-xs text-muted-foreground">Ultimo Aggiornamento</p>
                 <p className="text-sm font-mono font-medium">
-                  {new Date(lastUpdate).toLocaleString()}
+                  {new Date(lastUpdate).toLocaleString('it-IT')}
                 </p>
               </div>
             )}
@@ -56,7 +56,7 @@ export function Header({ lastUpdate }: HeaderProps) {
               className="gap-2"
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Refresh</span>
+              <span className="hidden sm:inline">Aggiorna</span>
             </Button>
           </div>
         </div>

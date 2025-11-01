@@ -3,7 +3,6 @@ import { Header } from "@/components/Header";
 import { ScenarioCard } from "@/components/ScenarioCard";
 import { MetricsGrid } from "@/components/MetricsGrid";
 import { Charts } from "@/components/Charts";
-import { CombinedChart } from "@/components/CombinedChart";
 import { AlertPanel } from "@/components/AlertPanel";
 import { DataTable } from "@/components/DataTable";
 import { 
@@ -85,15 +84,14 @@ const Index = () => {
           </div>
         ) : (
           <>
-            {/* Hero Section */}
+            {/* Scenario Attuale */}
             <section className="space-y-6">
               <ScenarioCard scenario={latestData?.scenario ?? null} />
-              <CombinedChart data={historicalData} />
             </section>
 
-            {/* Quick Metrics */}
+            {/* Metriche Rapide */}
             <section className="space-y-4">
-              <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Quick Metrics</h2>
+              <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Indicatori Chiave</h2>
               <MetricsGrid 
                 currentData={latestData} 
                 previousData={previousData}
@@ -101,15 +99,15 @@ const Index = () => {
               />
             </section>
             
-            {/* Detailed Analysis */}
+            {/* Analisi Dettagliata */}
             <section className="space-y-4">
-              <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Detailed Analysis</h2>
+              <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Analisi Dettagliata</h2>
               <Charts data={historicalData} />
             </section>
             
-            {/* Data Deep Dive */}
+            {/* Dati Completi */}
             <section className="space-y-4">
-              <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Data Deep Dive</h2>
+              <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Storico Dati</h2>
               <div className="grid gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-2">
                   <DataTable data={historicalData} />
