@@ -74,25 +74,39 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Get all unique dates from all series
-    const allDates = new Set<string>();
-    Object.values(seriesData).forEach(observations => {
-      observations.forEach(obs => allDates.add(obs.date));
+    // Generate complete date range (all days in last 90 days)
+    const allDates: string[] = [];
+    const currentDate = new Date(ninetyDaysAgo);
+    while (currentDate <= today) {
+      allDates.push(currentDate.toISOString().split('T')[0]);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    console.log(`Processing ${allDates.length} dates with forward fill`);
+
+    // Forward fill helper - keeps track of last valid value for each series
+    const lastValues: { [key: string]: number | null } = {};
+    
+    // Initialize with first available values
+    Object.keys(seriesData).forEach(key => {
+      lastValues[key] = null;
     });
 
-    const sortedDates = Array.from(allDates).sort();
-    console.log(`Processing ${sortedDates.length} unique dates`);
-
-    // Process each date
+    // Process each date with forward fill
     const recordsToInsert = [];
-    for (const date of sortedDates) {
+    for (const date of allDates) {
       const data: any = { date };
       
-      // Get value for each series on this date
+      // Get value for each series on this date, or use last known value (forward fill)
       Object.entries(seriesData).forEach(([key, observations]) => {
         const obs = observations.find(o => o.date === date);
-        const value = obs ? parseFloat(obs.value) : null;
-        data[key] = isNaN(value as number) ? null : value;
+        if (obs) {
+          const value = parseFloat(obs.value);
+          if (!isNaN(value)) {
+            lastValues[key] = value;
+          }
+        }
+        data[key] = lastValues[key];
       });
 
       // Calculate SOFR-IORB spread
