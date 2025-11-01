@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { ScenarioCard } from "@/components/ScenarioCard";
 import { MetricsGrid } from "@/components/MetricsGrid";
 import { Charts } from "@/components/Charts";
+import { CombinedChart } from "@/components/CombinedChart";
 import { AlertPanel } from "@/components/AlertPanel";
 import { DataTable } from "@/components/DataTable";
 import { 
@@ -89,7 +90,10 @@ const Index = () => {
             <MetricsGrid 
               currentData={latestData} 
               previousData={previousData}
+              historicalData={historicalData}
             />
+
+            <CombinedChart data={historicalData} />
             
             <Charts data={historicalData} />
             
