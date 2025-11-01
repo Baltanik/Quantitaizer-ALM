@@ -3,10 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>QUANTITAIZER ALM - Analisi Liquidità Monetaria</title>
-    <meta name="description" content="Sistema professionale di analisi liquidità monetaria Fed in tempo reale. Monitora SOFR, IORB, bilancio Fed e scenari QE/QT per trading e investimenti." />
-    <meta name="author" content="QUANTITAIZER ALM" />
-    <meta name="keywords" content="Fed, SOFR, IORB, QE, QT, liquidità, trading, finanza, Federal Reserve, analisi monetaria" />
+    <title>QUANTITAIZER ALM - Dashboard Liquidità Federal Reserve | Analisi SOFR IORB QE QT Real-Time</title>
+    <meta name="description" content="🚀 Dashboard professionale per analisi liquidità Federal Reserve in tempo reale. Monitora SOFR, IORB, bilancio Fed, scenari QE/QT. Strumento essenziale per trader, investitori e analisti finanziari. Dati aggiornati quotidianamente dalla FRED API." />
+    <meta name="author" content="QUANTITAIZER ALM - @baltanikz" />
+    <meta name="keywords" content="Federal Reserve, Fed, SOFR, IORB, QE, Quantitative Easing, QT, Quantitative Tightening, liquidità monetaria, bilancio Fed, WALCL, WRESBAL, reverse repo, trading, investimenti, finanza, analisi tecnica, mercati finanziari, tassi interesse, politica monetaria, FRED API, dashboard finanziario, stealth QE, spread SOFR-IORB, riserve bancarie, Treasury bills, analisi macro, risk management, asset allocation" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="language" content="Italian" />
+    <meta name="geo.region" content="IT" />
+    <meta name="geo.placename" content="Italy" />
+    <link rel="canonical" href="https://www.quantitaizeralm.com/" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -14,20 +20,69 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.quantitaizeralm.com/" />
-    <meta property="og:title" content="QUANTITAIZER ALM - Sistema Analisi Liquidità Fed" />
-    <meta property="og:description" content="Dashboard professionale per monitoraggio liquidità Federal Reserve. Analisi SOFR, IORB, bilancio Fed e scenari QE/QT in tempo reale per trader e investitori." />
+    <meta property="og:title" content="🚀 QUANTITAIZER ALM - Dashboard Liquidità Federal Reserve | Analisi SOFR IORB QE QT" />
+    <meta property="og:description" content="Dashboard professionale per analisi liquidità Federal Reserve in tempo reale. Monitora SOFR, IORB, bilancio Fed, scenari QE/QT. Strumento essenziale per trader e investitori. Dati FRED API aggiornati quotidianamente." />
     <meta property="og:image" content="https://www.quantitaizeralm.com/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="QUANTITAIZER ALM Dashboard - Analisi Liquidità Federal Reserve con metriche SOFR, IORB, QE/QT in tempo reale" />
     <meta property="og:site_name" content="QUANTITAIZER ALM" />
+    <meta property="og:locale" content="it_IT" />
+    <meta property="article:author" content="@baltanikz" />
+    <meta property="article:section" content="Finance" />
+    <meta property="article:tag" content="Federal Reserve" />
+    <meta property="article:tag" content="SOFR" />
+    <meta property="article:tag" content="IORB" />
+    <meta property="article:tag" content="Quantitative Easing" />
+    <meta property="article:tag" content="Trading" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://www.quantitaizeralm.com/" />
-    <meta name="twitter:title" content="QUANTITAIZER ALM - Analisi Liquidità Fed" />
-    <meta name="twitter:description" content="Sistema professionale per monitoraggio liquidità Federal Reserve. SOFR, IORB, QE/QT in tempo reale." />
+    <meta name="twitter:title" content="🚀 QUANTITAIZER ALM - Dashboard Liquidità Fed | SOFR IORB QE QT Real-Time" />
+    <meta name="twitter:description" content="Dashboard professionale per analisi liquidità Federal Reserve. Monitora SOFR, IORB, bilancio Fed, scenari QE/QT in tempo reale. Strumento per trader e investitori." />
     <meta name="twitter:image" content="https://www.quantitaizeralm.com/og-image.png" />
+    <meta name="twitter:image:alt" content="QUANTITAIZER ALM Dashboard con metriche Federal Reserve" />
     <meta name="twitter:creator" content="@baltanikz" />
+    <meta name="twitter:site" content="@baltanikz" />
+    <meta name="twitter:domain" content="quantitaizeralm.com" />
+
+    <!-- Additional SEO -->
+    <meta name="theme-color" content="#10b981" />
+    <meta name="msapplication-TileColor" content="#10b981" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="QUANTITAIZER ALM" />
+    <meta name="application-name" content="QUANTITAIZER ALM" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "QUANTITAIZER ALM",
+      "alternateName": "Quantitaizer Analisi Liquidità Monetaria",
+      "url": "https://www.quantitaizeralm.com",
+      "description": "Dashboard professionale per analisi liquidità Federal Reserve in tempo reale. Monitora SOFR, IORB, bilancio Fed e scenari QE/QT per trading e investimenti.",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      },
+      "creator": {
+        "@type": "Person",
+        "name": "Baltanikz",
+        "sameAs": "https://t.me/baltanikz"
+      },
+      "keywords": "Federal Reserve, SOFR, IORB, QE, QT, liquidità monetaria, trading, finanza",
+      "inLanguage": "it-IT",
+      "isAccessibleForFree": true,
+      "screenshot": "https://www.quantitaizeralm.com/og-image.png"
+    }
+    </script>
   </head>
 
   <body>
