@@ -42,12 +42,9 @@ Deno.serve(async (req) => {
       'DGS10' // 10-Year Treasury (us10y)
     ];
 
-    // Calculate date 90 days ago
+    // Fetch data from 2021 to today
     const today = new Date();
-    const ninetyDaysAgo = new Date(today);
-    ninetyDaysAgo.setDate(today.getDate() - 90);
-    
-    const startDate = ninetyDaysAgo.toISOString().split('T')[0];
+    const startDate = '2021-01-01';
     const endDate = today.toISOString().split('T')[0];
 
     console.log(`Fetching data from ${startDate} to ${endDate}`);
@@ -74,9 +71,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Generate complete date range (all days in last 90 days)
+    // Generate complete date range (all days from 2021 to today)
     const allDates: string[] = [];
-    const currentDate = new Date(ninetyDaysAgo);
+    const currentDate = new Date(startDate);
     while (currentDate <= today) {
       allDates.push(currentDate.toISOString().split('T')[0]);
       currentDate.setDate(currentDate.getDate() + 1);
