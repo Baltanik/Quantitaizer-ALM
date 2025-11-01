@@ -112,8 +112,8 @@ export function FedPolicyTracker({ currentData }: FedPolicyTrackerProps) {
     },
     {
       tool: 'Reverse Repo',
-      status: currentData.rrpontsyd && currentData.rrpontsyd > 2000000 ? 'Attivo' : 'Limitato',
-      value: currentData.rrpontsyd ? `$${(currentData.rrpontsyd / 1000000).toFixed(2)}T` : 'N/A'
+      status: currentData.rrpontsyd && currentData.rrpontsyd > 100000 ? 'Attivo' : 'Limitato',
+      value: currentData.rrpontsyd ? `$${(currentData.rrpontsyd / 1000).toFixed(2)}B` : '$0.00B'
     }
   ];
 

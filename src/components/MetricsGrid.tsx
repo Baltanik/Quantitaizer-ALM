@@ -20,7 +20,18 @@ export function MetricsGrid({ currentData, previousData, historicalData }: Metri
 
   // Create historical arrays for each metric (reverse to show oldest to newest)
   const createHistoricalArray = (key: keyof FedData) => {
-    return [...historicalData].reverse().map(d => ({ value: d[key] as number | null }));
+    const array = [...historicalData].reverse().map(d => ({ value: d[key] as number | null }));
+    
+    // Debug logging per il primo metric (SOFR) per vedere i dati
+    if (key === 'sofr') {
+      console.log('🔍 HISTORICAL DATA DEBUG for', key);
+      console.log('   Total historical records:', historicalData.length);
+      console.log('   Current value:', currentData?.[key]);
+      console.log('   Historical array length:', array.length);
+      console.log('   Last 3 values:', array.slice(-3));
+    }
+    
+    return array;
   };
 
   return (
