@@ -45,8 +45,16 @@ export function MetricCard({
   };
 
   const getTrend = () => {
-    if (!value || !previousValue) return null;
-    const change = ((value - previousValue) / previousValue) * 100;
+    if (!value) return null;
+    
+    // Get yesterday's value from historical data (last valid non-null value before current)
+    const validHistoricalValues = historicalData.filter(d => d.value !== null && d.value !== undefined);
+    if (validHistoricalValues.length < 2) return null;
+    
+    const yesterdayValue = validHistoricalValues[validHistoricalValues.length - 2].value;
+    if (!yesterdayValue) return null;
+    
+    const change = ((value - yesterdayValue) / yesterdayValue) * 100;
     return change;
   };
 
