@@ -14,10 +14,10 @@ import {
   fetchRecentSignals,
   subscribeToFedData,
   triggerFedDataFetch,
+  triggerFedDataFetchV2,
   FedData,
   Signal
 } from "@/services/fedData";
-import { migrateToV2, checkV2Availability, MANUAL_MIGRATION_SQL } from "@/utils/migrateV2";
 
 const Index = () => {
   const [latestData, setLatestData] = useState<FedData | null>(null);
@@ -28,40 +28,11 @@ const Index = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [v2Available, setV2Available] = useState<boolean | null>(null);
-  const [isMigrating, setIsMigrating] = useState(false);
-  const [migrationMessage, setMigrationMessage] = useState<string | null>(null);
 
-  const handleMigration = async () => {
-    setIsMigrating(true);
-    setMigrationMessage(null);
-    
-    try {
-      const result = await migrateToV2();
-      setMigrationMessage(result.message);
-      
-      if (result.success) {
-        setV2Available(true);
-        // Reload data after successful migration
-        setTimeout(() => {
-          loadData(true);
-        }, 2000);
-      }
-    } catch (error) {
-      setMigrationMessage(`Migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsMigrating(false);
-    }
-  };
-
+  // V2 is always available since we use a separate Edge Function
   const checkV2Status = async () => {
-    try {
-      const available = await checkV2Availability();
-      setV2Available(available);
-      console.log('🔍 V2 availability check:', available);
-    } catch (error) {
-      console.warn('Could not check V2 availability:', error);
-      setV2Available(false);
-    }
+    setV2Available(true);
+    console.log('🔍 V2 availability: always true (separate Edge Function)');
   };
 
   const loadData = async (forceRefresh: boolean = false) => {
@@ -223,6 +194,42 @@ const Index = () => {
     }
   };
 
+  const calculateV2Data = async () => {
+    if (isLoadingData) {
+      console.log('⏳ Data loading already in progress, skipping...');
+      return; 
+    }
+    
+    console.log('🔄 Starting V2 data calculation...');
+    setIsLoadingData(true);
+    
+    try {
+      const result = await triggerFedDataFetchV2();
+      
+      if (result.success) {
+        console.log('✅ V2 data calculation successful');
+        // Wait a bit for the data to be saved, then reload
+        setTimeout(async () => {
+          try {
+            const latest = await fetchLatestFedDataV2();
+            setLatestData(latest);
+            console.log('✅ V2 data reloaded successfully');
+          } catch (error) {
+            console.error('❌ Error reloading V2 data:', error);
+          }
+        }, 3000);
+      } else {
+        console.error('❌ V2 data calculation failed:', result.error);
+        setError(result.error || 'V2 calculation failed');
+      }
+    } catch (error) {
+      console.error('❌ Error calculating V2 data:', error);
+      setError(error instanceof Error ? error.message : 'V2 calculation error');
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
   useEffect(() => {
     // Check V2 availability first, then load data
     checkV2Status().then(() => {
@@ -332,7 +339,7 @@ const Index = () => {
                     </div>
                     {!latestData?.liquidity_score && (
                       <button
-                        onClick={() => loadData(true)}
+                        onClick={calculateV2Data}
                         disabled={isLoadingData}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
                       >

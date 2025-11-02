@@ -198,6 +198,45 @@ export async function triggerFedDataFetch(): Promise<{ success: boolean; error?:
   }
 }
 
+// V2 Function per i calcoli avanzati
+export async function triggerFedDataFetchV2(): Promise<{ success: boolean; error?: string }> {
+  try {
+    console.log('🔄 Triggering Fed data fetch V2...');
+    
+    const { data, error } = await Promise.race([
+      supabase.functions.invoke('fetch-fed-data-v2', {
+        body: { forceRefresh: true }
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Edge function V2 timeout (60s)')), 60000)
+      )
+    ]) as any;
+    
+    if (error) {
+      console.error('❌ Error triggering Fed data fetch V2:', error);
+      
+      // Gestione errori specifici
+      if (error.message?.includes('FRED_API_KEY')) {
+        return { success: false, error: 'FRED API Key non configurata in Supabase' };
+      }
+      if (error.message?.includes('rate limit')) {
+        return { success: false, error: 'Rate limit FRED API raggiunto. Riprova tra 1 ora.' };
+      }
+      
+      return { success: false, error: error.message || 'Errore sconosciuto' };
+    }
+
+    console.log('✅ Fed data fetch V2 completed successfully');
+    return { success: true, data };
+  } catch (error) {
+    console.error('❌ Timeout or error triggering Fed data fetch V2:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Timeout o errore di rete V2' 
+    };
+  }
+}
+
 export function subscribeToFedData(callback: (payload: any) => void) {
   return supabase
     .channel('fed-data-changes')
