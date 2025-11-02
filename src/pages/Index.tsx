@@ -93,8 +93,9 @@ const Index = () => {
         ]);
 
         // Se non ci sono dati E non stiamo già facendo refresh, trigghera il fetch UNA SOLA VOLTA
-        if ((!latest || historical.length === 0) && !forceRefresh) {
-          console.log('📥 No data found, triggering ONE-TIME automatic fetch...');
+        // OPPURE se forceRefresh è true (per calcolare V2 data)
+        if ((!latest || historical.length === 0) && !forceRefresh || forceRefresh) {
+          console.log('📥 Triggering Fed data fetch...', { forceRefresh, hasData: !!latest });
           
           const result = await triggerFedDataFetch();
           
@@ -102,12 +103,21 @@ const Index = () => {
             throw new Error(result.error || 'Errore nel recupero dati dalla Fed');
           }
           
-          // Attendi completamento e ricarica UNA SOLA VOLTA
+          // Attendi completamento e ricarica - più tempo per V2 calculations
           console.log('⏱️ Waiting for data processing...');
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          await new Promise(resolve => setTimeout(resolve, forceRefresh ? 8000 : 3000));
           
-          const [newLatest, newHistorical, newSignals] = await Promise.all([
-            fetchLatestFedData(),
+          // Prova a caricare V2 data se disponibile
+          let newLatest;
+          try {
+            newLatest = await fetchLatestFedDataV2();
+            console.log('✅ V2 data loaded after fetch');
+          } catch (error) {
+            console.warn('⚠️ V2 data not ready yet, using V1:', error);
+            newLatest = await fetchLatestFedData();
+          }
+          
+          const [newHistorical, newSignals] = await Promise.all([
             fetchHistoricalFedData(90),
             fetchRecentSignals(10)
           ]);
@@ -302,19 +312,33 @@ const Index = () => {
             )}
 
             {/* V2 Success Banner */}
-            {v2Available === true && latestData?.liquidity_score && (
+            {v2Available === true && (
               <section className="mb-6">
                 <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 border border-green-500/30 rounded-lg p-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">✅</span>
-                    <div>
-                      <h3 className="text-lg font-bold text-green-300">
-                        Quantitaizer V2 Active!
-                      </h3>
-                      <p className="text-green-200 text-sm">
-                        Advanced analytics and predictive features are now enabled.
-                      </p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">✅</span>
+                      <div>
+                        <h3 className="text-lg font-bold text-green-300">
+                          Quantitaizer V2 Active!
+                        </h3>
+                        <p className="text-green-200 text-sm">
+                          {latestData?.liquidity_score 
+                            ? 'Advanced analytics and predictive features are now enabled.'
+                            : 'V2 database ready. Click "Calculate V2 Data" to populate indicators.'
+                          }
+                        </p>
+                      </div>
                     </div>
+                    {!latestData?.liquidity_score && (
+                      <button
+                        onClick={() => loadData(true)}
+                        disabled={isLoadingData}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                      >
+                        {isLoadingData ? 'Calculating...' : 'Calculate V2 Data'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </section>
