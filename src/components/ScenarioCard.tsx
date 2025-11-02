@@ -1,8 +1,9 @@
-import { TrendingUp, TrendingDown, Minus, LineChart, AlertTriangle, Info } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, LineChart, AlertTriangle, Info, Target, Gauge } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { FedData, ScenarioState } from "@/services/fedData";
+import { Progress } from "@/components/ui/progress";
+import { FedData, ScenarioState, getLiquidityScoreColor, getGradeEmoji, getTrendArrow } from "@/services/fedData";
 import { deriveScenario, canShowBullish, getContextColor, getRiskColor } from "@/utils/scenarioEngine";
 
 interface ScenarioCardProps {
@@ -144,6 +145,95 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             </p>
           </div>
         </div>
+
+        {/* V2 LIQUIDITY SCORE - PROMINENT DISPLAY */}
+        {currentData?.liquidity_score !== null && currentData?.liquidity_score !== undefined && (
+          <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 rounded-xl p-6 border border-slate-600/50 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Gauge className="h-5 w-5 text-blue-400" />
+                <span className="text-sm font-medium text-slate-300 uppercase tracking-wider">
+                  Liquidity Score V2
+                </span>
+              </div>
+              <Badge variant="outline" className="text-xs border-blue-400/30 text-blue-400">
+                QUANTITAIZER
+              </Badge>
+            </div>
+            
+            <div className="flex items-center gap-6">
+              {/* Score Display */}
+              <div className="flex items-center gap-3">
+                <div className={`text-6xl font-bold ${getLiquidityScoreColor(currentData.liquidity_score)}`}>
+                  {currentData.liquidity_score}
+                </div>
+                <div className="text-slate-400 text-lg font-medium">/100</div>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-2xl">{getGradeEmoji(currentData.liquidity_grade)}</span>
+                  <span className="text-sm font-bold text-slate-300">{currentData.liquidity_grade}</span>
+                </div>
+              </div>
+              
+              {/* Trend and Progress */}
+              <div className="flex-1 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">Trend</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{getTrendArrow(currentData.liquidity_trend)}</span>
+                    <span className="text-sm font-medium text-slate-300 capitalize">
+                      {currentData.liquidity_trend || 'stable'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-slate-400">
+                    <span>Confidence</span>
+                    <span>{currentData.liquidity_confidence || 0}%</span>
+                  </div>
+                  <Progress 
+                    value={currentData.liquidity_confidence || 0} 
+                    className="h-2 bg-slate-700"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-slate-400">
+                    <span>Liquidity Level</span>
+                    <span>{currentData.liquidity_score}%</span>
+                  </div>
+                  <Progress 
+                    value={currentData.liquidity_score} 
+                    className="h-3 bg-slate-700"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Score Interpretation */}
+            <div className="mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-600/30">
+              <div className="flex items-start gap-2">
+                <Target className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-slate-300">
+                  {currentData.liquidity_score >= 80 && (
+                    <span>🟢 <strong>Condizioni eccellenti</strong> - Liquidità abbondante, ambiente favorevole per risk assets</span>
+                  )}
+                  {currentData.liquidity_score >= 65 && currentData.liquidity_score < 80 && (
+                    <span>🟡 <strong>Condizioni buone</strong> - Supporto Fed moderato, ambiente neutro-positivo</span>
+                  )}
+                  {currentData.liquidity_score >= 45 && currentData.liquidity_score < 65 && (
+                    <span>🟠 <strong>Condizioni neutre</strong> - Monitorare sviluppi Fed, cautela raccomandata</span>
+                  )}
+                  {currentData.liquidity_score < 45 && (
+                    <span>🔴 <strong>Condizioni stressate</strong> - Possibile tensione sistemica, risk-off</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <Separator className="bg-slate-600/50" />
 
         {/* Scenario Qualifiers */}
         {scenarioState && (

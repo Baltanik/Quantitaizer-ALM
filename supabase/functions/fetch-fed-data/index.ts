@@ -1,5 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// V2 IMPORTS - Liquidity Score and Leading Indicators
+// Note: In production, these would be imported from shared modules
+// For now, we'll implement simplified versions inline
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -88,6 +92,9 @@ Deno.serve(async (req) => {
       'VIXCLS', // VIX Volatility Index
       'BAMLH0A0HYM2', // High Yield Option Adjusted Spread
       'T10Y3M', // 10-Year Treasury Constant Maturity Minus 3-Month Treasury
+      // V2 NEW SERIES
+      'WTREGEN', // Treasury General Account
+      'BAMLC0A0CM', // Investment Grade Corporate Bond Yield
       // FX rates for DXY calculation
       'DEXUSEU', // USD/EUR
       'DEXJPUS', // JPY/USD
@@ -131,6 +138,9 @@ Deno.serve(async (req) => {
           if (seriesId === 'VIXCLS') key = 'vix';
           if (seriesId === 'BAMLH0A0HYM2') key = 'hy_oas';
           if (seriesId === 'T10Y3M') key = 't10y3m';
+          // V2 NEW MAPPINGS
+          if (seriesId === 'WTREGEN') key = 'tga';
+          if (seriesId === 'BAMLC0A0CM') key = 'ig_yield';
           
           seriesData[key] = json.observations;
           
@@ -279,6 +289,15 @@ Deno.serve(async (req) => {
         ? Number((data.dxy_broad - dxy_4w_ago).toFixed(5))
         : null;
 
+      // === V2 CALCULATIONS ===
+      
+      // Calculate Investment Grade Spread (IG Yield - 10Y Treasury)
+      if (data.ig_yield !== null && data.us10y !== null) {
+        data.ig_spread = Number((data.ig_yield - data.us10y).toFixed(4));
+      } else {
+        data.ig_spread = null;
+      }
+
       // Determine scenario (ORA con delta reali!)
       data.scenario = determineScenario(data);
       scenarioCounts[data.scenario as keyof typeof scenarioCounts]++;
@@ -290,6 +309,39 @@ Deno.serve(async (req) => {
       data.risk_level = scenarioState.risk_level;
       data.confidence = scenarioState.confidence;
       data.drivers = scenarioState.drivers;
+      
+      // === V2 CALCULATIONS ===
+      // Calculate Liquidity Score and Leading Indicators
+      if (recordsToInsert.length >= 30) { // Need historical data
+        const historical = recordsToInsert.slice(Math.max(0, recordsToInsert.length - 90)); // Last 90 days
+        
+        try {
+          const liquidityScore = calculateLiquidityScoreSimplified(data, historical);
+          data.liquidity_score = liquidityScore.total;
+          data.liquidity_grade = liquidityScore.grade;
+          data.liquidity_trend = liquidityScore.trend;
+          data.liquidity_confidence = liquidityScore.confidence;
+          
+          const leadingIndicators = calculateLeadingIndicatorsSimplified(data, historical);
+          data.leading_indicators = leadingIndicators;
+          
+          console.log(`📊 V2 Calculated - Score: ${liquidityScore.total}/100 (${liquidityScore.grade}), Signal: ${leadingIndicators.overall_signal}`);
+        } catch (error) {
+          console.error('❌ Error calculating V2 indicators:', error);
+          data.liquidity_score = null;
+          data.liquidity_grade = null;
+          data.liquidity_trend = null;
+          data.liquidity_confidence = null;
+          data.leading_indicators = null;
+        }
+      } else {
+        // Not enough historical data yet
+        data.liquidity_score = null;
+        data.liquidity_grade = null;
+        data.liquidity_trend = null;
+        data.liquidity_confidence = null;
+        data.leading_indicators = null;
+      }
       
       // Debug dettagliato per l'ultimo giorno
       if (date === allDates[allDates.length - 1]) {
@@ -422,6 +474,198 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// === V2 SIMPLIFIED CALCULATION FUNCTIONS ===
+
+/**
+ * Simplified Liquidity Score calculation for Edge Function
+ */
+function calculateLiquidityScoreSimplified(data: any, historical: any[]): {
+  total: number;
+  grade: string;
+  trend: string;
+  confidence: number;
+} {
+  let score = 50; // Start neutral
+  
+  // Balance Sheet Component (0-25)
+  if (data.d_walcl_4w !== null) {
+    if (data.d_walcl_4w > 50000) score += 15; // Strong expansion
+    else if (data.d_walcl_4w > 20000) score += 10; // Moderate expansion
+    else if (data.d_walcl_4w > 0) score += 5; // Mild expansion
+    else if (data.d_walcl_4w < -50000) score -= 15; // Strong contraction
+    else if (data.d_walcl_4w < -20000) score -= 10; // Moderate contraction
+    else if (data.d_walcl_4w < 0) score -= 5; // Mild contraction
+  }
+  
+  // Reserves Component (0-25)
+  if (data.d_wresbal_4w !== null && data.d_rrpontsyd_4w !== null) {
+    // Positive rotation: RRP drains while reserves grow
+    if (data.d_rrpontsyd_4w < 0 && data.d_wresbal_4w > 0) {
+      score += 15; // Excellent liquidity rotation
+    } else if (data.d_wresbal_4w > 20) {
+      score += 10; // Strong reserve growth
+    } else if (data.d_wresbal_4w < -50) {
+      score -= 10; // Reserve drainage
+    }
+  }
+  
+  // Market Stress Component (inverse: less stress = higher score)
+  if (data.vix !== null) {
+    if (data.vix < 16) score += 8;
+    else if (data.vix < 20) score += 4;
+    else if (data.vix > 30) score -= 10;
+    else if (data.vix > 25) score -= 6;
+  }
+  
+  if (data.hy_oas !== null) {
+    if (data.hy_oas < 3.5) score += 7;
+    else if (data.hy_oas < 4.5) score += 3;
+    else if (data.hy_oas > 6) score -= 8;
+    else if (data.hy_oas > 5) score -= 4;
+  }
+  
+  if (data.sofr_iorb_spread !== null) {
+    const spreadBps = data.sofr_iorb_spread * 100;
+    if (spreadBps < 5) score += 3;
+    else if (spreadBps > 25) score -= 8;
+    else if (spreadBps > 15) score -= 4;
+  }
+  
+  // Momentum (simplified trend)
+  if (historical.length >= 7) {
+    const recent7 = historical.slice(-7);
+    const recentAvgBS = recent7.reduce((sum, d) => sum + (d.d_walcl_4w || 0), 0) / 7;
+    const recentAvgRes = recent7.reduce((sum, d) => sum + (d.d_wresbal_4w || 0), 0) / 7;
+    
+    if (recentAvgBS > 10000 && recentAvgRes > 5) score += 5; // Positive momentum
+    else if (recentAvgBS < -10000 || recentAvgRes < -20) score -= 5; // Negative momentum
+  }
+  
+  // Clamp score
+  const total = Math.max(0, Math.min(100, Math.round(score)));
+  
+  // Assign grade
+  let grade = 'C';
+  if (total >= 90) grade = 'A+';
+  else if (total >= 85) grade = 'A';
+  else if (total >= 80) grade = 'B+';
+  else if (total >= 70) grade = 'B';
+  else if (total >= 60) grade = 'C+';
+  else if (total >= 50) grade = 'C';
+  else grade = 'D';
+  
+  // Determine trend
+  let trend = 'stable';
+  if (historical.length >= 14) {
+    const recent7avg = historical.slice(-7).reduce((sum, d) => {
+      let dayScore = 50;
+      if (d.d_walcl_4w > 0) dayScore += 10;
+      if (d.d_wresbal_4w > 0) dayScore += 10;
+      if (d.vix && d.vix < 20) dayScore += 10;
+      return sum + dayScore;
+    }, 0) / 7;
+    
+    const previous7avg = historical.slice(-14, -7).reduce((sum, d) => {
+      let dayScore = 50;
+      if (d.d_walcl_4w > 0) dayScore += 10;
+      if (d.d_wresbal_4w > 0) dayScore += 10;
+      if (d.vix && d.vix < 20) dayScore += 10;
+      return sum + dayScore;
+    }, 0) / 7;
+    
+    const change = recent7avg - previous7avg;
+    if (change > 5) trend = 'improving';
+    else if (change < -5) trend = 'deteriorating';
+  }
+  
+  // Calculate confidence
+  let confidence = 100;
+  const criticalFields = [data.walcl, data.wresbal, data.vix, data.hy_oas, data.sofr_iorb_spread];
+  const missingFields = criticalFields.filter(f => f === null).length;
+  confidence -= missingFields * 15;
+  
+  const dataAge = (new Date().getTime() - new Date(data.date).getTime()) / (1000 * 60 * 60 * 24);
+  if (dataAge > 7) confidence -= Math.min(30, (dataAge - 7) * 3);
+  
+  confidence = Math.max(0, Math.min(100, confidence));
+  
+  return { total, grade, trend, confidence };
+}
+
+/**
+ * Simplified Leading Indicators calculation for Edge Function
+ */
+function calculateLeadingIndicatorsSimplified(data: any, historical: any[]): any {
+  // RRP Velocity (B$/day)
+  let rrpVelocity = 0;
+  if (historical.length >= 7) {
+    const recent7 = historical.slice(-7);
+    const totalChange = recent7.reduce((sum, d) => sum + (d.d_rrpontsyd_4w || 0), 0);
+    rrpVelocity = Number((totalChange / 7).toFixed(1));
+  }
+  
+  // Credit Stress Index (0-100)
+  let creditStressIndex = 50;
+  if (data.hy_oas !== null) {
+    if (data.hy_oas > 8) creditStressIndex = 100;
+    else if (data.hy_oas > 6) creditStressIndex = 80;
+    else if (data.hy_oas > 5) creditStressIndex = 60;
+    else if (data.hy_oas > 4) creditStressIndex = 40;
+    else if (data.hy_oas > 3) creditStressIndex = 20;
+    else creditStressIndex = 0;
+  }
+  
+  // Repo Spike Risk (0-100)
+  let repoSpikeRisk = 25;
+  if (data.sofr_iorb_spread !== null) {
+    const spreadBps = data.sofr_iorb_spread * 100;
+    if (spreadBps > 25) repoSpikeRisk = 80;
+    else if (spreadBps > 15) repoSpikeRisk = 60;
+    else if (spreadBps > 10) repoSpikeRisk = 40;
+    else if (spreadBps < 5) repoSpikeRisk = 10;
+  }
+  
+  // QT Pivot Probability (0-100)
+  let qtPivotProbability = 15;
+  let stressSignals = 0;
+  if (data.vix && data.vix > 25) stressSignals++;
+  if (data.hy_oas && data.hy_oas > 6) stressSignals++;
+  if (data.sofr_iorb_spread && data.sofr_iorb_spread * 100 > 20) stressSignals++;
+  if (data.wresbal && data.wresbal < 3000) stressSignals++;
+  
+  qtPivotProbability = Math.min(100, 15 + (stressSignals * 20));
+  
+  // Overall Signal
+  let bullishSignals = 0;
+  let bearishSignals = 0;
+  
+  if (rrpVelocity < -10) bullishSignals++; // RRP draining
+  if (creditStressIndex < 30) bullishSignals++;
+  if (repoSpikeRisk < 25) bullishSignals++;
+  if (qtPivotProbability > 70) bullishSignals++; // Pivot = bullish
+  
+  if (creditStressIndex > 60) bearishSignals++;
+  if (repoSpikeRisk > 60) bearishSignals++;
+  if (rrpVelocity > 10) bearishSignals++; // RRP accumulating
+  
+  let overallSignal = 'neutral';
+  if (bullishSignals > bearishSignals + 1) overallSignal = 'bullish';
+  else if (bearishSignals > bullishSignals + 1) overallSignal = 'bearish';
+  
+  return {
+    tga_trend: 'stable', // Placeholder until TGA data available
+    tga_impact: 'neutral',
+    rrp_velocity: rrpVelocity,
+    rrp_acceleration: 'stable', // Simplified
+    credit_stress_index: creditStressIndex,
+    credit_trend: creditStressIndex < 40 ? 'improving' : creditStressIndex > 60 ? 'deteriorating' : 'stable',
+    repo_spike_risk: repoSpikeRisk,
+    qt_pivot_probability: qtPivotProbability,
+    overall_signal: overallSignal,
+    confidence: Math.max(50, 100 - (data.vix === null ? 20 : 0) - (data.hy_oas === null ? 20 : 0))
+  };
+}
 
 function determineScenario(data: any): string {
   // Estrai i delta calcolati correttamente (ora disponibili!)

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { ScenarioCard } from "@/components/ScenarioCard";
+import { LeadingIndicators } from "@/components/LeadingIndicators";
 import { MetricsGrid } from "@/components/MetricsGrid";
 import { ScenarioAnalysis } from "@/components/ScenarioAnalysis";
 import { LiquidityMonitor } from "@/components/LiquidityMonitor";
@@ -8,6 +9,7 @@ import { FedPolicyTracker } from "@/components/FedPolicyTracker";
 import { MarketImpact } from "@/components/MarketImpact";
 import { 
   fetchLatestFedData, 
+  fetchLatestFedDataV2,
   fetchHistoricalFedData, 
   fetchRecentSignals,
   subscribeToFedData,
@@ -40,7 +42,7 @@ const Index = () => {
       // Timeout per l'intero processo
       const loadPromise = (async () => {
         const [latest, historical, recentSignals] = await Promise.all([
-          fetchLatestFedData(),
+          fetchLatestFedDataV2(), // Use V2 version with new fields
           fetchHistoricalFedData(90),
           fetchRecentSignals(10)
         ]);
@@ -230,6 +232,17 @@ const Index = () => {
                 <ScenarioAnalysis currentData={latestData} />
                 <LiquidityMonitor currentData={latestData} />
               </div>
+            </section>
+
+            {/* V2 Leading Indicators */}
+            <section className="space-y-4">
+              <h2 className="text-2xl font-bold border-l-4 border-blue-500 pl-4 flex items-center gap-2">
+                Leading Indicators V2
+                <span className="text-sm font-normal text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
+                  EARLY WARNING
+                </span>
+              </h2>
+              <LeadingIndicators data={latestData} />
             </section>
             
             {/* Market Intelligence */}

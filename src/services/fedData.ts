@@ -38,8 +38,33 @@ export interface FedData {
   risk_level: RiskLevel | null;
   confidence: Confidence | null;
   drivers: string[] | null;
+  // === V2 NEW FIELDS ===
+  // Treasury General Account e Investment Grade
+  tga: number | null;
+  ig_spread: number | null;
+  // Liquidity Score V2
+  liquidity_score: number | null;
+  liquidity_grade: string | null;
+  liquidity_trend: string | null;
+  liquidity_confidence: number | null;
+  // Leading Indicators V2
+  leading_indicators: LeadingIndicatorsData | null;
   created_at: string;
   updated_at: string;
+}
+
+// V2 Leading Indicators interface for database storage
+export interface LeadingIndicatorsData {
+  tga_trend: 'expanding' | 'contracting' | 'stable';
+  tga_impact: 'positive' | 'negative' | 'neutral';
+  rrp_velocity: number;
+  rrp_acceleration: 'accelerating' | 'decelerating' | 'stable';
+  credit_stress_index: number;
+  credit_trend: 'improving' | 'deteriorating' | 'stable';
+  repo_spike_risk: number;
+  qt_pivot_probability: number;
+  overall_signal: 'bullish' | 'bearish' | 'neutral';
+  confidence: number;
 }
 
 export interface ScenarioState {
@@ -186,4 +211,212 @@ export function subscribeToFedData(callback: (payload: any) => void) {
       callback
     )
     .subscribe();
+}
+
+// === V2 HELPER FUNCTIONS ===
+
+/**
+ * Fetch latest data with V2 fields
+ */
+export async function fetchLatestFedDataV2(): Promise<FedData | null> {
+  try {
+    const { data, error } = await Promise.race([
+      supabase
+        .from('fed_data')
+        .select(`
+          *,
+          liquidity_score,
+          liquidity_grade,
+          liquidity_trend,
+          liquidity_confidence,
+          leading_indicators,
+          tga,
+          ig_spread
+        `)
+        .order('date', { ascending: false })
+        .limit(1)
+        .single(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 10000)
+      )
+    ]) as any;
+
+    if (error) {
+      console.error('Error fetching latest Fed data V2:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Timeout or error fetching latest Fed data V2:', error);
+    return null;
+  }
+}
+
+/**
+ * Get Liquidity Score statistics
+ */
+export async function fetchLiquidityStats(daysBack: number = 30): Promise<{
+  avgScore: number;
+  trend: string;
+  gradeDistribution: Record<string, number>;
+  recentScores: number[];
+} | null> {
+  try {
+    const { data, error } = await supabase
+      .from('fed_data')
+      .select('liquidity_score, liquidity_grade, date')
+      .not('liquidity_score', 'is', null)
+      .gte('date', new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching liquidity stats:', error);
+      return null;
+    }
+
+    if (!data || data.length === 0) return null;
+
+    const scores = data.map(d => d.liquidity_score).filter(s => s !== null) as number[];
+    const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+
+    // Calculate trend (recent 7 days vs previous 7 days)
+    const recent7 = scores.slice(0, 7);
+    const previous7 = scores.slice(7, 14);
+    const recentAvg = recent7.length > 0 ? recent7.reduce((a, b) => a + b, 0) / recent7.length : avgScore;
+    const previousAvg = previous7.length > 0 ? previous7.reduce((a, b) => a + b, 0) / previous7.length : avgScore;
+    
+    let trend = 'stable';
+    if (recentAvg > previousAvg + 3) trend = 'improving';
+    else if (recentAvg < previousAvg - 3) trend = 'deteriorating';
+
+    // Grade distribution
+    const gradeDistribution: Record<string, number> = {};
+    data.forEach(d => {
+      if (d.liquidity_grade) {
+        gradeDistribution[d.liquidity_grade] = (gradeDistribution[d.liquidity_grade] || 0) + 1;
+      }
+    });
+
+    return {
+      avgScore: Number(avgScore.toFixed(1)),
+      trend,
+      gradeDistribution,
+      recentScores: scores.slice(0, 30) // Last 30 scores
+    };
+  } catch (error) {
+    console.error('Error calculating liquidity stats:', error);
+    return null;
+  }
+}
+
+/**
+ * Get Leading Indicators summary
+ */
+export async function fetchLeadingIndicatorsSummary(): Promise<{
+  overallSignal: 'bullish' | 'bearish' | 'neutral';
+  signalStrength: number;
+  keyAlerts: string[];
+  confidence: number;
+} | null> {
+  try {
+    const { data, error } = await supabase
+      .from('fed_data')
+      .select('leading_indicators, date')
+      .not('leading_indicators', 'is', null)
+      .order('date', { ascending: false })
+      .limit(7); // Last 7 days
+
+    if (error || !data || data.length === 0) {
+      console.error('Error fetching leading indicators:', error);
+      return null;
+    }
+
+    const latest = data[0].leading_indicators as LeadingIndicatorsData;
+    const keyAlerts: string[] = [];
+
+    // Generate alerts based on latest indicators
+    if (latest.credit_stress_index > 70) {
+      keyAlerts.push('🚨 Credit stress elevato');
+    }
+    if (latest.repo_spike_risk > 60) {
+      keyAlerts.push('⚠️ Alto rischio tensioni repo');
+    }
+    if (latest.qt_pivot_probability > 60) {
+      keyAlerts.push('🔄 Alta probabilità pivot Fed');
+    }
+    if (latest.rrp_velocity < -20) {
+      keyAlerts.push('💧 RRP drenaggio accelerato');
+    }
+
+    // Calculate signal strength based on consistency over last 7 days
+    const signals = data.map(d => d.leading_indicators?.overall_signal).filter(Boolean);
+    const bullishCount = signals.filter(s => s === 'bullish').length;
+    const bearishCount = signals.filter(s => s === 'bearish').length;
+    const neutralCount = signals.filter(s => s === 'neutral').length;
+
+    let signalStrength = 0;
+    if (bullishCount > bearishCount && bullishCount > neutralCount) {
+      signalStrength = (bullishCount / signals.length) * 100;
+    } else if (bearishCount > bullishCount && bearishCount > neutralCount) {
+      signalStrength = (bearishCount / signals.length) * 100;
+    } else {
+      signalStrength = (neutralCount / signals.length) * 100;
+    }
+
+    return {
+      overallSignal: latest.overall_signal,
+      signalStrength: Number(signalStrength.toFixed(0)),
+      keyAlerts,
+      confidence: latest.confidence
+    };
+  } catch (error) {
+    console.error('Error fetching leading indicators summary:', error);
+    return null;
+  }
+}
+
+/**
+ * Helper to get score color based on value
+ */
+export function getLiquidityScoreColor(score: number | null): string {
+  if (score === null) return 'text-gray-400';
+  
+  if (score >= 80) return 'text-green-600';
+  if (score >= 65) return 'text-green-500';
+  if (score >= 50) return 'text-yellow-500';
+  if (score >= 35) return 'text-orange-500';
+  return 'text-red-500';
+}
+
+/**
+ * Helper to get grade emoji
+ */
+export function getGradeEmoji(grade: string | null): string {
+  if (!grade) return '❓';
+  
+  switch (grade) {
+    case 'A+': return '🏆';
+    case 'A': return '🥇';
+    case 'B+': return '🥈';
+    case 'B': return '🥉';
+    case 'C+': return '📈';
+    case 'C': return '📊';
+    case 'D': return '⚠️';
+    default: return '❓';
+  }
+}
+
+/**
+ * Helper to get trend arrow
+ */
+export function getTrendArrow(trend: string | null): string {
+  if (!trend) return '➡️';
+  
+  switch (trend) {
+    case 'improving': return '↗️';
+    case 'deteriorating': return '↘️';
+    case 'stable': return '➡️';
+    default: return '➡️';
+  }
 }
