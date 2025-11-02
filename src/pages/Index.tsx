@@ -17,6 +17,7 @@ import {
   FedData,
   Signal
 } from "@/services/fedData";
+import { migrateToV2, checkV2Availability, MANUAL_MIGRATION_SQL } from "@/utils/migrateV2";
 
 const Index = () => {
   const [latestData, setLatestData] = useState<FedData | null>(null);
@@ -26,6 +27,42 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [v2Available, setV2Available] = useState<boolean | null>(null);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationMessage, setMigrationMessage] = useState<string | null>(null);
+
+  const handleMigration = async () => {
+    setIsMigrating(true);
+    setMigrationMessage(null);
+    
+    try {
+      const result = await migrateToV2();
+      setMigrationMessage(result.message);
+      
+      if (result.success) {
+        setV2Available(true);
+        // Reload data after successful migration
+        setTimeout(() => {
+          loadData(true);
+        }, 2000);
+      }
+    } catch (error) {
+      setMigrationMessage(`Migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
+  const checkV2Status = async () => {
+    try {
+      const available = await checkV2Availability();
+      setV2Available(available);
+      console.log('🔍 V2 availability check:', available);
+    } catch (error) {
+      console.warn('Could not check V2 availability:', error);
+      setV2Available(false);
+    }
+  };
 
   const loadData = async (forceRefresh: boolean = false) => {
     if (isLoadingData) {
@@ -41,8 +78,16 @@ const Index = () => {
     try {
       // Timeout per l'intero processo
       const loadPromise = (async () => {
-        const [latest, historical, recentSignals] = await Promise.all([
-          fetchLatestFedDataV2(), // Use V2 version with new fields
+        // Try V2 first, fallback to V1 if columns don't exist yet
+        let latest;
+        try {
+          latest = await fetchLatestFedDataV2();
+        } catch (error) {
+          console.warn('V2 columns not available yet, falling back to V1:', error);
+          latest = await fetchLatestFedData();
+        }
+        
+        const [historical, recentSignals] = await Promise.all([
           fetchHistoricalFedData(90),
           fetchRecentSignals(10)
         ]);
@@ -169,7 +214,10 @@ const Index = () => {
   };
 
   useEffect(() => {
-    loadData();
+    // Check V2 availability first, then load data
+    checkV2Status().then(() => {
+      loadData();
+    });
     // Real-time subscription rimossa - i dati vengono aggiornati solo una volta al giorno
   }, []);
 
@@ -207,6 +255,71 @@ const Index = () => {
           </div>
         ) : (
           <>
+            {/* V2 Migration Banner */}
+            {v2Available === false && (
+              <section className="mb-6">
+                <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0">
+                      <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                        <span className="text-2xl">🚀</span>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-white mb-2">
+                        Upgrade to Quantitaizer V2 Available!
+                      </h3>
+                      <p className="text-slate-300 mb-4">
+                        Unlock advanced features: Liquidity Score (0-100), Leading Indicators, Early Warning System, and Predictive Analytics.
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleMigration}
+                          disabled={isMigrating}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                        >
+                          {isMigrating ? 'Migrating...' : 'Upgrade to V2'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(MANUAL_MIGRATION_SQL);
+                            alert('SQL copied to clipboard! Paste it in your Supabase SQL Editor.');
+                          }}
+                          className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          Copy Manual SQL
+                        </button>
+                      </div>
+                      {migrationMessage && (
+                        <div className={`mt-3 p-3 rounded-lg ${migrationMessage.includes('success') ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+                          {migrationMessage}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* V2 Success Banner */}
+            {v2Available === true && latestData?.liquidity_score && (
+              <section className="mb-6">
+                <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 border border-green-500/30 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">✅</span>
+                    <div>
+                      <h3 className="text-lg font-bold text-green-300">
+                        Quantitaizer V2 Active!
+                      </h3>
+                      <p className="text-green-200 text-sm">
+                        Advanced analytics and predictive features are now enabled.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
             {/* Scenario Attuale */}
             <section className="space-y-6">
               <ScenarioCard 
