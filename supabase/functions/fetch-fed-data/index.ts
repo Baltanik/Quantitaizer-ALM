@@ -14,6 +14,51 @@ interface SeriesResponse {
   observations: FedDataPoint[];
 }
 
+interface FXRates {
+  EUR: number; // DEXUSEU
+  JPY: number; // DEXJPUS
+  GBP: number; // DEXUSUK
+  CAD: number; // DEXCAUS
+  SEK: number; // DEXSZUS
+  CHF: number; // DEXCHUS
+}
+
+// Pesi ufficiali del DXY
+const DXY_WEIGHTS = {
+  EUR: 0.576,
+  JPY: 0.136,
+  GBP: 0.119,
+  CAD: 0.091,
+  SEK: 0.042,
+  CHF: 0.036,
+};
+
+/**
+ * Calcola l'indice DXY usando i pesi ufficiali
+ * @param rates Oggetto con tassi FX
+ * @returns Valore indice DXY
+ */
+/**
+ * Calcola il DXY corretto usando le serie FRED.
+ * Si considerano le inversioni corrette per ogni coppia.
+ */
+function calculateDXY(rates: FXRates): number {
+  // I dati FRED sono già nel formato corretto per la formula DXY!
+  // Non servono inversioni
+  
+  // Formula ufficiale DXY con base 50.14348112
+  const dxy =
+    50.14348112 *
+    Math.pow(rates.EUR, -DXY_WEIGHTS.EUR) *
+    Math.pow(rates.JPY, DXY_WEIGHTS.JPY) *
+    Math.pow(rates.GBP, -DXY_WEIGHTS.GBP) *
+    Math.pow(rates.CAD, DXY_WEIGHTS.CAD) *
+    Math.pow(rates.SEK, DXY_WEIGHTS.SEK) *
+    Math.pow(rates.CHF, DXY_WEIGHTS.CHF);
+
+  return dxy;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -42,8 +87,14 @@ Deno.serve(async (req) => {
       'DGS10', // 10-Year Treasury (us10y)
       'VIXCLS', // VIX Volatility Index
       'BAMLH0A0HYM2', // High Yield Option Adjusted Spread
-      'T10Y3M' // 10-Year Treasury Constant Maturity Minus 3-Month Treasury
-      // DXY rimosso - verrà preso da Yahoo Finance
+      'T10Y3M', // 10-Year Treasury Constant Maturity Minus 3-Month Treasury
+      // FX rates for DXY calculation
+      'DEXUSEU', // USD/EUR
+      'DEXJPUS', // JPY/USD
+      'DEXUSUK', // USD/GBP
+      'DEXCAUS', // CAD/USD
+      'DEXSZUS', // SEK/USD
+      'DEXCHUS'  // CHF/USD
     ];
 
     // Fetch data from 2021 to today
@@ -103,45 +154,6 @@ Deno.serve(async (req) => {
     
     console.log(`\n📊 Fetch Summary: ${Object.keys(seriesData).length} series fetched successfully`);
     
-    // === FETCH DXY PROXY FROM FRED ===
-    // DXY reale non disponibile su FRED, uso DEXUSEU (USD/EUR) come proxy
-    // DEXUSEU range tipico: 0.85-1.25 (inverso del DXY trend)
-    console.log('\n🔄 Fetching DXY proxy (DEXUSEU) from FRED...');
-    try {
-      const dxyUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=DEXUSEU&api_key=${fredApiKey}&file_type=json&observation_start=${startDate}&observation_end=${endDate}`;
-      
-      const dxyResponse = await fetch(dxyUrl);
-      
-      if (dxyResponse.ok) {
-        const json: SeriesResponse = await dxyResponse.json();
-        
-        if (json.observations && json.observations.length > 0) {
-          // Convertiamo USD/EUR in un indice che si muove come il DXY
-          // DXY tipico: 90-110, USD/EUR tipico: 0.85-1.25
-          // Approssimiamo: DXY ≈ 100 / USD/EUR
-          const dxyData: FedDataPoint[] = json.observations.map(obs => ({
-            date: obs.date,
-            value: obs.value === '.' ? '.' : (100 / parseFloat(obs.value)).toFixed(5)
-          }));
-          
-          seriesData['dxy_broad'] = dxyData;
-          console.log(`✅ DXY (proxy DEXUSEU): ${dxyData.length} observations fetched`);
-          console.log(`   Last 5 values:`);
-          dxyData.slice(-5).forEach(obs => {
-            console.log(`     ${obs.date}: ${obs.value}`);
-          });
-        } else {
-          console.error(`❌ No observations for DEXUSEU`);
-          seriesData['dxy_broad'] = [];
-        }
-      } else {
-        console.error(`❌ Failed to fetch DEXUSEU: ${dxyResponse.status}`);
-        seriesData['dxy_broad'] = [];
-      }
-    } catch (error) {
-      console.error(`❌ Error fetching DXY proxy:`, error);
-      seriesData['dxy_broad'] = [];
-    }
 
     // Generate complete date range (all days from 2021 to today)
     const allDates: string[] = [];
@@ -162,10 +174,20 @@ Deno.serve(async (req) => {
     });
 
     // Process each date with forward fill
-    const recordsToInsert = [];
+    const recordsToInsert: any[] = [];
     const scenarioCounts = { stealth_qe: 0, qe: 0, qt: 0, neutral: 0 };
     
-    for (const date of allDates) {
+    // Helper per ottenere il valore di N giorni fa
+    const getValueNDaysAgo = (records: any[], currentIndex: number, key: string, daysAgo: number): number | null => {
+      const targetIndex = currentIndex - daysAgo;
+      if (targetIndex >= 0 && targetIndex < records.length) {
+        return records[targetIndex][key] ?? null;
+      }
+      return null;
+    };
+    
+    for (let i = 0; i < allDates.length; i++) {
+      const date = allDates[i];
       const data: any = { date };
       
       // Get value for each series on this date, or use last known value (forward fill)
@@ -188,7 +210,76 @@ Deno.serve(async (req) => {
         data.sofr_iorb_spread = null;
       }
 
-      // Determine scenario
+      // Calculate DXY using official weights
+      const fxValues = [data.dexuseu, data.dexjpus, data.dexusuk, data.dexcaus, data.dexszus, data.dexchus];
+      const allFxValid = fxValues.every(val => val !== null && val !== undefined && !isNaN(val) && val > 0);
+      
+      if (allFxValid) {
+        const fxRates: FXRates = {
+          EUR: data.dexuseu,
+          JPY: data.dexjpus,
+          GBP: data.dexusuk,
+          CAD: data.dexcaus,
+          SEK: data.dexszus,
+          CHF: data.dexchus
+        };
+        
+        try {
+          data.dxy_broad = Number(calculateDXY(fxRates).toFixed(4));
+        } catch (error) {
+          console.error(`❌ Error calculating DXY for ${date}:`, error);
+          console.error(`   FX rates:`, fxRates);
+          data.dxy_broad = null;
+        }
+      } else {
+        // Debug: mostra quali valori mancano
+        if (date === allDates[allDates.length - 1]) {
+          console.log(`❌ DXY calculation failed - missing FX data:`);
+          console.log(`   DEXUSEU: ${data.dexuseu}`);
+          console.log(`   DEXJPUS: ${data.dexjpus}`);
+          console.log(`   DEXUSUK: ${data.dexusuk}`);
+          console.log(`   DEXCAUS: ${data.dexcaus}`);
+          console.log(`   DEXSZUS: ${data.dexszus}`);
+          console.log(`   DEXCHUS: ${data.dexchus}`);
+        }
+        data.dxy_broad = null;
+      }
+
+      // === CALCOLO DELTA A 4 SETTIMANE (28 giorni) ===
+      // I delta sono fondamentali per determinare lo scenario correttamente
+      const daysBack = 28; // 4 settimane
+      
+      // WALCL: Balance Sheet (in millions)
+      const walcl_4w_ago = getValueNDaysAgo(recordsToInsert, i, 'walcl', daysBack);
+      data.d_walcl_4w = (data.walcl !== null && walcl_4w_ago !== null) 
+        ? Number((data.walcl - walcl_4w_ago).toFixed(2))
+        : null;
+      
+      // WRESBAL: Reserves (in billions)
+      const wresbal_4w_ago = getValueNDaysAgo(recordsToInsert, i, 'wresbal', daysBack);
+      data.d_wresbal_4w = (data.wresbal !== null && wresbal_4w_ago !== null) 
+        ? Number((data.wresbal - wresbal_4w_ago).toFixed(2))
+        : null;
+      
+      // RRPONTSYD: Reverse Repo (in billions)
+      const rrpontsyd_4w_ago = getValueNDaysAgo(recordsToInsert, i, 'rrpontsyd', daysBack);
+      data.d_rrpontsyd_4w = (data.rrpontsyd !== null && rrpontsyd_4w_ago !== null) 
+        ? Number((data.rrpontsyd - rrpontsyd_4w_ago).toFixed(2))
+        : null;
+      
+      // T10Y3M: Yield Curve
+      const t10y3m_4w_ago = getValueNDaysAgo(recordsToInsert, i, 't10y3m', daysBack);
+      data.d_t10y3m_4w = (data.t10y3m !== null && t10y3m_4w_ago !== null) 
+        ? Number((data.t10y3m - t10y3m_4w_ago).toFixed(5))
+        : null;
+      
+      // DXY: Dollar Index
+      const dxy_4w_ago = getValueNDaysAgo(recordsToInsert, i, 'dxy_broad', daysBack);
+      data.d_dxy_4w = (data.dxy_broad !== null && dxy_4w_ago !== null) 
+        ? Number((data.dxy_broad - dxy_4w_ago).toFixed(5))
+        : null;
+
+      // Determine scenario (ORA con delta reali!)
       data.scenario = determineScenario(data);
       scenarioCounts[data.scenario as keyof typeof scenarioCounts]++;
       
@@ -222,6 +313,15 @@ Deno.serve(async (req) => {
         console.log(`   walcl: ${data.walcl} (type: ${typeof data.walcl})`);
         console.log(`   wresbal: ${data.wresbal} (type: ${typeof data.wresbal})`);
         console.log(`   rrpontsyd: ${data.rrpontsyd}`);
+        console.log(`   dxy_broad: ${data.dxy_broad} (calculated from FX rates)`);
+        
+        console.log('\n💱 FX RATES FOR DXY:');
+        console.log(`   USD/EUR: ${data.dexuseu}`);
+        console.log(`   JPY/USD: ${data.dexjpus}`);
+        console.log(`   USD/GBP: ${data.dexusuk}`);
+        console.log(`   CAD/USD: ${data.dexcaus}`);
+        console.log(`   SEK/USD: ${data.dexszus}`);
+        console.log(`   CHF/USD: ${data.dexchus}`);
         
         console.log('\n📈 HUMAN READABLE:');
         console.log(`   SOFR: ${data.sofr}%`);
@@ -229,6 +329,14 @@ Deno.serve(async (req) => {
         console.log(`   Spread: ${data.sofr_iorb_spread ? (data.sofr_iorb_spread * 100).toFixed(2) : 'NULL'}bps`);
         console.log(`   Balance Sheet: ${data.walcl ? `$${(data.walcl/1000000).toFixed(2)}T` : 'NULL'}`);
         console.log(`   Reserves: ${data.wresbal ? `$${(data.wresbal/1000).toFixed(2)}T` : 'NULL'}`);
+        console.log(`   DXY Index: ${data.dxy_broad !== null && data.dxy_broad !== undefined ? data.dxy_broad.toFixed(2) : 'NULL'}`);
+        
+        console.log('\n📊 DELTA 4W (CRITICAL FOR SCENARIO):');
+        console.log(`   Δ Balance Sheet: ${data.d_walcl_4w !== null ? `${data.d_walcl_4w > 0 ? '+' : ''}$${(data.d_walcl_4w/1000).toFixed(1)}B` : 'NULL'}`);
+        console.log(`   Δ Reserves: ${data.d_wresbal_4w !== null ? `${data.d_wresbal_4w > 0 ? '+' : ''}$${data.d_wresbal_4w.toFixed(1)}B` : 'NULL'}`);
+        console.log(`   Δ RRP: ${data.d_rrpontsyd_4w !== null ? `${data.d_rrpontsyd_4w > 0 ? '+' : ''}$${data.d_rrpontsyd_4w.toFixed(1)}B` : 'NULL'}`);
+        console.log(`   Δ T10Y3M: ${data.d_t10y3m_4w !== null ? `${data.d_t10y3m_4w > 0 ? '+' : ''}${data.d_t10y3m_4w.toFixed(2)}%` : 'NULL'}`);
+        console.log(`   Δ DXY: ${data.d_dxy_4w !== null ? `${data.d_dxy_4w > 0 ? '+' : ''}${data.d_dxy_4w.toFixed(2)}` : 'NULL'}`);
         
         console.log('\n🎯 SCENARIO DETECTED: ' + data.scenario.toUpperCase());
         
@@ -316,24 +424,27 @@ Deno.serve(async (req) => {
 });
 
 function determineScenario(data: any): string {
-  const { d_walcl_4w, d_wresbal_4w, d_rrpontsyd_4w } = data;
+  // Estrai i delta calcolati correttamente (ora disponibili!)
+  const d_walcl_4w = data.d_walcl_4w ?? null;
+  const d_wresbal_4w = data.d_wresbal_4w ?? null;
+  const d_rrpontsyd_4w = data.d_rrpontsyd_4w ?? null;
 
   // UNITÀ DI MISURA:
   // - d_walcl_4w: millions ($M) → delta a 4 settimane
   // - d_wresbal_4w: billions ($B) → delta a 4 settimane
   // - d_rrpontsyd_4w: billions ($B) → delta a 4 settimane
 
-  // Data validation
+  // Data validation - se manca anche solo un delta, non possiamo calcolare lo scenario
   const isValidData = 
     d_walcl_4w !== null &&
     d_wresbal_4w !== null &&
     d_rrpontsyd_4w !== null;
 
   if (!isValidData) {
-    console.error('❌ INVALID DATA for scenario calculation:', {
+    console.warn('⚠️ MISSING DELTA DATA for scenario calculation:', {
       d_walcl_4w, d_wresbal_4w, d_rrpontsyd_4w
     });
-    console.error('⚠️ Returning NEUTRAL due to missing data');
+    console.warn('⚠️ Returning NEUTRAL (primi 28 giorni non hanno delta)');
     return 'neutral';
   }
 
@@ -345,47 +456,61 @@ function determineScenario(data: any): string {
   });
 
   console.log('🔍 Scenario Calculation - Readable:', {
-    balance_sheet_change: `${d_walcl_4w > 0 ? '+' : ''}$${(d_walcl_4w / 1000).toFixed(1)}B`,
-    reserves_change: `${d_wresbal_4w > 0 ? '+' : ''}$${d_wresbal_4w.toFixed(1)}B`,
-    rrp_change: `${d_rrpontsyd_4w > 0 ? '+' : ''}$${d_rrpontsyd_4w.toFixed(1)}B`
+    balance_sheet_change: d_walcl_4w !== null ? `${d_walcl_4w > 0 ? '+' : ''}$${(d_walcl_4w / 1000).toFixed(1)}B` : 'NULL',
+    reserves_change: d_wresbal_4w !== null ? `${d_wresbal_4w > 0 ? '+' : ''}$${d_wresbal_4w.toFixed(1)}B` : 'NULL',
+    rrp_change: d_rrpontsyd_4w !== null ? `${d_rrpontsyd_4w > 0 ? '+' : ''}$${d_rrpontsyd_4w.toFixed(1)}B` : 'NULL'
   });
 
-  console.log('🎯 Checking Scenario Conditions (Soglie Macro Validate)...');
+  console.log('🎯 Checking Scenario Conditions (Soglie Ottimizzate Liquidity Analysis)...');
 
   // === QE AGGRESSIVO ===
-  // Soglia: Bilancio +$20B E Riserve +$100B (4 settimane)
-  // Fonte: Ricerca Fed - indica intervento significativo
-  const qeCondition = d_walcl_4w > 20000 && d_wresbal_4w > 100;
-  console.log(`   QE: ΔBS > $20B (${d_walcl_4w > 20000}) && ΔRiserve > $100B (${d_wresbal_4w > 100}) = ${qeCondition}`);
+  // Soglia: Bilancio +$50B E Riserve +$50B (4 settimane)
+  // Fonte: Intervento Fed significativo e coordinato
+  // Razionale: Espansione simultanea su entrambi i fronti = QE vero
+  const qeCondition = d_walcl_4w > 50000 && d_wresbal_4w > 50;
+  console.log(`   QE: ΔBS > +$50B (${d_walcl_4w > 50000 ? '✓' : '✗'} actual: ${(d_walcl_4w/1000).toFixed(1)}B) && ΔRiserve > +$50B (${d_wresbal_4w > 50 ? '✓' : '✗'} actual: ${d_wresbal_4w.toFixed(1)}B) = ${qeCondition}`);
   
   if (qeCondition) {
-    console.log('✅ Scenario: QE - Espansione aggressiva rilevata');
+    console.log('✅ Scenario: QE - Espansione aggressiva Fed rilevata');
     return 'qe';
   }
 
-  // === STEALTH QE ===
-  // Soglia: Riserve in aumento OPPURE RRP in drenaggio >$20B
-  // Fonte: Letteratura Fed - rotazione liquidità da RRP a riserve è stimolativa
-  const stealthQeCondition = d_wresbal_4w > 0 || d_rrpontsyd_4w < -20;
-  console.log(`   STEALTH_QE: ΔRiserve > 0 (${d_wresbal_4w > 0}) || ΔRRP < -$20B (${d_rrpontsyd_4w < -20}) = ${stealthQeCondition}`);
+  // === STEALTH QE (Rotazione Liquidità) ===
+  // Soglia RIVISTA: Rotazione significativa (non micro-movimenti)
+  // Opzione 1: RRP drena >$30B mentre riserve stabili/crescono
+  // Opzione 2: Riserve crescono >$20B con bilancio stabile/crescita moderata
+  // Opzione 3: Bilancio cresce >$30B con contrazione RRP
+  // Razionale: Liquidità netta in aumento attraverso meccanismi "nascosti"
+  const rrpDrainageSignificant = d_rrpontsyd_4w < -30 && d_wresbal_4w >= -20; // RRP drena, riserve non collassano
+  const reservesGrowthModerate = d_wresbal_4w > 20 && d_walcl_4w > -20000; // Riserve crescono, BS non crolla
+  const balanceSheetGrowthWithRrpDrain = d_walcl_4w > 30000 && d_rrpontsyd_4w < -20; // BS cresce con RRP in drenaggio
+  
+  const stealthQeCondition = rrpDrainageSignificant || reservesGrowthModerate || balanceSheetGrowthWithRrpDrain;
+  
+  console.log(`   STEALTH_QE conditions:`);
+  console.log(`     → RRP drainage >$30B + Reserves stable: ${rrpDrainageSignificant} (ΔRRP: ${d_rrpontsyd_4w.toFixed(1)}B, ΔRes: ${d_wresbal_4w.toFixed(1)}B)`);
+  console.log(`     → Reserves growth >$20B + BS stable: ${reservesGrowthModerate} (ΔRes: ${d_wresbal_4w.toFixed(1)}B, ΔBS: ${(d_walcl_4w/1000).toFixed(1)}B)`);
+  console.log(`     → BS growth >$30B + RRP drain: ${balanceSheetGrowthWithRrpDrain} (ΔBS: ${(d_walcl_4w/1000).toFixed(1)}B, ΔRRP: ${d_rrpontsyd_4w.toFixed(1)}B)`);
+  console.log(`     = FINAL: ${stealthQeCondition}`);
   
   if (stealthQeCondition) {
-    console.log('✅ Scenario: STEALTH_QE - Rotazione liquidità o espansione graduale');
+    console.log('✅ Scenario: STEALTH_QE - Rotazione liquidità stimolativa rilevata');
     return 'stealth_qe';
   }
 
   // === QT (QUANTITATIVE TIGHTENING) ===
-  // Soglia: Bilancio -$20B O Riserve -$100B (4 settimane)
-  // Fonte: Thresholds standard per contrazione Fed
-  const qtCondition = d_walcl_4w < -20000 || d_wresbal_4w < -100;
-  console.log(`   QT: ΔBS < -$20B (${d_walcl_4w < -20000}) || ΔRiserve < -$100B (${d_wresbal_4w < -100}) = ${qtCondition}`);
+  // Soglia: Bilancio -$50B O Riserve -$80B (4 settimane)
+  // Fonte: Contrazione Fed significativa che impatta liquidità
+  // Razionale: Drenaggio abbastanza forte da creare stress
+  const qtCondition = d_walcl_4w < -50000 || d_wresbal_4w < -80;
+  console.log(`   QT: ΔBS < -$50B (${d_walcl_4w < -50000 ? '✓' : '✗'} actual: ${(d_walcl_4w/1000).toFixed(1)}B) || ΔRiserve < -$80B (${d_wresbal_4w < -80 ? '✓' : '✗'} actual: ${d_wresbal_4w.toFixed(1)}B) = ${qtCondition}`);
   
   if (qtCondition) {
-    console.log('✅ Scenario: QT - Contrazione attiva rilevata');
+    console.log('✅ Scenario: QT - Contrazione liquidità significativa rilevata');
     return 'qt';
   }
 
-  console.log('✅ Scenario: NEUTRAL - Nessun movimento significativo');
+  console.log('✅ Scenario: NEUTRAL - Movimenti contenuti, nessuna direzione netta chiara');
   return 'neutral';
 }
 

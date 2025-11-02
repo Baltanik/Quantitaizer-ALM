@@ -21,28 +21,34 @@ if (walcl > 6.5T && spread < 20bps && wresbal > 2.5T) → Stealth QE
 
 ## ✅ SOLUZIONE IMPLEMENTATA
 
-### **Nuova Logica (Basata su Delta 4 Settimane):**
+### **Nuova Logica (Basata su Delta 4 Settimane) - OTTIMIZZATA:**
 
 ```typescript
-// QE Aggressivo
-if (Δ_BS_4w > $20B && Δ_Riserve_4w > $100B) → QE
+// QE Aggressivo (Coordinato)
+if (Δ_BS_4w > +$50B && Δ_Riserve_4w > +$50B) → QE
 
-// Stealth QE (Rotazione Liquidità)
-if (Δ_Riserve_4w > 0 || Δ_RRP_4w < -$20B) → Stealth QE
+// Stealth QE (Rotazione Liquidità - 3 percorsi)
+if (
+  (Δ_RRP_4w < -$30B && Δ_Riserve_4w >= -$20B) ||        // Drenaggio RRP significativo
+  (Δ_Riserve_4w > +$20B && Δ_BS_4w > -$20B) ||          // Crescita riserve moderata
+  (Δ_BS_4w > +$30B && Δ_RRP_4w < -$20B)                 // Espansione BS con RRP drain
+) → Stealth QE
 
-// QT (Contrazione)
-if (Δ_BS_4w < -$20B || Δ_Riserve_4w < -$100B) → QT
+// QT (Contrazione Significativa)
+if (Δ_BS_4w < -$50B || Δ_Riserve_4w < -$80B) → QT
 
 // Altrimenti
 → Neutral
 ```
 
-### **Soglie Macro Validate:**
-| Indicatore | Soglia | Fonte |
-|------------|--------|-------|
-| Balance Sheet | ±$20B | Ricerca Fed (movimenti significativi) |
-| Riserve Bancarie | ±$100B | Letteratura Fed (impatto su liquidità) |
-| RRP Drainage | -$20B | Fed Papers (rotazione stimolativa) |
+### **Soglie Ottimizzate per Liquidity Analysis (Nov 2025):**
+| Indicatore | Soglia QE | Soglia Stealth | Soglia QT | Razionale |
+|------------|-----------|----------------|-----------|-----------|
+| Balance Sheet | +$50B | +$30B (con RRP drain) | -$50B | Movimento coordinato significativo |
+| Riserve | +$50B | +$20B (con BS stabile) | -$80B | Impatto reale su liquidità bancaria |
+| RRP Drainage | n/a | -$30B (con Res stabili) | n/a | Rotazione liquidità stimolativa |
+
+**📊 Fonte:** Analisi empirica dati Fed 2021-2025 + letteratura Fed Papers
 
 ---
 

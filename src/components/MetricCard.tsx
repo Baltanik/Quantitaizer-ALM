@@ -140,10 +140,12 @@ export function MetricCard({
         <div className="space-y-3">
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-3xl font-mono font-bold flex items-baseline gap-1">
+              <p className="text-3xl font-mono font-bold flex items-baseline gap-1 whitespace-nowrap">
                 {format === 'billion' && <span className="text-lg">$</span>}
-                {formatValue(value)}
-                <span className="text-sm text-muted-foreground">{getUnit()}</span>
+                <span className="flex items-baseline gap-0">
+                  {formatValue(value)}
+                  <span className="text-sm text-muted-foreground ml-0.5">{getUnit()}</span>
+                </span>
               </p>
               {trend !== null && (
                 <p className={`text-xs font-mono mt-1 flex items-center gap-1 ${trendColor}`}>

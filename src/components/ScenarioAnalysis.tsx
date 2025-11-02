@@ -107,15 +107,15 @@ export function ScenarioAnalysis({ currentData }: ScenarioAnalysisProps) {
         {/* Metriche Chiave */}
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center">
-            <p className="text-2xl font-mono font-bold">${balanceSheet}T</p>
+            <p className="text-2xl font-mono font-bold whitespace-nowrap">${balanceSheet}T</p>
             <p className="text-xs text-muted-foreground">Bilancio Fed</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-mono font-bold">${reserves}T</p>
+            <p className="text-2xl font-mono font-bold whitespace-nowrap">${reserves}T</p>
             <p className="text-xs text-muted-foreground">Riserve</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-mono font-bold">{spread}bps</p>
+            <p className="text-2xl font-mono font-bold whitespace-nowrap">{spread}bps</p>
             <p className="text-xs text-muted-foreground">Spread</p>
           </div>
         </div>
