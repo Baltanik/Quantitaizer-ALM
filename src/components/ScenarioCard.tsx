@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Minus, LineChart, AlertTriangle, Info } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, LineChart, AlertTriangle, Info, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -379,44 +379,44 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 const sofrEffr = currentData.sofr_effr_spread || 0;
                 const bsDelta = currentData.d_walcl_4w || 0;
                 
-                // Risk Level Logic
+                // Risk Level Logic - VIX 17.4 è MEDIO non NORMALE!
                 let riskLevel = 'NORMALE';
                 let riskColor = 'bg-green-500/10 text-green-600 border-green-500/20';
                 
                 if (vix > 22 || sofrEffr > 10) {
                   riskLevel = 'ELEVATO';
                   riskColor = 'bg-red-500/10 text-red-600 border-red-500/20';
-                } else if (vix > 18 || sofrEffr > 5) {
+                } else if (vix >= 16 || sofrEffr > 3) {  // VIX 17.4 cade qui = MEDIO
                   riskLevel = 'MEDIO';
                   riskColor = 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
                 }
                 
-                // Sustainability Logic
+                // Sustainability Logic - se BS cala è BASSA non ALTA!
                 let sustainability = 'MEDIA';
                 let sustainColor = 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
                 
-                if (Math.abs(bsDelta) < 10000 && sofrEffr < 5) {
+                if (Math.abs(bsDelta) < 5000 && sofrEffr < 3 && vix < 16) {
                   sustainability = 'ALTA';
                   sustainColor = 'bg-green-500/10 text-green-600 border-green-500/20';
-                } else if (Math.abs(bsDelta) > 50000 || sofrEffr > 15) {
+                } else if (bsDelta < 0 || sofrEffr > 5 || vix > 20) {  // BS che cala = BASSA
                   sustainability = 'BASSA';
                   sustainColor = 'bg-red-500/10 text-red-600 border-red-500/20';
                 }
                 
-                // Confidence Logic (count concordant signals)
+                // Confidence Logic - più rigorosa
                 const calmSignals = [
-                  vix < 18,
-                  sofrEffr < 5,
-                  Math.abs(bsDelta) < 20000
+                  vix < 15,  // Più rigoroso
+                  sofrEffr < 3,  // Più rigoroso
+                  Math.abs(bsDelta) < 10000  // Più rigoroso
                 ].filter(Boolean).length;
                 
                 let confidence = 'BASSA';
                 let confColor = 'bg-red-500/10 text-red-600 border-red-500/20';
                 
-                if (calmSignals >= 2) {
+                if (calmSignals >= 3) {  // Tutti e 3 devono essere OK
                   confidence = 'ALTA';
                   confColor = 'bg-green-500/10 text-green-600 border-green-500/20';
-                } else if (calmSignals === 1) {
+                } else if (calmSignals >= 2) {
                   confidence = 'MEDIA';
                   confColor = 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
                 }
@@ -452,10 +452,10 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                       <div className="w-2 h-2 rounded-full bg-white"></div>
                     </div>
                     <div className="space-y-1">
-                      <h5 className="font-semibold text-green-400 text-sm">📊 Money Market Calm</h5>
+                      <h5 className="font-semibold text-green-400 text-sm">Mercato Monetario Calmo</h5>
                       <p className="text-sm text-green-300">
-                        Liquidity abundant, spreads tight. Low stress environment supports risk assets. 
-                        VIX {vix.toFixed(1)} (calm), SOFR-EFFR {sofrEffr.toFixed(1)}bps (normal).
+                        Liquidità abbondante, spread ristretti. Ambiente a basso stress supporta asset rischiosi. 
+                        VIX {vix.toFixed(1)} (calmo), SOFR-EFFR {sofrEffr.toFixed(1)}bps (normale).
                       </p>
                     </div>
                   </div>
@@ -465,10 +465,10 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                   <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
                     <div className="space-y-1">
-                      <h5 className="font-semibold text-yellow-400 text-sm">⚠️ Moderate Caution</h5>
+                      <h5 className="font-semibold text-yellow-400 text-sm">Cautela Moderata</h5>
                       <p className="text-sm text-yellow-300">
-                        Spreads widening, monitor for stress signals. VIX {vix.toFixed(1)} (elevated), 
-                        SOFR-EFFR {sofrEffr.toFixed(1)}bps. Maintain balanced positioning.
+                        Spread in allargamento, monitora segnali di stress. VIX {vix.toFixed(1)} (elevato), 
+                        SOFR-EFFR {sofrEffr.toFixed(1)}bps. Mantieni posizionamento bilanciato.
                       </p>
                     </div>
                   </div>
@@ -478,10 +478,10 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                   <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
                     <div className="space-y-1">
-                      <h5 className="font-semibold text-red-400 text-sm">🔴 STRESS DETECTED</h5>
+                      <h5 className="font-semibold text-red-400 text-sm">STRESS RILEVATO</h5>
                       <p className="text-sm text-red-300">
-                        Money market tightening detected. VIX {vix.toFixed(1)} (stress), 
-                        SOFR-EFFR {sofrEffr.toFixed(1)}bps (elevated). Risk management critical.
+                        Inasprimento mercato monetario rilevato. VIX {vix.toFixed(1)} (stress), 
+                        SOFR-EFFR {sofrEffr.toFixed(1)}bps (elevato). Risk management critico.
                       </p>
                     </div>
                   </div>
@@ -553,12 +553,23 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                   {lines.map((line, index) => {
                     const trimmed = line.trim();
                     
-                    // Header lines (ALL CAPS or contains scenario keywords)
+                    // Header lines (ALL CAPS or contains scenario keywords) - COLOR CODED!
                     if (trimmed.includes('STEALTH QE') || trimmed.includes('QE COMPLETO') || 
                         trimmed.includes('CONTRAZIONE') || trimmed.includes('NEUTRALE') ||
                         trimmed === trimmed.toUpperCase()) {
+                      
+                      let headerColor = 'text-emerald-400';  // Default green
+                      
+                      if (trimmed.includes('CONTRAZIONE') || trimmed.includes('QT')) {
+                        headerColor = 'text-red-400';  // CONTRAZIONE = ROSSO
+                      } else if (trimmed.includes('NEUTRALE')) {
+                        headerColor = 'text-yellow-400';  // NEUTRALE = GIALLO
+                      } else if (trimmed.includes('STEALTH QE') || trimmed.includes('QE')) {
+                        headerColor = 'text-green-400';  // QE = VERDE
+                      }
+                      
                       return (
-                        <div key={index} className="text-sm font-bold text-emerald-400 mt-3">
+                        <div key={index} className={`text-sm font-bold ${headerColor} mt-3`}>
                           {trimmed}
                         </div>
                       );
@@ -578,45 +589,46 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                       if (vix < 16 && sofrEffr < 5 && bsDelta >= 0) {
                         // CALM + EXPANDING = BULLISH
                         actions = [
-                          "✅ Long equity +20% (low stress environment)",
-                          "📈 Diversify stock picks (quality + growth)",
-                          "🔍 Monitor macro data for breakout signals",
-                          "💰 Reduce cash drag, deploy capital"
+                          "Long equity +20% (ambiente a basso stress)",
+                          "Diversifica stock picking (qualità + crescita)",
+                          "Monitora dati macro per segnali breakout",
+                          "Riduci cash drag, investi capitale"
                         ];
                         actionColor = 'border-green-500';
                       } else if (vix < 16 && sofrEffr < 5 && bsDelta < 0) {
                         // CALM + CONTRACTING = NEUTRAL
                         actions = [
-                          "⚖️ Balanced 60/40 allocation",
-                          "🎯 Focus on stock picking (fundamentals)",
-                          "📊 Monitor Fed balance sheet trend",
-                          "🛡️ Maintain normal risk management"
+                          "Allocazione bilanciata 60/40",
+                          "Focus su stock picking (fondamentali)",
+                          "Monitora trend bilancio Fed",
+                          "Mantieni risk management normale"
                         ];
                         actionColor = 'border-blue-500';
                       } else if ((vix >= 16 && vix <= 22) || (sofrEffr >= 5 && sofrEffr <= 10)) {
                         // MODERATE STRESS = CAUTIOUS
                         actions = [
-                          "⚠️ Reduce equity exposure -10%",
-                          "🏦 Increase short-duration Treasury +10%",
-                          "📉 Avoid high-beta/leverage plays",
-                          "👀 Watch for stress escalation signals"
+                          "Riduci esposizione equity -10%",
+                          "Aumenta Treasury short-duration +10%",
+                          "Evita titoli high-beta/leverage",
+                          "Monitora segnali escalation stress"
                         ];
                         actionColor = 'border-yellow-500';
                       } else if (vix > 22 || sofrEffr > 10) {
                         // HIGH STRESS = DEFENSIVE
                         actions = [
-                          "🔴 De-risk portfolio -40%",
-                          "💵 Increase cash + short Treasury +30%",
-                          "📉 Short risk assets if conviction high",
-                          "🛡️ Maximum risk management protocols"
+                          "De-risk portfolio -40%",
+                          "Aumenta cash + Treasury short +30%",
+                          "Short risk assets se convinto",
+                          "Protocolli risk management massimi"
                         ];
                         actionColor = 'border-red-500';
                       }
                       
                       return (
                         <div key={index} className="mt-4">
-                          <div className="text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wide">
-                            🎯 Azioni Data-Driven (VIX: {vix.toFixed(1)}, SOFR-EFFR: {sofrEffr.toFixed(1)}bps)
+                          <div className="text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wide flex items-center gap-2">
+                            <Target className="h-3 w-3" />
+                            Azioni Consigliate (VIX: {vix.toFixed(1)}, SOFR-EFFR: {sofrEffr.toFixed(1)}bps)
                           </div>
                           <div className="grid gap-2">
                             {actions.map((action, aIndex) => (
