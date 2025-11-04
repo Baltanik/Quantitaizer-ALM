@@ -5,6 +5,18 @@ import { Separator } from "@/components/ui/separator";
 import { FedData, ScenarioState } from "@/services/fedData";
 import { deriveScenario, canShowBullish, getContextColor, getRiskColor } from "@/utils/scenarioEngine";
 
+// ============================================================================
+// VIX RISK LEVEL - SINGLE SOURCE OF TRUTH
+// ============================================================================
+const getVixRiskLevel = (vix: number) => {
+  if (vix < 14) return { label: 'Calm', color: 'bg-green-500', risk: 'BASSO' };
+  if (vix < 16) return { label: 'Normal', color: 'bg-yellow-500', risk: 'NORMALE' };
+  if (vix < 18) return { label: 'Slightly Elevated', color: 'bg-orange-400', risk: 'MEDIO' };  // VIX 17.4 HERE
+  if (vix < 22) return { label: 'Elevated', color: 'bg-orange-500', risk: 'MEDIO' };
+  if (vix < 25) return { label: 'High Stress', color: 'bg-red-500', risk: 'ELEVATO' };
+  return { label: 'Panic Mode', color: 'bg-red-600', risk: 'ELEVATO' };
+};
+
 interface ScenarioCardProps {
   scenario: string | null;
   currentData?: FedData | null;
@@ -39,17 +51,24 @@ AZIONE: Long equity (+20%), long crypto, compra small-cap, evita USD strength.`;
       if (!data) return [
         { icon: TrendingUp, label: "Bilancio Fed", status: "In crescita" },
         { icon: LineChart, label: "Spread SOFR-IORB", status: "< 10 bps" },
-        { icon: TrendingUp, label: "Riserve bancarie", status: "In aumento" }
+        { icon: TrendingUp, label: "Riserve bancarie", status: "In aumento" },
+        { icon: Info, label: "HY OAS", status: "N/A" },
+        { icon: LineChart, label: "VIX", status: "N/A" }
       ];
       
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
       const rrp_delta = data.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
       const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const hy_oas = data.hy_oas?.toFixed(1) ?? 'N/A';
+      const vix = data.vix ?? 'N/A';
+      const vixRisk = getVixRiskLevel(data.vix || 20);
       
       return [
         { icon: TrendingUp, label: "Balance Sheet", status: `+${bs_delta}B (4w) Espansione` },
         { icon: TrendingDown, label: "RRP Drain", status: `${rrp_delta}B Fed inietta` },
-        { icon: LineChart, label: "SOFR-EFFR", status: `${sofr_effr}bps Basso stress` }
+        { icon: LineChart, label: "SOFR-EFFR", status: `${sofr_effr}bps Basso stress` },
+        { icon: TrendingDown, label: "HY OAS", status: `${hy_oas}% ${(data.hy_oas || 0) > 5.5 ? 'Credit Stress' : (data.hy_oas || 0) > 4 ? 'Normal' : 'Tight'}` },
+        { icon: AlertTriangle, label: "VIX", status: `${vix} ${vixRisk.label}` }
       ];
     },
     bgClass: "bg-success/5 border-success/30",
@@ -81,17 +100,24 @@ AZIONE: MAX long equity (+40%), MAX long crypto, long oro/commodities, evita cas
       if (!data) return [
         { icon: TrendingUp, label: "Bilancio Fed", status: "Forte crescita" },
         { icon: TrendingUp, label: "Acquisti attivi", status: "Treasury/MBS" },
-        { icon: TrendingUp, label: "Riserve bancarie", status: "Rapida espansione" }
+        { icon: TrendingUp, label: "Riserve bancarie", status: "Rapida espansione" },
+        { icon: Info, label: "HY OAS", status: "N/A" },
+        { icon: LineChart, label: "VIX", status: "N/A" }
       ];
       
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
       const res_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
       const rrp_value = data.rrpontsyd ? (data.rrpontsyd/1000).toFixed(1) : 'N/A';
+      const hy_oas = data.hy_oas?.toFixed(1) ?? 'N/A';
+      const vix = data.vix ?? 'N/A';
+      const vixRisk = getVixRiskLevel(data.vix || 20);
       
       return [
         { icon: TrendingUp, label: "Balance Sheet", status: `+${bs_delta}B AGGRESSIVA` },
         { icon: TrendingUp, label: "Riserve Flood", status: `+${res_delta}B Massiccia` },
-        { icon: TrendingUp, label: "RRP Overflow", status: `${rrp_value}B Liquidità` }
+        { icon: TrendingUp, label: "RRP Overflow", status: `${rrp_value}B Liquidità` },
+        { icon: TrendingDown, label: "HY OAS", status: `${hy_oas}% ${(data.hy_oas || 0) > 5.5 ? 'Credit Stress' : (data.hy_oas || 0) > 4 ? 'Normal' : 'Tight'}` },
+        { icon: AlertTriangle, label: "VIX", status: `${vix} ${vixRisk.label}` }
       ];
     },
     bgClass: "bg-success/5 border-success/30",
@@ -124,19 +150,26 @@ AZIONE: Riduci equity (-20%), aumenta Treasury short-term (+15%), evita leverage
         { icon: TrendingDown, label: "Bilancio Fed", status: "In contrazione" },
         { icon: TrendingDown, label: "Riserve bancarie", status: "In calo" },
         { icon: TrendingUp, label: "Spread SOFR-IORB", status: "> 15 bps" },
-        { icon: AlertTriangle, label: "Liquidità", status: "Tensioni possibili" }
+        { icon: AlertTriangle, label: "Liquidità", status: "Tensioni possibili" },
+        { icon: Info, label: "HY OAS", status: "N/A" },
+        { icon: LineChart, label: "VIX", status: "N/A" }
       ];
       
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
       const res_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
       const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
       const rrp_delta = data.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
+      const hy_oas = data.hy_oas?.toFixed(1) ?? 'N/A';
+      const vix = data.vix ?? 'N/A';
+      const vixRisk = getVixRiskLevel(data.vix || 20);
       
       return [
         { icon: TrendingDown, label: "Bilancio Fed", status: `${bs_delta}B (4w) ${parseFloat(bs_delta) < -50 ? 'Aggressiva' : 'Moderata'}` },
         { icon: TrendingDown, label: "Riserve", status: `${res_delta}B (4w) ${parseFloat(res_delta) < -20 ? 'Calo forte' : 'Calo normale'}` },
         { icon: TrendingUp, label: "SOFR-EFFR", status: `${sofr_effr}bps ${parseFloat(sofr_effr) > 15 ? 'Stress' : 'Normale'}` },
-        { icon: AlertTriangle, label: "RRP", status: `${rrp_delta}B ${Math.abs(parseFloat(rrp_delta)) > 20 ? 'Spike' : 'Normale'}` }
+        { icon: AlertTriangle, label: "RRP", status: `${rrp_delta}B ${Math.abs(parseFloat(rrp_delta)) > 20 ? 'Spike' : 'Normale'}` },
+        { icon: TrendingUp, label: "HY OAS", status: `${hy_oas}% ${(data.hy_oas || 0) > 5.5 ? 'Credit Stress' : (data.hy_oas || 0) > 4 ? 'Normal' : 'Tight'}` },
+        { icon: AlertTriangle, label: "VIX", status: `${vix} ${vixRisk.label}` }
       ];
     },
     bgClass: "bg-destructive/5 border-destructive/30",
@@ -168,17 +201,24 @@ AZIONE: Focus stock picking, diversificazione bilanciata, segui dati macro.`;
       if (!data) return [
         { icon: Minus, label: "Bilancio Fed", status: "Stabile" },
         { icon: LineChart, label: "Spread SOFR-IORB", status: "5-15 bps (normale)" },
-        { icon: Minus, label: "Riserve bancarie", status: "Stabili" }
+        { icon: Minus, label: "Riserve bancarie", status: "Stabili" },
+        { icon: Info, label: "HY OAS", status: "N/A" },
+        { icon: LineChart, label: "VIX", status: "N/A" }
       ];
       
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
       const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
       const rrp_value = data.rrpontsyd ? (data.rrpontsyd/1000).toFixed(1) : 'N/A';
+      const hy_oas = data.hy_oas?.toFixed(1) ?? 'N/A';
+      const vix = data.vix ?? 'N/A';
+      const vixRisk = getVixRiskLevel(data.vix || 20);
       
       return [
         { icon: Minus, label: "Balance Sheet", status: `${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B Stabile` },
         { icon: LineChart, label: "SOFR-EFFR", status: `${sofr_effr}bps Normale` },
-        { icon: Info, label: "RRP", status: `${rrp_value}B Equilibrato` }
+        { icon: Info, label: "RRP", status: `${rrp_value}B Equilibrato` },
+        { icon: LineChart, label: "HY OAS", status: `${hy_oas}% ${(data.hy_oas || 0) > 5.5 ? 'Credit Stress' : (data.hy_oas || 0) > 4 ? 'Normal' : 'Tight'}` },
+        { icon: AlertTriangle, label: "VIX", status: `${vix} ${vixRisk.label}` }
       ];
     },
     bgClass: "bg-warning/5 border-warning/30",
@@ -210,17 +250,24 @@ AZIONE: Massima cautela, cash+Treasury, short risk assets, long USD.`;
       if (!data) return [
         { icon: TrendingDown, label: "Bilancio Fed", status: "Contrazione forte" },
         { icon: TrendingDown, label: "Riserve bancarie", status: "In forte calo" },
-        { icon: TrendingUp, label: "Spread SOFR-IORB", status: "> 20 bps" }
+        { icon: TrendingUp, label: "Spread SOFR-IORB", status: "> 20 bps" },
+        { icon: Info, label: "HY OAS", status: "N/A" },
+        { icon: LineChart, label: "VIX", status: "N/A" }
       ];
       
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
       const res_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
       const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const hy_oas = data.hy_oas?.toFixed(1) ?? 'N/A';
+      const vix = data.vix ?? 'N/A';
+      const vixRisk = getVixRiskLevel(data.vix || 20);
       
       return [
         { icon: TrendingDown, label: "Balance Sheet", status: `${bs_delta}B FORTE calo` },
         { icon: TrendingDown, label: "Riserve", status: `${res_delta}B Drenaggio` },
-        { icon: AlertTriangle, label: "SOFR-EFFR", status: `${sofr_effr}bps STRESS` }
+        { icon: AlertTriangle, label: "SOFR-EFFR", status: `${sofr_effr}bps STRESS` },
+        { icon: TrendingUp, label: "HY OAS", status: `${hy_oas}% ${(data.hy_oas || 0) > 5.5 ? 'Credit Stress' : (data.hy_oas || 0) > 4 ? 'Normal' : 'Tight'}` },
+        { icon: AlertTriangle, label: "VIX", status: `${vix} ${vixRisk.label}` }
       ];
     },
     bgClass: "bg-destructive/5 border-destructive/30",
@@ -347,23 +394,14 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
               </div>
               <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                 <div 
-                  className={`h-full transition-all ${
-                    (currentData.vix || 0) > 25 ? 'bg-red-600' : 
-                    (currentData.vix || 0) > 22 ? 'bg-red-500' : 
-                    (currentData.vix || 0) > 18 ? 'bg-orange-500' : 
-                    (currentData.vix || 0) >= 14 ? 'bg-yellow-500' : 
-                    'bg-green-500'
-                  }`}
+                  className={`h-full transition-all ${getVixRiskLevel(currentData.vix || 0).color}`}
                   style={{
                     width: `${Math.min(((currentData.vix || 0) / 40) * 100, 100)}%`
                   }}
                 ></div>
               </div>
               <div className="text-xs text-slate-400 mt-1">
-                {(currentData.vix || 0) > 25 ? 'Panic Mode' : 
-                 (currentData.vix || 0) > 22 ? 'High Stress' : 
-                 (currentData.vix || 0) > 18 ? 'Elevated' : 
-                 (currentData.vix || 0) >= 14 ? 'Normal' : 'Calm'}
+                {getVixRiskLevel(currentData.vix || 0).label}
               </div>
             </div>
           </div>
@@ -379,16 +417,24 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 const sofrEffr = currentData.sofr_effr_spread || 0;
                 const bsDelta = currentData.d_walcl_4w || 0;
                 
-                // Risk Level Logic - VIX 17.4 è MEDIO non NORMALE!
-                let riskLevel = 'NORMALE';
+                // Risk Level Logic - USA STESSA LOGICA DI getVixRiskLevel
+                const vixRisk = getVixRiskLevel(vix);
+                let riskLevel = vixRisk.risk;
                 let riskColor = 'bg-green-500/10 text-green-600 border-green-500/20';
                 
+                // Override con SOFR-EFFR se più grave
                 if (vix > 22 || sofrEffr > 10) {
                   riskLevel = 'ELEVATO';
                   riskColor = 'bg-red-500/10 text-red-600 border-red-500/20';
-                } else if (vix >= 16 || sofrEffr > 3) {  // VIX 17.4 cade qui = MEDIO
+                } else if (vixRisk.risk === 'MEDIO' || sofrEffr > 5) {
                   riskLevel = 'MEDIO';
                   riskColor = 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
+                } else if (vixRisk.risk === 'NORMALE' && sofrEffr <= 5) {
+                  riskLevel = 'NORMALE';
+                  riskColor = 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+                } else if (vixRisk.risk === 'BASSO') {
+                  riskLevel = 'BASSO';
+                  riskColor = 'bg-green-500/10 text-green-600 border-green-500/20';
                 }
                 
                 // Sustainability Logic - se BS cala è BASSA non ALTA!
@@ -585,41 +631,41 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                       let actions: string[] = [];
                       let actionColor = 'border-emerald-500';
                       
-                      // Action Matrix Logic
+                      // Action Matrix Logic - GENERIC, NO PERCENTAGES (COMPLIANCE)
                       if (vix < 16 && sofrEffr < 5 && bsDelta >= 0) {
                         // CALM + EXPANDING = BULLISH
                         actions = [
-                          "Long equity +20% (ambiente a basso stress)",
-                          "Diversifica stock picking (qualità + crescita)",
-                          "Monitora dati macro per segnali breakout",
-                          "Riduci cash drag, investi capitale"
+                          "Ambiente favorevole per asset rischiosi",
+                          "Valuta incremento esposizione equity growth/quality",
+                          "Liquidità abbondante supporta risk-on",
+                          "Monitora dati macro per conferma trend"
                         ];
                         actionColor = 'border-green-500';
                       } else if (vix < 16 && sofrEffr < 5 && bsDelta < 0) {
                         // CALM + CONTRACTING = NEUTRAL
                         actions = [
-                          "Allocazione bilanciata 60/40",
-                          "Focus su stock picking (fondamentali)",
-                          "Monitora trend bilancio Fed",
-                          "Mantieni risk management normale"
+                          "Mantieni allocazione bilanciata diversificata",
+                          "Focus su stock picking basato su fondamentali",
+                          "Monitora evoluzione bilancio Fed per segnali",
+                          "Risk management standard appropriato"
                         ];
                         actionColor = 'border-blue-500';
                       } else if ((vix >= 16 && vix <= 22) || (sofrEffr >= 5 && sofrEffr <= 10)) {
                         // MODERATE STRESS = CAUTIOUS
                         actions = [
-                          "Riduci esposizione equity -10%",
-                          "Aumenta Treasury short-duration +10%",
-                          "Evita titoli high-beta/leverage",
-                          "Monitora segnali escalation stress"
+                          "Cautela moderata: considera allocation più bilanciata",
+                          "Valuta incremento componente difensiva (Treasury/cash)",
+                          "Evita asset ad alta volatilità in questo contesto",
+                          "Monitora segnali escalation stress mercato"
                         ];
                         actionColor = 'border-yellow-500';
                       } else if (vix > 22 || sofrEffr > 10) {
                         // HIGH STRESS = DEFENSIVE
                         actions = [
-                          "De-risk portfolio -40%",
-                          "Aumenta cash + Treasury short +30%",
-                          "Short risk assets se convinto",
-                          "Protocolli risk management massimi"
+                          "Stress rilevato: posizionamento difensivo appropriato",
+                          "Considera aumento significativo allocation cash e Treasury",
+                          "Riduzione esposizione asset rischiosi raccomandata",
+                          "Risk management diventa priorità critica"
                         ];
                         actionColor = 'border-red-500';
                       }
