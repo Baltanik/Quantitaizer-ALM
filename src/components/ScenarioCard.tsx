@@ -36,7 +36,7 @@ const scenarioConfig = {
       const balanceSheet = data.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
       const rrp_delta = data.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
-      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const sofr_effr = data.sofr_effr_spread ? (data.sofr_effr_spread * 100).toFixed(1) : 'N/A';
       const vix = data.vix ?? 'N/A';
       
       return `STEALTH QE ATTIVA: Balance Sheet $${balanceSheet}T (+${bs_delta}B in 4w).
@@ -60,7 +60,7 @@ FOCUS: Monitorare liquidità sistema e spread, ambiente supporta asset rischiosi
       
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
       const rrp_delta = data.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
-      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const sofr_effr = data.sofr_effr_spread ? (data.sofr_effr_spread * 100).toFixed(1) : 'N/A';
       const hy_oas = data.hy_oas?.toFixed(1) ?? 'N/A';
       const vix = data.vix ?? 'N/A';
       const vixRisk = getVixRiskLevel(data.vix || 20);
@@ -136,7 +136,7 @@ FOCUS: Osservare sostenibilità espansione, liquidità massiccia storicamente pr
       
       const balanceSheet = data.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
-      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const sofr_effr = data.sofr_effr_spread ? (data.sofr_effr_spread * 100).toFixed(1) : 'N/A';
       const vix = data.vix ?? 'N/A';
       
       return `CONTRAZIONE ATTIVA: Balance Sheet $${balanceSheet}T (${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B in 4w).
@@ -159,7 +159,7 @@ FOCUS: Monitorare velocità drenaggio liquidità, soglie Riserve critiche per ba
       
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
       const res_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
-      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const sofr_effr = data.sofr_effr_spread ? (data.sofr_effr_spread * 100).toFixed(1) : 'N/A';
       const rrp_delta = data.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
       const hy_oas = data.hy_oas?.toFixed(1) ?? 'N/A';
       const vix = data.vix ?? 'N/A';
@@ -252,7 +252,7 @@ FOCUS: Monitorare velocità drenaggio liquidità, soglie Riserve critiche per ba
       
       const balanceSheet = data.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
-      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const sofr_effr = data.sofr_effr_spread ? (data.sofr_effr_spread * 100).toFixed(1) : 'N/A';
       const vix = data.vix ?? 'N/A';
       
       return `NEUTRALE - EQUILIBRIO: Balance Sheet $${balanceSheet}T (${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B stabile).
@@ -273,7 +273,7 @@ FOCUS: Seguire comunicazioni Fed per segnali cambio policy, monitorare dati macr
       ];
       
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
-      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const sofr_effr = data.sofr_effr_spread ? (data.sofr_effr_spread * 100).toFixed(1) : 'N/A';
       const rrp_value = data.rrpontsyd ? (data.rrpontsyd/1000).toFixed(1) : 'N/A';
       const hy_oas = data.hy_oas?.toFixed(1) ?? 'N/A';
       const vix = data.vix ?? 'N/A';
@@ -338,7 +338,7 @@ FOCUS: Seguire comunicazioni Fed per segnali cambio policy, monitorare dati macr
       
       const balanceSheet = data.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
-      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const sofr_effr = data.sofr_effr_spread ? (data.sofr_effr_spread * 100).toFixed(1) : 'N/A';
       const vix = data.vix ?? 'N/A';
       
       return `CONTRAZIONE AGGRESSIVA: Balance Sheet $${balanceSheet}T (${bs_delta}B forte calo).
@@ -360,7 +360,7 @@ FOCUS: Priorità assoluta monitoraggio spread e HY OAS, rischio contagio sistemi
       
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
       const res_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
-      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const sofr_effr = data.sofr_effr_spread ? (data.sofr_effr_spread * 100).toFixed(1) : 'N/A';
       const hy_oas = data.hy_oas?.toFixed(1) ?? 'N/A';
       const vix = data.vix ?? 'N/A';
       const vixRisk = getVixRiskLevel(data.vix || 20);
@@ -488,23 +488,23 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                   SOFR-EFFR Spread
                 </div>
                 <div className="text-2xl font-bold text-white">
-                  {currentData.sofr_effr_spread?.toFixed(1) ?? 'N/A'} bps
+                  {currentData.sofr_effr_spread ? (currentData.sofr_effr_spread * 100).toFixed(1) : 'N/A'} bps
                 </div>
                 <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className={`h-full transition-all ${
-                      (currentData.sofr_effr_spread || 0) > 15 ? 'bg-red-500' : 
-                      (currentData.sofr_effr_spread || 0) > 10 ? 'bg-yellow-500' : 
+                      ((currentData.sofr_effr_spread || 0) * 100) > 15 ? 'bg-red-500' :
+                      ((currentData.sofr_effr_spread || 0) * 100) > 10 ? 'bg-yellow-500' :
                       'bg-green-500'
                     }`}
                     style={{
-                      width: `${Math.min(((currentData.sofr_effr_spread || 0) / 20) * 100, 100)}%`
+                      width: `${Math.min((((currentData.sofr_effr_spread || 0) * 100) / 20) * 100, 100)}%`
                     }}
                   ></div>
                 </div>
                 <div className="text-xs text-slate-400 mt-1">
-                  {(currentData.sofr_effr_spread || 0) > 15 ? 'Stress' : 
-                   (currentData.sofr_effr_spread || 0) > 10 ? 'Elevated' : 
+                  {((currentData.sofr_effr_spread || 0) * 100) > 15 ? 'Stress' :
+                   ((currentData.sofr_effr_spread || 0) * 100) > 10 ? 'Elevated' :
                    'Normal'}
                 </div>
                 <div className="flex justify-center mt-3">
@@ -574,13 +574,13 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <div className={`p-1.5 rounded-full ${
-                        (currentData.sofr_effr_spread || 0) > 15 ? 'bg-red-500/20' : 
-                        (currentData.sofr_effr_spread || 0) > 10 ? 'bg-yellow-500/20' : 
+                        ((currentData.sofr_effr_spread || 0) * 100) > 15 ? 'bg-red-500/20' :
+                        ((currentData.sofr_effr_spread || 0) * 100) > 10 ? 'bg-yellow-500/20' :
                         'bg-green-500/20'
                       }`}>
                         <Activity className={`h-3.5 w-3.5 ${
-                          (currentData.sofr_effr_spread || 0) > 15 ? 'text-red-400' : 
-                          (currentData.sofr_effr_spread || 0) > 10 ? 'text-yellow-400' : 
+                          ((currentData.sofr_effr_spread || 0) * 100) > 15 ? 'text-red-400' :
+                          ((currentData.sofr_effr_spread || 0) * 100) > 10 ? 'text-yellow-400' :
                           'text-green-400'
                         }`} />
                       </div>
@@ -591,22 +591,22 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                     </div>
                     <div className="text-right">
                       <div className="text-base font-bold text-white">
-                        {currentData.sofr_effr_spread?.toFixed(1) ?? 'N/A'} bps
+                        {currentData.sofr_effr_spread ? (currentData.sofr_effr_spread * 100).toFixed(1) : 'N/A'} bps
                       </div>
                       <div className={`text-xs font-semibold flex items-center justify-end gap-1 ${
-                        (currentData.sofr_effr_spread || 0) > 15 ? 'text-red-400' : 
-                        (currentData.sofr_effr_spread || 0) > 10 ? 'text-yellow-400' : 
+                        ((currentData.sofr_effr_spread || 0) * 100) > 15 ? 'text-red-400' :
+                        ((currentData.sofr_effr_spread || 0) * 100) > 10 ? 'text-yellow-400' :
                         'text-green-400'
                       }`}>
-                        {(currentData.sofr_effr_spread || 0) > 15 ? (
+                        {((currentData.sofr_effr_spread || 0) * 100) > 15 ? (
                           <AlertTriangle className="h-3 w-3" />
-                        ) : (currentData.sofr_effr_spread || 0) > 10 ? (
+                        ) : ((currentData.sofr_effr_spread || 0) * 100) > 10 ? (
                           <TrendingUp className="h-3 w-3" />
                         ) : (
                           <TrendingDown className="h-3 w-3" />
                         )}
-                        {(currentData.sofr_effr_spread || 0) > 15 ? 'Stress' : 
-                         (currentData.sofr_effr_spread || 0) > 10 ? 'Elevated' : 
+                        {((currentData.sofr_effr_spread || 0) * 100) > 15 ? 'Stress' :
+                         ((currentData.sofr_effr_spread || 0) * 100) > 10 ? 'Elevated' : 
                          'Normal'}
                       </div>
                     </div>
