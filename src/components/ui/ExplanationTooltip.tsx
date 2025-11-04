@@ -252,17 +252,16 @@ export function ExplanationTooltip({
   // Full mode: tooltip + dialog/drawer cliccabile (responsive)
   const isMobile = useIsMobile();
 
-  // MOBILE: Drawer (bottom sheet) - Solo icona pulita
+  // MOBILE: Drawer (bottom sheet) - Pulsante "Info" stile cartella
   if (isMobile) {
     return (
       <Drawer open={dialogOpen} onOpenChange={setDialogOpen}>
         <DrawerTrigger asChild>
           <button 
-            className="group relative inline-flex items-center justify-center transition-all duration-300 active:scale-95"
-            style={{ minWidth: '44px', minHeight: '44px' }} // iOS tap target
+            className="group inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-700/50 hover:bg-emerald-500/20 border border-slate-600 hover:border-emerald-400 transition-all duration-200 active:scale-90 hover:shadow-lg hover:shadow-emerald-400/30"
           >
-            {/* Solo icona pulita con pulsazione elegante */}
-            <IconComponent className={`${iconSize} text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.7)] animate-pulse`} />
+            {/* Icona info compatta che brilla */}
+            <Info className="h-3 w-3 text-slate-400 group-hover:text-emerald-400 group-hover:drop-shadow-[0_0_6px_rgba(52,211,153,1)] transition-all duration-200" />
           </button>
         </DrawerTrigger>
         <DrawerContent className="bg-slate-900 border-slate-700 text-slate-200 max-h-[85vh]">

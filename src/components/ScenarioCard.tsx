@@ -540,100 +540,136 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             {/* MOBILE: Layout compatto stile lista */}
             <div className="sm:hidden space-y-2">
               {/* Balance Sheet */}
-              <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-3 hover:border-emerald-500/30 transition-all">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Wallet className="h-5 w-5 text-slate-400" />
-                    <div>
-                      <div className="text-sm font-medium text-white">Balance Sheet</div>
-                      <div className="text-xs text-slate-400">Fed Bilancio</div>
+              <div className="flex bg-slate-900/50 border border-slate-700 rounded-lg hover:border-emerald-500/30 transition-all">
+                <div className="flex-1 p-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <Wallet className="h-4 w-4 text-slate-400" />
+                      <div>
+                        <div className="text-sm font-medium text-white">Balance Sheet</div>
+                        <div className="text-xs text-slate-400">Fed Bilancio</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-base font-bold text-white">
+                        ${currentData.walcl ? (currentData.walcl / 1000000).toFixed(2) : 'N/A'}T
+                      </div>
+                      <div className={`text-xs font-semibold flex items-center justify-end gap-1 ${
+                        (currentData.d_walcl_4w || 0) > 0 ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        <TrendingUp className={`h-3 w-3 ${(currentData.d_walcl_4w || 0) < 0 ? 'rotate-180' : ''}`} />
+                        {currentData.d_walcl_4w ? Math.abs(currentData.d_walcl_4w/1000).toFixed(1) : '0'}B
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-white">
-                      ${currentData.walcl ? (currentData.walcl / 1000000).toFixed(2) : 'N/A'}T
-                    </div>
-                    <div className={`text-xs font-semibold flex items-center justify-end gap-1 ${
-                      (currentData.d_walcl_4w || 0) > 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      <TrendingUp className={`h-3 w-3 ${(currentData.d_walcl_4w || 0) < 0 ? 'rotate-180' : ''}`} />
-                      {currentData.d_walcl_4w ? Math.abs(currentData.d_walcl_4w/1000).toFixed(1) : '0'}B
-                    </div>
-                  </div>
+                </div>
+                <div className="border-l border-slate-700 p-2.5 flex items-center justify-center">
+                  <ExplanationTooltip metricKey="balance_sheet" mode="full" size="sm" />
                 </div>
               </div>
 
               {/* SOFR-EFFR Spread */}
-              <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-3 hover:border-emerald-500/30 transition-all">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-full ${
-                      (currentData.sofr_effr_spread || 0) > 15 ? 'bg-red-500/20' : 
-                      (currentData.sofr_effr_spread || 0) > 10 ? 'bg-yellow-500/20' : 
-                      'bg-green-500/20'
-                    }`}>
-                      <Activity className={`h-4 w-4 ${
+              <div className="flex bg-slate-900/50 border border-slate-700 rounded-lg hover:border-emerald-500/30 transition-all">
+                <div className="flex-1 p-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-1.5 rounded-full ${
+                        (currentData.sofr_effr_spread || 0) > 15 ? 'bg-red-500/20' : 
+                        (currentData.sofr_effr_spread || 0) > 10 ? 'bg-yellow-500/20' : 
+                        'bg-green-500/20'
+                      }`}>
+                        <Activity className={`h-3.5 w-3.5 ${
+                          (currentData.sofr_effr_spread || 0) > 15 ? 'text-red-400' : 
+                          (currentData.sofr_effr_spread || 0) > 10 ? 'text-yellow-400' : 
+                          'text-green-400'
+                        }`} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-white">SOFR-EFFR Spread</div>
+                        <div className="text-xs text-slate-400">Stress Liquidità</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-base font-bold text-white">
+                        {currentData.sofr_effr_spread?.toFixed(1) ?? 'N/A'} bps
+                      </div>
+                      <div className={`text-xs font-semibold flex items-center justify-end gap-1 ${
                         (currentData.sofr_effr_spread || 0) > 15 ? 'text-red-400' : 
                         (currentData.sofr_effr_spread || 0) > 10 ? 'text-yellow-400' : 
                         'text-green-400'
-                      }`} />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-white">SOFR-EFFR Spread</div>
-                      <div className="text-xs text-slate-400">Stress Liquidità</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-white">
-                      {currentData.sofr_effr_spread?.toFixed(1) ?? 'N/A'} bps
-                    </div>
-                    <div className={`text-xs font-semibold flex items-center justify-end gap-1 ${
-                      (currentData.sofr_effr_spread || 0) > 15 ? 'text-red-400' : 
-                      (currentData.sofr_effr_spread || 0) > 10 ? 'text-yellow-400' : 
-                      'text-green-400'
-                    }`}>
-                      {(currentData.sofr_effr_spread || 0) > 15 ? (
-                        <AlertTriangle className="h-3 w-3" />
-                      ) : (currentData.sofr_effr_spread || 0) > 10 ? (
-                        <TrendingUp className="h-3 w-3" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3" />
-                      )}
-                      {(currentData.sofr_effr_spread || 0) > 15 ? 'Stress' : 
-                       (currentData.sofr_effr_spread || 0) > 10 ? 'Elevated' : 
-                       'Normal'}
+                      }`}>
+                        {(currentData.sofr_effr_spread || 0) > 15 ? (
+                          <AlertTriangle className="h-3 w-3" />
+                        ) : (currentData.sofr_effr_spread || 0) > 10 ? (
+                          <TrendingUp className="h-3 w-3" />
+                        ) : (
+                          <TrendingDown className="h-3 w-3" />
+                        )}
+                        {(currentData.sofr_effr_spread || 0) > 15 ? 'Stress' : 
+                         (currentData.sofr_effr_spread || 0) > 10 ? 'Elevated' : 
+                         'Normal'}
+                      </div>
                     </div>
                   </div>
+                </div>
+                <div className="border-l border-slate-700 p-2.5 flex items-center justify-center">
+                  <ExplanationTooltip metricKey="sofr_effr_spread" mode="full" size="sm" />
                 </div>
               </div>
 
               {/* VIX */}
-              <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-3 hover:border-emerald-500/30 transition-all">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-full ${getVixRiskLevel(currentData.vix || 0).color.replace('bg-', 'bg-').replace('-500', '-500/20')}`}>
-                      <AlertTriangle className={`h-4 w-4 ${getVixRiskLevel(currentData.vix || 0).color.replace('bg-', 'text-').replace('-500', '-400')}`} />
+              <div className="flex bg-slate-900/50 border border-slate-700 rounded-lg hover:border-emerald-500/30 transition-all">
+                <div className="flex-1 p-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-1.5 rounded-full ${
+                        (currentData.vix || 0) < 14 ? 'bg-green-500/20' :
+                        (currentData.vix || 0) < 16 ? 'bg-yellow-500/20' :
+                        (currentData.vix || 0) < 18 ? 'bg-orange-400/20' :
+                        (currentData.vix || 0) < 22 ? 'bg-orange-500/20' :
+                        (currentData.vix || 0) < 25 ? 'bg-red-500/20' :
+                        'bg-red-600/20'
+                      }`}>
+                        <AlertTriangle className={`h-3.5 w-3.5 ${
+                          (currentData.vix || 0) < 14 ? 'text-green-400' :
+                          (currentData.vix || 0) < 16 ? 'text-yellow-400' :
+                          (currentData.vix || 0) < 18 ? 'text-orange-400' :
+                          (currentData.vix || 0) < 22 ? 'text-orange-500' :
+                          (currentData.vix || 0) < 25 ? 'text-red-400' :
+                          'text-red-500'
+                        }`} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-white">VIX Fear Index</div>
+                        <div className="text-xs text-slate-400">Volatilità Mercato</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-sm font-medium text-white">VIX Fear Index</div>
-                      <div className="text-xs text-slate-400">Volatilità Mercato</div>
+                    <div className="text-right">
+                      <div className="text-base font-bold text-white">
+                        {currentData.vix ?? 'N/A'}
+                      </div>
+                      <div className={`text-xs font-semibold flex items-center justify-end gap-1 whitespace-nowrap ${
+                        (currentData.vix || 0) < 14 ? 'text-green-400' :
+                        (currentData.vix || 0) < 16 ? 'text-yellow-400' :
+                        (currentData.vix || 0) < 18 ? 'text-orange-400' :
+                        (currentData.vix || 0) < 22 ? 'text-orange-500' :
+                        (currentData.vix || 0) < 25 ? 'text-red-400' :
+                        'text-red-500'
+                      }`}>
+                        {(currentData.vix || 0) > 22 ? (
+                          <AlertTriangle className="h-3 w-3" />
+                        ) : (currentData.vix || 0) > 16 ? (
+                          <TrendingUp className="h-3 w-3" />
+                        ) : (
+                          <TrendingDown className="h-3 w-3" />
+                        )}
+                        {getVixRiskLevel(currentData.vix || 0).label}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-white">
-                      {currentData.vix ?? 'N/A'}
-                    </div>
-                    <div className={`text-xs font-semibold flex items-center justify-end gap-1 ${getVixRiskLevel(currentData.vix || 0).color.replace('bg-', 'text-').replace('-500', '-400')}`}>
-                      {(currentData.vix || 0) > 22 ? (
-                        <AlertTriangle className="h-3 w-3" />
-                      ) : (currentData.vix || 0) > 16 ? (
-                        <TrendingUp className="h-3 w-3" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3" />
-                      )}
-                      {getVixRiskLevel(currentData.vix || 0).label}
-                    </div>
-                  </div>
+                </div>
+                <div className="border-l border-slate-700 p-2.5 flex items-center justify-center">
+                  <ExplanationTooltip metricKey="vix" mode="full" size="sm" />
                 </div>
               </div>
             </div>
