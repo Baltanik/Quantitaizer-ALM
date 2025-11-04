@@ -462,32 +462,32 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
         {/* Hero Metrics - Top 3 Critical Data Points - MOBILE OPTIMIZED */}
         {currentData && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Balance Sheet - CENTERED CONTENT */}
-            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all text-center">
-              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center justify-center gap-2">
+            {/* Balance Sheet - LARGER VALUES */}
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-6 hover:border-emerald-500/30 transition-all text-center">
+              <div className="text-sm text-slate-400 uppercase tracking-wide mb-3 flex items-center justify-center gap-2">
                 Balance Sheet
                 <ExplanationTooltip metricKey="balance_sheet" mode="full" size="sm" />
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-white">
+              <div className="text-3xl sm:text-4xl font-bold text-white mb-2">
                 ${currentData.walcl ? (currentData.walcl / 1000000).toFixed(2) : 'N/A'}T
               </div>
-              <div className={`text-sm mt-1 font-semibold ${
+              <div className={`text-base font-semibold ${
                 (currentData.d_walcl_4w || 0) > 0 ? 'text-green-400' : 'text-red-400'
               }`}>
                 {(currentData.d_walcl_4w || 0) > 0 ? '↗' : '↘'} {currentData.d_walcl_4w ? Math.abs(currentData.d_walcl_4w/1000).toFixed(1) : '0'}B (4w)
               </div>
             </div>
 
-            {/* SOFR-EFFR Spread - CENTERED CONTENT */}
-            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all text-center">
-              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center justify-center gap-2">
+            {/* SOFR-EFFR Spread - LARGER VALUES */}
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-6 hover:border-emerald-500/30 transition-all text-center">
+              <div className="text-sm text-slate-400 uppercase tracking-wide mb-3 flex items-center justify-center gap-2">
                 SOFR-EFFR Spread
                 <ExplanationTooltip metricKey="sofr_effr_spread" mode="full" size="sm" />
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-white">
+              <div className="text-3xl sm:text-4xl font-bold text-white mb-3">
                 {currentData.sofr_effr_spread?.toFixed(1) ?? 'N/A'} bps
               </div>
-              <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="mt-3 h-2 bg-slate-800 rounded-full overflow-hidden">
                 <div 
                   className={`h-full transition-all ${
                     (currentData.sofr_effr_spread || 0) > 15 ? 'bg-red-500' : 
@@ -499,23 +499,23 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                   }}
                 ></div>
               </div>
-              <div className="text-xs text-slate-400 mt-1">
+              <div className="text-sm text-slate-400 mt-2">
                 {(currentData.sofr_effr_spread || 0) > 15 ? 'Stress' : 
                  (currentData.sofr_effr_spread || 0) > 10 ? 'Elevated' : 
                  'Normal'}
               </div>
             </div>
 
-            {/* VIX - CENTERED CONTENT */}
-            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all text-center">
-              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center justify-center gap-2">
+            {/* VIX - LARGER VALUES */}
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-6 hover:border-emerald-500/30 transition-all text-center">
+              <div className="text-sm text-slate-400 uppercase tracking-wide mb-3 flex items-center justify-center gap-2">
                 VIX (Fear Index)
                 <ExplanationTooltip metricKey="vix" mode="full" size="sm" />
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-white">
+              <div className="text-3xl sm:text-4xl font-bold text-white mb-3">
                 {currentData.vix ?? 'N/A'}
               </div>
-              <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="mt-3 h-2 bg-slate-800 rounded-full overflow-hidden">
                 <div 
                   className={`h-full transition-all ${getVixRiskLevel(currentData.vix || 0).color}`}
                   style={{
@@ -523,7 +523,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                   }}
                 ></div>
               </div>
-              <div className="text-xs text-slate-400 mt-1">
+              <div className="text-sm text-slate-400 mt-2">
                 {getVixRiskLevel(currentData.vix || 0).label}
               </div>
             </div>
