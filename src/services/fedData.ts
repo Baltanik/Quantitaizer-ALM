@@ -91,6 +91,8 @@ export interface Signal {
 
 export async function fetchLatestFedData(): Promise<FedData | null> {
   try {
+    console.log('🔄 [HOTFIX DEBUG] Fetching latest Fed data...');
+    
     const { data, error } = await Promise.race([
       supabase
         .from('fed_data')
@@ -104,13 +106,38 @@ export async function fetchLatestFedData(): Promise<FedData | null> {
     ]) as any;
 
     if (error) {
-      console.error('Error fetching latest Fed data:', error);
+      console.error('❌ [HOTFIX DEBUG] Error fetching latest Fed data:', error);
       return null;
     }
 
+    // 🚨 HOTFIX DEBUG LOGGING - MASSIVE CONSOLE OUTPUT
+    console.log('✅ [HOTFIX DEBUG] Latest Fed data fetched successfully');
+    console.log('🔍 [EFFR DEBUG] Raw data from database:', {
+      date: data?.date,
+      sofr: data?.sofr,
+      iorb: data?.iorb,
+      effr: data?.effr,
+      sofr_effr_spread: data?.sofr_effr_spread,
+      effr_iorb_spread: data?.effr_iorb_spread,
+      scenario: data?.scenario,
+      liquidity_score: data?.liquidity_score,
+      created_at: data?.created_at
+    });
+    
+    // Check for EFFR data presence
+    if (data?.effr !== null && data?.effr !== undefined) {
+      console.log('✅ [EFFR SUCCESS] EFFR DATA PRESENT:', data.effr + '%');
+      if (data?.sofr_effr_spread) {
+        console.log('✅ [SPREAD SUCCESS] SOFR-EFFR SPREAD:', (data.sofr_effr_spread * 100).toFixed(2) + 'bps');
+      }
+    } else {
+      console.error('🚨 [EFFR ERROR] EFFR DATA MISSING - This should not happen after hotfix!');
+      console.error('🚨 [DEBUG] Full data object:', data);
+    }
+    
     return data;
   } catch (error) {
-    console.error('Timeout or error fetching latest Fed data:', error);
+    console.error('❌ [HOTFIX DEBUG] Timeout or error fetching latest Fed data:', error);
     return null;
   }
 }

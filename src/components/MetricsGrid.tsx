@@ -8,7 +8,18 @@ interface MetricsGridProps {
 }
 
 export function MetricsGrid({ currentData, previousData, historicalData }: MetricsGridProps) {
+  // 🚨 HOTFIX DEBUG LOGGING - Check what data is being passed to MetricsGrid
+  console.log('🔍 [METRICS DEBUG] MetricsGrid received currentData:', {
+    date: currentData?.date,
+    sofr: currentData?.sofr,
+    iorb: currentData?.iorb,
+    effr: currentData?.effr,
+    sofr_effr_spread: currentData?.sofr_effr_spread,
+    scenario: currentData?.scenario
+  });
+  
   if (!currentData) {
+    console.warn('⚠️ [METRICS DEBUG] No currentData - showing loading state');
     return (
       <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {Array.from({ length: 10 }).map((_, i) => (
@@ -72,6 +83,9 @@ export function MetricsGrid({ currentData, previousData, historicalData }: Metri
         historicalData={createHistoricalArray('sofr_effr_spread')}
         format="bps"
       />
+      {/* 🚨 DEBUG: Log EFFR card values */}
+      {console.log('🔍 [EFFR CARD DEBUG] EFFR value:', currentData.effr)}
+      {console.log('🔍 [SPREAD CARD DEBUG] SOFR-EFFR spread:', currentData.sofr_effr_spread)}
       <MetricCard
         title="Bilancio Fed"
         value={currentData.walcl}
