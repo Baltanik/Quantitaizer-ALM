@@ -1,11 +1,26 @@
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useScrollDirection } from "@/hooks/use-scroll-direction";
+
 interface HeaderProps {
   lastUpdate?: string;
   onRefresh?: () => void;
 }
 
 export function Header({ lastUpdate, onRefresh }: HeaderProps) {
+  const isMobile = useIsMobile();
+  const scrollDirection = useScrollDirection();
+  
+  // Su mobile: nasconde l'header quando si scrolla verso il basso
+  const isHidden = isMobile && scrollDirection === 'down';
+  
   return (
-    <header className="relative border-b border-slate-800 bg-gradient-to-b from-slate-950 to-slate-900 sticky top-0 z-50 overflow-hidden">
+    <header 
+      className={`
+        relative border-b border-slate-800 bg-gradient-to-b from-slate-950 to-slate-900 
+        sticky top-0 z-50 overflow-hidden transition-transform duration-300 ease-in-out
+        ${isHidden ? '-translate-y-full' : 'translate-y-0'}
+      `}
+    >
       {/* Floating Financial Orbs - Neural Network Style */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Central Hub */}
