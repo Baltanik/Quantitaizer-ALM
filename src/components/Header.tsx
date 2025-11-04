@@ -1,64 +1,9 @@
-import { RefreshCw, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { triggerFedDataFetch } from "@/services/fedData";
-import { useState } from "react";
-
 interface HeaderProps {
   lastUpdate?: string;
   onRefresh?: () => void;
 }
 
 export function Header({ lastUpdate, onRefresh }: HeaderProps) {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const handleRefresh = async () => {
-    if (isRefreshing) return;
-    
-    setIsRefreshing(true);
-    toast.info("🔄 Recupero ultimi dati Fed...", { duration: 2000 });
-    
-    try {
-      const result = await triggerFedDataFetch();
-      
-      if (result.success) {
-        toast.success("✅ Dati Fed aggiornati con successo");
-        // Trigger refresh nel componente padre
-        if (onRefresh) {
-          setTimeout(() => onRefresh(), 2000);
-        }
-      } else {
-        toast.error(`❌ ${result.error}`, { duration: 5000 });
-      }
-    } catch (error) {
-      toast.error("❌ Errore di rete durante l'aggiornamento");
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  // Calcola età dei dati
-  const getDataAge = (dateString: string) => {
-    const now = new Date();
-    const updateDate = new Date(dateString);
-    const diffMs = now.getTime() - updateDate.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (diffHours > 24) {
-      const days = Math.floor(diffHours / 24);
-      return { text: `${days}g fa`, status: 'stale' };
-    } else if (diffHours > 4) {
-      return { text: `${diffHours}h fa`, status: 'old' };
-    } else if (diffHours >= 1) {
-      return { text: `${diffHours}h ${diffMinutes}m fa`, status: 'fresh' };
-    } else {
-      return { text: `${diffMinutes}m fa`, status: 'fresh' };
-    }
-  };
-  
-  const dataAge = lastUpdate ? getDataAge(lastUpdate) : null;
-
   return (
     <header className="relative border-b border-slate-800 bg-gradient-to-b from-slate-950 to-slate-900 sticky top-0 z-50 overflow-hidden">
       {/* Floating Financial Orbs - Neural Network Style */}
@@ -114,57 +59,19 @@ export function Header({ lastUpdate, onRefresh }: HeaderProps) {
           </div>
         </div>
         
-        {/* Last Update - Enhanced with Age Indicator */}
-        {lastUpdate && dataAge && (
+        {/* Last Update - Clean and Simple */}
+        {lastUpdate && (
           <div className="absolute bottom-4 left-4 text-left">
-            <div className="flex items-center gap-3">
-              {/* Data Age Badge */}
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur-sm ${
-                dataAge.status === 'fresh' 
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                  : dataAge.status === 'old'
-                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                  : 'bg-red-500/10 border-red-500/30 text-red-400'
-              }`}>
-                <Clock className="w-3 h-3" />
-                <span className="text-xs font-semibold">{dataAge.text}</span>
-              </div>
-              
-              {/* Refresh Button */}
-              <Button
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                variant="ghost"
-                size="sm"
-                className="h-8 px-3 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 text-slate-300 hover:text-white transition-all"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span className="text-xs">Refresh</span>
-              </Button>
-            </div>
-            
-            {/* Timestamp Details */}
-            <div className="mt-2">
-              <p className="text-xs text-slate-500">Ultimo Aggiornamento</p>
-              <p className="text-xs font-mono text-slate-400">
-                {new Date(lastUpdate).toLocaleString('it-IT', {
-                  day: '2-digit',
-                  month: '2-digit', 
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </p>
-              {dataAge.status === 'fresh' && (
-                <p className="text-xs text-emerald-400/70 mt-0.5">🔄 Auto-refresh ogni 4h</p>
-              )}
-              {dataAge.status === 'old' && (
-                <p className="text-xs text-amber-400/70 mt-0.5">⏰ Prossimo refresh a breve</p>
-              )}
-              {dataAge.status === 'stale' && (
-                <p className="text-xs text-red-400/70 mt-0.5">⚠️ Dati non aggiornati - Verifica cron job</p>
-              )}
-            </div>
+            <p className="text-xs text-slate-500">Ultimo Aggiornamento</p>
+            <p className="text-xs font-mono text-slate-400">
+              {new Date(lastUpdate).toLocaleString('it-IT', {
+                day: '2-digit',
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </p>
           </div>
         )}
       </div>
