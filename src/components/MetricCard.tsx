@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
 import { getMetricDescription } from "@/lib/metricDescriptions";
+import { useState, useEffect } from "react";
 
 interface MetricCardProps {
   title: string;
@@ -10,6 +11,7 @@ interface MetricCardProps {
   historicalData?: Array<{ value: number | null | undefined }>;
   unit?: string;
   format?: 'number' | 'bps' | 'billion';
+  defaultExpanded?: boolean;
 }
 
 export function MetricCard({ 
@@ -18,8 +20,15 @@ export function MetricCard({
   previousValue, 
   historicalData = [],
   unit = '', 
-  format = 'number' 
+  format = 'number',
+  defaultExpanded = false
 }: MetricCardProps) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+  // Sincronizza con il controllo globale
+  useEffect(() => {
+    setIsExpanded(defaultExpanded);
+  }, [defaultExpanded]);
   const formatValue = (val: number | null | undefined) => {
     if (val === null || val === undefined || isNaN(val)) return 'N/A';
     
@@ -161,59 +170,82 @@ export function MetricCard({
   };
 
   return (
-    <Card className="hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 relative overflow-hidden bg-slate-900/80 border-slate-800">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-medium text-muted-foreground uppercase">
-          {title}
+    <Card className={`hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 relative overflow-hidden bg-slate-900/80 border-slate-800 ${
+      isExpanded ? 'row-span-2' : ''
+    }`}>
+      <CardHeader className="pb-1">
+        <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center justify-between">
+          <span>{title}</span>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="p-1 hover:bg-muted/20 rounded transition-colors"
+            aria-label={isExpanded ? "Comprimi" : "Espandi"}
+          >
+            {isExpanded ? (
+              <ChevronUp className="h-3 w-3" />
+            ) : (
+              <ChevronDown className="h-3 w-3" />
+            )}
+          </button>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-3xl font-mono font-bold flex items-baseline gap-1 whitespace-nowrap">
-                {format === 'billion' && <span className="text-lg">$</span>}
-                <span className="flex items-baseline gap-0">
-                  {formatValue(value)}
-                  <span className="text-sm text-muted-foreground ml-0.5">{getUnit()}</span>
-                </span>
-              </p>
-              {trend !== null && (
-                <p className={`text-xs font-mono mt-1 flex items-center gap-1 ${trendColor}`}>
-                  <TrendIcon className="h-3 w-3" />
-                  {Math.abs(trend).toFixed(2)}%
-                </p>
-              )}
-            </div>
-          </div>
-          
-          {chartData.length > 1 && (
-            <div className="h-12 -mx-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <YAxis 
-                    domain={getYAxisDomain()}
-                    hide={true}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={1.5}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-          
-          {/* Spiegazione della metrica */}
-          <div className="pt-2 border-t border-border/50">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {getMetricDescription(title)}
+      <CardContent className={isExpanded ? "space-y-3" : "pb-3"}>
+        {/* Contenuto sempre visibile - compatto */}
+        <div className="flex items-end justify-between">
+          <div>
+            <p className={`font-mono font-bold flex items-baseline gap-1 whitespace-nowrap ${
+              isExpanded ? "text-3xl" : "text-2xl"
+            }`}>
+              {format === 'billion' && <span className={isExpanded ? "text-lg" : "text-base"}>$</span>}
+              <span className="flex items-baseline gap-0">
+                {formatValue(value)}
+                <span className={`text-muted-foreground ml-0.5 ${
+                  isExpanded ? "text-sm" : "text-xs"
+                }`}>{getUnit()}</span>
+              </span>
             </p>
+            {trend !== null && (
+              <p className={`font-mono mt-1 flex items-center gap-1 ${trendColor} ${
+                isExpanded ? "text-xs" : "text-[10px]"
+              }`}>
+                <TrendIcon className={isExpanded ? "h-3 w-3" : "h-2.5 w-2.5"} />
+                {Math.abs(trend).toFixed(2)}%
+              </p>
+            )}
           </div>
         </div>
+        
+        {/* Contenuto espandibile */}
+        {isExpanded && (
+          <>
+            {chartData.length > 1 && (
+              <div className="h-12 -mx-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <YAxis 
+                      domain={getYAxisDomain()}
+                      hide={true}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={1.5}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            
+            {/* Spiegazione della metrica */}
+            <div className="pt-2 border-t border-border/50">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {getMetricDescription(title)}
+              </p>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
