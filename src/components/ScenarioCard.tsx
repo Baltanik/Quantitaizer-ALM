@@ -25,12 +25,12 @@ const scenarioConfig = {
       const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
       const vix = data.vix ?? 'N/A';
       
-      return `🟡 STEALTH QE ATTIVA: Balance Sheet $${balanceSheet}T (+${bs_delta}B in 4w).
+      return `STEALTH QE ATTIVA: Balance Sheet $${balanceSheet}T (+${bs_delta}B in 4w).
       RRP drena ${Math.abs(parseFloat(rrp_delta))}B = Fed inietta liquidità nascosta.
-      SOFR-EFFR: ${sofr_effr}bps ✅ Spread bassi = nessuna tensione.
-      VIX: ${vix} ${parseFloat(vix.toString()) < 16 ? '🟢 BULLISH - Mercato calmo' : '🟡 Cauto'}.
+      SOFR-EFFR: ${sofr_effr}bps - Spread bassi = nessuna tensione.
+      VIX: ${vix} ${parseFloat(vix.toString()) < 16 ? 'BULLISH - Mercato calmo' : 'Cauto'}.
       
-      ⚡ AZIONE: Long equity (+20%), long crypto, compra small-cap, evita USD strength.`;
+      AZIONE: Long equity (+20%), long crypto, compra small-cap, evita USD strength.`;
     },
     getIndicators: (data: FedData | null) => {
       if (!data) return [
@@ -44,9 +44,9 @@ const scenarioConfig = {
       const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
       
       return [
-        { icon: TrendingUp, label: "Balance Sheet", status: `+${bs_delta}B (4w) 🟢 Espansione` },
-        { icon: TrendingDown, label: "RRP Drain", status: `${rrp_delta}B ✅ Fed inietta` },
-        { icon: LineChart, label: "SOFR-EFFR", status: `${sofr_effr}bps ✅ Basso stress` }
+        { icon: TrendingUp, label: "Balance Sheet", status: `+${bs_delta}B (4w) Espansione` },
+        { icon: TrendingDown, label: "RRP Drain", status: `${rrp_delta}B Fed inietta` },
+        { icon: LineChart, label: "SOFR-EFFR", status: `${sofr_effr}bps Basso stress` }
       ];
     },
     bgClass: "bg-success/5 border-success/30",
@@ -66,11 +66,11 @@ const scenarioConfig = {
       const reserves_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
       const vix = data.vix ?? 'N/A';
       
-      return `🟢 QE COMPLETO - STAMPA MONETA: Balance Sheet $${balanceSheet}T (+${bs_delta}B AGGRESSIVA espansione).
+      return `QE COMPLETO - STAMPA MONETA: Balance Sheet $${balanceSheet}T (+${bs_delta}B AGGRESSIVA espansione).
       Riserve flood: +${reserves_delta}B in 4w = liquidità massiccia.
-      VIX: ${vix} ${parseFloat(vix.toString()) < 20 ? '🎉 EUPHORIA MODE' : '🟡 Cauto nonostante QE'}.
+      VIX: ${vix} ${parseFloat(vix.toString()) < 20 ? 'EUPHORIA MODE' : 'Cauto nonostante QE'}.
       
-      ⚡ AZIONE: MAX long equity (+40%), MAX long crypto, long oro/commodities, evita cash.`;
+      AZIONE: MAX long equity (+40%), MAX long crypto, long oro/commodities, evita cash.`;
     },
     getIndicators: (data: FedData | null) => {
       if (!data) return [
@@ -84,9 +84,9 @@ const scenarioConfig = {
       const rrp_value = data.rrpontsyd ? (data.rrpontsyd/1000).toFixed(1) : 'N/A';
       
       return [
-        { icon: TrendingUp, label: "Balance Sheet", status: `+${bs_delta}B 🚀 AGGRESSIVA` },
-        { icon: TrendingUp, label: "Riserve Flood", status: `+${res_delta}B 🌊 Massiccia` },
-        { icon: TrendingUp, label: "RRP Overflow", status: `${rrp_value}B 🟢 Liquidità` }
+        { icon: TrendingUp, label: "Balance Sheet", status: `+${bs_delta}B AGGRESSIVA` },
+        { icon: TrendingUp, label: "Riserve Flood", status: `+${res_delta}B Massiccia` },
+        { icon: TrendingUp, label: "RRP Overflow", status: `${rrp_value}B Liquidità` }
       ];
     },
     bgClass: "bg-success/5 border-success/30",
@@ -106,11 +106,11 @@ const scenarioConfig = {
       const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
       const vix = data.vix ?? 'N/A';
       
-      return `🔴 CONTRAZIONE ATTIVA: Balance Sheet $${balanceSheet}T (${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B in 4w). 
-      SOFR-EFFR spread: ${sofr_effr}bps ${parseFloat(sofr_effr) > 10 ? '⚠️ STRESS RILEVATO' : '✅ Controllato'}.
-      VIX: ${vix} ${parseFloat(vix.toString()) > 22 ? '🔴 Mercato nervoso' : '🟢 Situazione gestibile'}.
+      return `CONTRAZIONE ATTIVA: Balance Sheet $${balanceSheet}T (${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B in 4w). 
+      SOFR-EFFR spread: ${sofr_effr}bps ${parseFloat(sofr_effr) > 10 ? 'STRESS RILEVATO' : 'Controllato'}.
+      VIX: ${vix} ${parseFloat(vix.toString()) > 22 ? 'Mercato nervoso' : 'Situazione gestibile'}.
       
-      ⚡ AZIONE: Riduci equity (-20%), aumenta Treasury short-term (+15%), evita leverage.`;
+      AZIONE: Riduci equity (-20%), aumenta Treasury short-term (+15%), evita leverage.`;
     },
     getIndicators: (data: FedData | null) => {
       if (!data) return [
@@ -126,10 +126,10 @@ const scenarioConfig = {
       const rrp_delta = data.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
       
       return [
-        { icon: TrendingDown, label: "Bilancio Fed", status: `${bs_delta}B (4w) ${parseFloat(bs_delta) < -50 ? '🔴 Aggressiva' : '🟡 Moderata'}` },
-        { icon: TrendingDown, label: "Riserve", status: `${res_delta}B (4w) ${parseFloat(res_delta) < -20 ? '⚠️ Calo forte' : 'Calo normale'}` },
-        { icon: TrendingUp, label: "SOFR-EFFR", status: `${sofr_effr}bps ${parseFloat(sofr_effr) > 15 ? '🔴 Stress' : '🟡 Normale'}` },
-        { icon: AlertTriangle, label: "RRP", status: `${rrp_delta}B ${Math.abs(parseFloat(rrp_delta)) > 20 ? '🚨 Spike' : 'Normale'}` }
+        { icon: TrendingDown, label: "Bilancio Fed", status: `${bs_delta}B (4w) ${parseFloat(bs_delta) < -50 ? 'Aggressiva' : 'Moderata'}` },
+        { icon: TrendingDown, label: "Riserve", status: `${res_delta}B (4w) ${parseFloat(res_delta) < -20 ? 'Calo forte' : 'Calo normale'}` },
+        { icon: TrendingUp, label: "SOFR-EFFR", status: `${sofr_effr}bps ${parseFloat(sofr_effr) > 15 ? 'Stress' : 'Normale'}` },
+        { icon: AlertTriangle, label: "RRP", status: `${rrp_delta}B ${Math.abs(parseFloat(rrp_delta)) > 20 ? 'Spike' : 'Normale'}` }
       ];
     },
     bgClass: "bg-destructive/5 border-destructive/30",
@@ -149,11 +149,11 @@ const scenarioConfig = {
       const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
       const vix = data.vix ?? 'N/A';
       
-      return `⚪ NEUTRALE - EQUILIBRIO: Balance Sheet $${balanceSheet}T (${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B stabile).
-      SOFR-EFFR: ${sofr_effr}bps ✅ Range normale (5-15bps).
-      VIX: ${vix} ${parseFloat(vix.toString()) < 18 ? '🟢 CALM - Mercato stabile' : '🟡 Cautela'}.
+      return `NEUTRALE - EQUILIBRIO: Balance Sheet $${balanceSheet}T (${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B stabile).
+      SOFR-EFFR: ${sofr_effr}bps - Range normale (5-15bps).
+      VIX: ${vix} ${parseFloat(vix.toString()) < 18 ? 'CALM - Mercato stabile' : 'Cautela'}.
       
-      ⚡ AZIONE: Focus stock picking, diversificazione bilanciata, segui dati macro.`;
+      AZIONE: Focus stock picking, diversificazione bilanciata, segui dati macro.`;
     },
     getIndicators: (data: FedData | null) => {
       if (!data) return [
@@ -167,9 +167,9 @@ const scenarioConfig = {
       const rrp_value = data.rrpontsyd ? (data.rrpontsyd/1000).toFixed(1) : 'N/A';
       
       return [
-        { icon: Minus, label: "Balance Sheet", status: `${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B ⚪ Stabile` },
-        { icon: LineChart, label: "SOFR-EFFR", status: `${sofr_effr}bps ✅ Normale` },
-        { icon: Info, label: "RRP", status: `${rrp_value}B ⚖️ Equilibrato` }
+        { icon: Minus, label: "Balance Sheet", status: `${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B Stabile` },
+        { icon: LineChart, label: "SOFR-EFFR", status: `${sofr_effr}bps Normale` },
+        { icon: Info, label: "RRP", status: `${rrp_value}B Equilibrato` }
       ];
     },
     bgClass: "bg-warning/5 border-warning/30",
@@ -189,11 +189,11 @@ const scenarioConfig = {
       const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
       const vix = data.vix ?? 'N/A';
       
-      return `🔴 CONTRAZIONE AGGRESSIVA: Balance Sheet $${balanceSheet}T (${bs_delta}B forte calo).
-      SOFR-EFFR: ${sofr_effr}bps ${parseFloat(sofr_effr) > 20 ? '🚨 STRESS ELEVATO' : '⚠️ Tensione'}.
-      VIX: ${vix} ${parseFloat(vix.toString()) > 25 ? '🔴 PANIC MODE' : '🟡 Nervosismo'}.
+      return `CONTRAZIONE AGGRESSIVA: Balance Sheet $${balanceSheet}T (${bs_delta}B forte calo).
+      SOFR-EFFR: ${sofr_effr}bps ${parseFloat(sofr_effr) > 20 ? 'STRESS ELEVATO' : 'Tensione'}.
+      VIX: ${vix} ${parseFloat(vix.toString()) > 25 ? 'PANIC MODE' : 'Nervosismo'}.
       
-      ⚡ AZIONE: Massima cautela, cash+Treasury, short risk assets, long USD.`;
+      AZIONE: Massima cautela, cash+Treasury, short risk assets, long USD.`;
     },
     getIndicators: (data: FedData | null) => {
       if (!data) return [
@@ -207,9 +207,9 @@ const scenarioConfig = {
       const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
       
       return [
-        { icon: TrendingDown, label: "Balance Sheet", status: `${bs_delta}B 🔴 FORTE calo` },
-        { icon: TrendingDown, label: "Riserve", status: `${res_delta}B 🚨 Drenaggio` },
-        { icon: AlertTriangle, label: "SOFR-EFFR", status: `${sofr_effr}bps 🔴 STRESS` }
+        { icon: TrendingDown, label: "Balance Sheet", status: `${bs_delta}B FORTE calo` },
+        { icon: TrendingDown, label: "Riserve", status: `${res_delta}B Drenaggio` },
+        { icon: AlertTriangle, label: "SOFR-EFFR", status: `${sofr_effr}bps STRESS` }
       ];
     },
     bgClass: "bg-destructive/5 border-destructive/30",

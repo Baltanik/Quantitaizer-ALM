@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Activity, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, AlertTriangle, DollarSign, BarChart3, Target, Eye, Shield, TrendingUpDown } from "lucide-react";
 import { FedData } from "@/services/fedData";
 
 interface ScenarioAnalysisProps {
@@ -43,133 +43,195 @@ export function ScenarioAnalysis({ currentData }: ScenarioAnalysisProps) {
       case 'qt':
         return {
           title: 'QT (Quantitative Tightening)',
-          description: `🔴 Fed riduce bilancio: $${balanceSheet}T (-${Math.abs(parseFloat(bs_delta_4w))}B ultimi 28gg)`,
+          description: `Fed riduce bilancio: $${balanceSheet}T (-${Math.abs(parseFloat(bs_delta_4w))}B ultimi 28gg)`,
           color: 'bg-red-500/10 text-red-600 border-red-500/20',
           icon: TrendingDown,
-          narrative: `
-🔴 CONTRAZIONE FED IN CORSO
-
-📊 DATI ATTUALI:
-• Balance Sheet: $${balanceSheet}T (${parseFloat(bs_delta_4w) > 0 ? '+' : ''}${bs_delta_4w}B ultimi 28gg)
-• Riserve: $${reserves}T (${parseFloat(res_delta_4w) > 0 ? '+' : ''}${res_delta_4w}B ultimi 28gg)
-• SOFR-EFFR: ${sofr_effr} bps ${parseFloat(sofr_effr) > 10 ? '⚠️ ELEVATO (stress)' : '✅ Normal'}
-• RRP: $${rrp_value}B (${parseFloat(rrp_delta) > 0 ? '+' : ''}${rrp_delta}B 4w)
-
-⚡ COSA SIGNIFICA:
-La Fed sta riducendo la liquidità del sistema. 
-Meno soldi in circolazione = più difficile per aziende finanziarsi = 
-Equity soffrono, Treasury sale, Dollaro rinforza.
-
-🎯 COSA FARE:
-✅ Riduci esposizione equity (-20%)
-✅ Aumenta cash in Treasury short-term (+15%)
-❌ Evita crypto leveraged
-✅ Long USD vs EM currencies
-
-📈 MONITORA:
-Se SOFR-EFFR torna <5bps oppure RRP spika >$30B = Fed potrebbe tornare QE
-
-⚠️ Risk: ${parseFloat(vix) > 22 ? '🔴 ALTO - VIX ' + vix : '🟡 MEDIO - Situazione controllata'}
-          `,
+          sections: [
+            {
+              title: "Situazione Attuale",
+              icon: BarChart3,
+              content: [
+                `Balance Sheet: $${balanceSheet}T (${parseFloat(bs_delta_4w) > 0 ? '+' : ''}${bs_delta_4w}B ultimi 28gg)`,
+                `Riserve: $${reserves}T (${parseFloat(res_delta_4w) > 0 ? '+' : ''}${res_delta_4w}B ultimi 28gg)`,
+                `SOFR-EFFR: ${sofr_effr} bps ${parseFloat(sofr_effr) > 10 ? 'ELEVATO (stress)' : 'Normal'}`,
+                `RRP: $${rrp_value}B (${parseFloat(rrp_delta) > 0 ? '+' : ''}${rrp_delta}B 4w)`
+              ]
+            },
+            {
+              title: "Significato",
+              icon: Eye,
+              content: [
+                "La Fed sta riducendo la liquidità del sistema",
+                "Meno soldi in circolazione = più difficile per aziende finanziarsi",
+                "Equity soffrono, Treasury sale, Dollaro rinforza"
+              ]
+            },
+            {
+              title: "Azioni Consigliate",
+              icon: Target,
+              content: [
+                "Riduci esposizione equity (-20%)",
+                "Aumenta cash in Treasury short-term (+15%)",
+                "Evita crypto leveraged",
+                "Long USD vs EM currencies"
+              ]
+            },
+            {
+              title: "Monitora",
+              icon: Eye,
+              content: [
+                "Se SOFR-EFFR torna <5bps = Fed potrebbe tornare QE",
+                "Se RRP spika >$30B = Fed potrebbe tornare QE",
+                `Risk Level: ${parseFloat(vix) > 22 ? 'ALTO - VIX ' + vix : 'MEDIO - Situazione controllata'}`
+              ]
+            }
+          ],
           confidence: confidence
         };
 
       case 'stealth_qe':
         return {
           title: 'Stealth QE (Espansione Nascosta)',
-          description: `🟡 Fed inietta liquidità: $${balanceSheet}T (+${bs_delta_4w}B), RRP drena $${Math.abs(parseFloat(rrp_delta))}B`,
+          description: `Fed inietta liquidità: $${balanceSheet}T (+${bs_delta_4w}B), RRP drena $${Math.abs(parseFloat(rrp_delta))}B`,
           color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
           icon: TrendingUp,
-          narrative: `
-🟡 ESPANSIONE NASCOSTA (Stealth QE) 
-
-📊 DATI ATTUALI:
-• Balance Sheet: $${balanceSheet}T (+${bs_delta_4w}B ultimi 28gg)
-• RRP: $${rrp_value}B (${parseFloat(rrp_delta) > 0 ? '+' : ''}${rrp_delta}B drenaggio = Fed inietta)
-• SOFR-EFFR: ${sofr_effr} bps ✅ Spread basso = Fed non preme sul freno
-• Riserve: $${reserves}T (${parseFloat(res_delta_4w) > 0 ? '+' : ''}${res_delta_4w}B)
-
-⚡ COSA SIGNIFICA:
-Fed sta pompando liquidità SENZA annunciarlo ufficialmente.
-Bilancio cresce + RRP drena = Più soldi per banche = Asset rischiosi salgono.
-
-🎯 COSA FARE:
-✅ Long equity (+20% esposizione)
-✅ Long crypto (momentum positivo)
-❌ Evita USD strength bets
-✅ Compra small-cap (beneficiano liquidità)
-
-📈 MONITORA:
-Se RRP torna a salire oppure balance sheet cala = Fed inverte a QT
-
-✅ Sentiment: ${parseFloat(vix) < 16 ? '🟢 BULLISH - Mercato calmo' : '🟡 Cauto - VIX ' + vix}
-          `,
+          sections: [
+            {
+              title: "Situazione Attuale",
+              icon: BarChart3,
+              content: [
+                `Balance Sheet: $${balanceSheet}T (+${bs_delta_4w}B ultimi 28gg)`,
+                `RRP: $${rrp_value}B (${parseFloat(rrp_delta) > 0 ? '+' : ''}${rrp_delta}B drenaggio = Fed inietta)`,
+                `SOFR-EFFR: ${sofr_effr} bps - Spread basso = Fed non preme sul freno`,
+                `Riserve: $${reserves}T (${parseFloat(res_delta_4w) > 0 ? '+' : ''}${res_delta_4w}B)`
+              ]
+            },
+            {
+              title: "Significato",
+              icon: Eye,
+              content: [
+                "Fed sta pompando liquidità SENZA annunciarlo ufficialmente",
+                "Bilancio cresce + RRP drena = Più soldi per banche",
+                "Asset rischiosi tendono a salire"
+              ]
+            },
+            {
+              title: "Azioni Consigliate",
+              icon: Target,
+              content: [
+                "Long equity (+20% esposizione)",
+                "Long crypto (momentum positivo)",
+                "Evita USD strength bets",
+                "Compra small-cap (beneficiano liquidità)"
+              ]
+            },
+            {
+              title: "Monitora",
+              icon: Eye,
+              content: [
+                "Se RRP torna a salire = Fed inverte a QT",
+                "Se balance sheet cala = Fed inverte a QT",
+                `Sentiment: ${parseFloat(vix) < 16 ? 'BULLISH - Mercato calmo' : 'Cauto - VIX ' + vix}`
+              ]
+            }
+          ],
           confidence: confidence
         };
 
       case 'qe':
         return {
           title: 'QE Completo (Quantitative Easing)',
-          description: `🟢 Fed espande aggressivamente: $${balanceSheet}T (+${bs_delta_4w}B), acquisti attivi`,
+          description: `Fed espande aggressivamente: $${balanceSheet}T (+${bs_delta_4w}B), acquisti attivi`,
           color: 'bg-green-500/10 text-green-600 border-green-500/20',
           icon: TrendingUp,
-          narrative: `
-🟢 QE COMPLETO - STAMPA MONETA
-
-📊 DATI ATTUALI:
-• Balance Sheet: $${balanceSheet}T (+${bs_delta_4w}B AGGRESSIVA espansione)
-• Riserve: $${reserves}T (+${res_delta_4w}B flood di liquidità)
-• SOFR-EFFR: ${sofr_effr} bps (Fed mantiene spread bassi)
-• RRP: $${rrp_value}B (overflow di liquidità)
-
-⚡ COSA SIGNIFICA:
-Fed annuncia ufficialmente che sta comprando bond = stampa soldi.
-Massima espansione monetaria = Asset prices to the moon.
-
-🎯 COSA FARE:
-🚀 Max long equity (+40% esposizione)
-🚀 Max long crypto (parabolic move)
-🚀 Long commodities/oro (inflazione)
-❌ Evita cash e bonds (perdono valore)
-
-📈 MONITORA:
-Quando Fed inizia a parlare di "tapering" = inizio fine party
-
-🎉 Sentiment: ${parseFloat(vix) < 20 ? '🟢 EUPHORIA MODE' : '🟡 Cauto nonostante QE'}
-          `,
+          sections: [
+            {
+              title: "Situazione Attuale",
+              icon: BarChart3,
+              content: [
+                `Balance Sheet: $${balanceSheet}T (+${bs_delta_4w}B AGGRESSIVA espansione)`,
+                `Riserve: $${reserves}T (+${res_delta_4w}B flood di liquidità)`,
+                `SOFR-EFFR: ${sofr_effr} bps (Fed mantiene spread bassi)`,
+                `RRP: $${rrp_value}B (overflow di liquidità)`
+              ]
+            },
+            {
+              title: "Significato",
+              icon: Eye,
+              content: [
+                "Fed annuncia ufficialmente che sta comprando bond = stampa soldi",
+                "Massima espansione monetaria",
+                "Asset prices tendono a salire fortemente"
+              ]
+            },
+            {
+              title: "Azioni Consigliate",
+              icon: Target,
+              content: [
+                "Max long equity (+40% esposizione)",
+                "Max long crypto (parabolic move)",
+                "Long commodities/oro (inflazione)",
+                "Evita cash e bonds (perdono valore)"
+              ]
+            },
+            {
+              title: "Monitora",
+              icon: Eye,
+              content: [
+                "Quando Fed inizia a parlare di 'tapering' = inizio fine party",
+                `Sentiment: ${parseFloat(vix) < 20 ? 'EUPHORIA MODE' : 'Cauto nonostante QE'}`
+              ]
+            }
+          ],
           confidence: confidence
         };
 
       default:
         return {
           title: 'Neutrale (Equilibrio)',
-          description: `⚪ Fed in equilibrio: $${balanceSheet}T (${bs_delta_4w}B), spread normali`,
+          description: `Fed in equilibrio: $${balanceSheet}T (${bs_delta_4w}B), spread normali`,
           color: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
           icon: Activity,
-          narrative: `
-⚪ NEUTRALE - EQUILIBRIO MONETARIO
-
-📊 DATI ATTUALI:
-• Balance Sheet: $${balanceSheet}T (${parseFloat(bs_delta_4w) > 0 ? '+' : ''}${bs_delta_4w}B stabile)
-• Riserve: $${reserves}T (${parseFloat(res_delta_4w) > 0 ? '+' : ''}${res_delta_4w}B equilibrate)
-• SOFR-EFFR: ${sofr_effr} bps ✅ Range normale (5-15bps)
-• RRP: $${rrp_value}B (funzione normale)
-
-⚡ COSA SIGNIFICA:
-Fed non sta né pompando né drenando liquidità.
-Mercati guidati da fondamentali economici normali.
-
-🎯 COSA FARE:
-📊 Focus su stock picking (+earnings quality)
-📊 Diversificazione bilanciata
-📊 Segui dati macro (GDP, inflazione, jobs)
-✅ Risk management normale
-
-📈 MONITORA:
-Cambi in balance sheet trend oppure spread che si ampliano
-
-📈 Sentiment: ${parseFloat(vix) < 18 ? '🟢 CALM - Mercato stabile' : '🟡 Cautela - VIX ' + vix}
-          `,
+          sections: [
+            {
+              title: "Situazione Attuale",
+              icon: BarChart3,
+              content: [
+                `Balance Sheet: $${balanceSheet}T (${parseFloat(bs_delta_4w) > 0 ? '+' : ''}${bs_delta_4w}B stabile)`,
+                `Riserve: $${reserves}T (${parseFloat(res_delta_4w) > 0 ? '+' : ''}${res_delta_4w}B equilibrate)`,
+                `SOFR-EFFR: ${sofr_effr} bps - Range normale (5-15bps)`,
+                `RRP: $${rrp_value}B (funzione normale)`
+              ]
+            },
+            {
+              title: "Significato",
+              icon: Eye,
+              content: [
+                "Fed non sta né pompando né drenando liquidità",
+                "Mercati guidati da fondamentali economici normali",
+                "Condizioni monetarie stabili"
+              ]
+            },
+            {
+              title: "Azioni Consigliate",
+              icon: Target,
+              content: [
+                "Focus su stock picking (+earnings quality)",
+                "Diversificazione bilanciata",
+                "Segui dati macro (GDP, inflazione, jobs)",
+                "Risk management normale"
+              ]
+            },
+            {
+              title: "Monitora",
+              icon: Eye,
+              content: [
+                "Cambi in balance sheet trend",
+                "Spread che si ampliano",
+                `Sentiment: ${parseFloat(vix) < 18 ? 'CALM - Mercato stabile' : 'Cautela - VIX ' + vix}`
+              ]
+            }
+          ],
           confidence: confidence
         };
     }
@@ -220,7 +282,10 @@ Cambi in balance sheet trend oppure spread che si ampliano
 
         {/* SEZIONE 1: Money Market Health */}
         <div>
-          <h4 className="font-semibold mb-3 text-emerald-400">💰 Money Market Health</h4>
+          <h4 className="font-semibold mb-3 text-emerald-400 flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            Money Market Health
+          </h4>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <div className="text-xs text-muted-foreground">SOFR</div>
@@ -234,7 +299,10 @@ Cambi in balance sheet trend oppure spread che si ampliano
               <div className="text-xs text-muted-foreground">SOFR-EFFR</div>
               <div className="text-lg font-bold">{sofr_effr} bps</div>
               {isStressed && (
-                <div className="text-xs text-red-500 mt-1">⚠️ Elevated stress</div>
+                <div className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Elevated stress
+                </div>
               )}
             </div>
             <div className="border-l-2 border-blue-500 pl-4">
@@ -246,7 +314,10 @@ Cambi in balance sheet trend oppure spread che si ampliano
 
         {/* SEZIONE 2: Fed Balance Sheet Dynamics */}
         <div>
-          <h4 className="font-semibold mb-3 text-emerald-400">📊 Fed Balance Sheet Dynamics</h4>
+          <h4 className="font-semibold mb-3 text-emerald-400 flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Fed Balance Sheet Dynamics
+          </h4>
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm">Balance Sheet</span>
@@ -271,7 +342,9 @@ Cambi in balance sheet trend oppure spread che si ampliano
               <span className="text-sm font-mono">
                 ${rrp_value}B 
                 <span className={parseFloat(rrp_delta) > 0 ? 'text-green-500' : 'text-blue-500'}>
-                  ({parseFloat(rrp_delta) > 0 ? '+' : ''}{rrp_delta}B 4w) {isRrpSpike ? '🚨 SPIKE' : 'Normal'}
+                  ({parseFloat(rrp_delta) > 0 ? '+' : ''}{rrp_delta}B 4w) 
+                  {isRrpSpike && <span className="text-red-500 ml-1">SPIKE</span>}
+                  {!isRrpSpike && <span className="text-green-500 ml-1">Normal</span>}
                 </span>
               </span>
             </div>
@@ -280,7 +353,10 @@ Cambi in balance sheet trend oppure spread che si ampliano
 
         {/* SEZIONE 3: Risk Context */}
         <div>
-          <h4 className="font-semibold mb-3 text-emerald-400">⚠️ Market Risk Context</h4>
+          <h4 className="font-semibold mb-3 text-emerald-400 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Market Risk Context
+          </h4>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <div className="text-xs text-muted-foreground">VIX</div>
@@ -314,20 +390,42 @@ Cambi in balance sheet trend oppure spread che si ampliano
 
         {/* SEZIONE 4: Data-Driven Analysis */}
         <div className="border-t pt-4">
-          <h4 className="font-semibold mb-3 text-emerald-400">📈 Analisi Data-Driven</h4>
-          <div className="bg-muted/20 border border-muted-foreground/20 rounded p-4">
-            <pre className="text-xs whitespace-pre-wrap text-slate-300 leading-relaxed">
-              {details.narrative}
-            </pre>
+          <h4 className="font-semibold mb-3 text-emerald-400 flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Analisi Data-Driven
+          </h4>
+          <div className="space-y-4">
+            {details.sections?.map((section, index) => {
+              const SectionIcon = section.icon;
+              return (
+                <div key={index} className="bg-muted/20 border border-muted-foreground/20 rounded p-4">
+                  <h5 className="font-semibold text-sm mb-2 flex items-center gap-2 text-slate-300">
+                    <SectionIcon className="h-4 w-4" />
+                    {section.title}
+                  </h5>
+                  <ul className="space-y-1">
+                    {section.content.map((item, itemIndex) => (
+                      <li key={itemIndex} className="text-sm text-slate-400 flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full mt-2 flex-shrink-0"></div>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* DISCLAIMER */}
-        <div className="bg-muted/50 border border-muted-foreground/20 rounded p-3 text-xs">
-          ⓘ Scenario analysis basato su dati Fed reali (FRED). 
-          SOFR-EFFR spread indica stress money market.
-          RRP spike può precedere segnali di espansione Fed.
-          Confidence: <strong>{details.confidence}</strong>
+        <div className="bg-muted/50 border border-muted-foreground/20 rounded p-3 text-xs flex items-start gap-2">
+          <Shield className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+          <div>
+            <strong>Disclaimer:</strong> Scenario analysis basato su dati Fed reali (FRED). 
+            SOFR-EFFR spread indica stress money market.
+            RRP spike può precedere segnali di espansione Fed.
+            Confidence: <strong>{details.confidence}</strong>
+          </div>
         </div>
       </CardContent>
     </Card>
