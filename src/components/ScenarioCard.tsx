@@ -26,11 +26,14 @@ const scenarioConfig = {
       const vix = data.vix ?? 'N/A';
       
       return `STEALTH QE ATTIVA: Balance Sheet $${balanceSheet}T (+${bs_delta}B in 4w).
-      RRP drena ${Math.abs(parseFloat(rrp_delta))}B = Fed inietta liquidità nascosta.
-      SOFR-EFFR: ${sofr_effr}bps - Spread bassi = nessuna tensione.
-      VIX: ${vix} ${parseFloat(vix.toString()) < 16 ? 'BULLISH - Mercato calmo' : 'Cauto'}.
-      
-      AZIONE: Long equity (+20%), long crypto, compra small-cap, evita USD strength.`;
+
+RRP drena ${Math.abs(parseFloat(rrp_delta))}B = Fed inietta liquidità nascosta.
+
+SOFR-EFFR: ${sofr_effr}bps - Spread bassi = nessuna tensione.
+
+VIX: ${vix} ${parseFloat(vix.toString()) < 16 ? 'BULLISH - Mercato calmo' : 'Cauto'}.
+
+AZIONE: Long equity (+20%), long crypto, compra small-cap, evita USD strength.`;
     },
     getIndicators: (data: FedData | null) => {
       if (!data) return [
@@ -67,10 +70,12 @@ const scenarioConfig = {
       const vix = data.vix ?? 'N/A';
       
       return `QE COMPLETO - STAMPA MONETA: Balance Sheet $${balanceSheet}T (+${bs_delta}B AGGRESSIVA espansione).
-      Riserve flood: +${reserves_delta}B in 4w = liquidità massiccia.
-      VIX: ${vix} ${parseFloat(vix.toString()) < 20 ? 'EUPHORIA MODE' : 'Cauto nonostante QE'}.
-      
-      AZIONE: MAX long equity (+40%), MAX long crypto, long oro/commodities, evita cash.`;
+
+Riserve flood: +${reserves_delta}B in 4w = liquidità massiccia.
+
+VIX: ${vix} ${parseFloat(vix.toString()) < 20 ? 'EUPHORIA MODE' : 'Cauto nonostante QE'}.
+
+AZIONE: MAX long equity (+40%), MAX long crypto, long oro/commodities, evita cash.`;
     },
     getIndicators: (data: FedData | null) => {
       if (!data) return [
@@ -106,11 +111,13 @@ const scenarioConfig = {
       const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
       const vix = data.vix ?? 'N/A';
       
-      return `CONTRAZIONE ATTIVA: Balance Sheet $${balanceSheet}T (${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B in 4w). 
-      SOFR-EFFR spread: ${sofr_effr}bps ${parseFloat(sofr_effr) > 10 ? 'STRESS RILEVATO' : 'Controllato'}.
-      VIX: ${vix} ${parseFloat(vix.toString()) > 22 ? 'Mercato nervoso' : 'Situazione gestibile'}.
-      
-      AZIONE: Riduci equity (-20%), aumenta Treasury short-term (+15%), evita leverage.`;
+      return `CONTRAZIONE ATTIVA: Balance Sheet $${balanceSheet}T (${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B in 4w).
+
+SOFR-EFFR spread: ${sofr_effr}bps ${parseFloat(sofr_effr) > 10 ? 'STRESS RILEVATO' : 'Controllato'}.
+
+VIX: ${vix} ${parseFloat(vix.toString()) > 22 ? 'Mercato nervoso' : 'Situazione gestibile'}.
+
+AZIONE: Riduci equity (-20%), aumenta Treasury short-term (+15%), evita leverage.`;
     },
     getIndicators: (data: FedData | null) => {
       if (!data) return [
@@ -150,10 +157,12 @@ const scenarioConfig = {
       const vix = data.vix ?? 'N/A';
       
       return `NEUTRALE - EQUILIBRIO: Balance Sheet $${balanceSheet}T (${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B stabile).
-      SOFR-EFFR: ${sofr_effr}bps - Range normale (5-15bps).
-      VIX: ${vix} ${parseFloat(vix.toString()) < 18 ? 'CALM - Mercato stabile' : 'Cautela'}.
-      
-      AZIONE: Focus stock picking, diversificazione bilanciata, segui dati macro.`;
+
+SOFR-EFFR: ${sofr_effr}bps - Range normale (5-15bps).
+
+VIX: ${vix} ${parseFloat(vix.toString()) < 18 ? 'CALM - Mercato stabile' : 'Cautela'}.
+
+AZIONE: Focus stock picking, diversificazione bilanciata, segui dati macro.`;
     },
     getIndicators: (data: FedData | null) => {
       if (!data) return [
@@ -190,10 +199,12 @@ const scenarioConfig = {
       const vix = data.vix ?? 'N/A';
       
       return `CONTRAZIONE AGGRESSIVA: Balance Sheet $${balanceSheet}T (${bs_delta}B forte calo).
-      SOFR-EFFR: ${sofr_effr}bps ${parseFloat(sofr_effr) > 20 ? 'STRESS ELEVATO' : 'Tensione'}.
-      VIX: ${vix} ${parseFloat(vix.toString()) > 25 ? 'PANIC MODE' : 'Nervosismo'}.
-      
-      AZIONE: Massima cautela, cash+Treasury, short risk assets, long USD.`;
+
+SOFR-EFFR: ${sofr_effr}bps ${parseFloat(sofr_effr) > 20 ? 'STRESS ELEVATO' : 'Tensione'}.
+
+VIX: ${vix} ${parseFloat(vix.toString()) > 25 ? 'PANIC MODE' : 'Nervosismo'}.
+
+AZIONE: Massima cautela, cash+Treasury, short risk assets, long USD.`;
     },
     getIndicators: (data: FedData | null) => {
       if (!data) return [
@@ -353,10 +364,15 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             </div>
             <h4 className="font-semibold text-sm">Analisi Situazione</h4>
           </div>
-          <div className="text-sm text-slate-200 leading-relaxed pl-8">
-            <pre className="whitespace-pre-wrap font-sans">
-              {config.getAnalysis ? config.getAnalysis(currentData) : 'Analisi non disponibile'}
-            </pre>
+          <div className="text-sm text-slate-200 leading-relaxed pl-8 space-y-3">
+            {config.getAnalysis ? 
+              config.getAnalysis(currentData).split('\n\n').map((paragraph, index) => (
+                <p key={index} className="leading-relaxed">
+                  {paragraph.trim()}
+                </p>
+              )) : 
+              <p>Analisi non disponibile</p>
+            }
           </div>
         </div>
 
@@ -371,7 +387,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             <h4 className="font-semibold text-sm">Indicatori Chiave</h4>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 pl-8">
-            {(config.getIndicators ? config.getIndicators(currentData) : config.indicators || []).map((indicator, index) => {
+            {(config.getIndicators ? config.getIndicators(currentData) : []).map((indicator, index) => {
               const IndicatorIcon = indicator.icon;
               return (
                 <div
