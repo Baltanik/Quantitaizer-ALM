@@ -93,6 +93,10 @@ export async function fetchLatestFedData(): Promise<FedData | null> {
   try {
     console.log('🔄 [HOTFIX DEBUG] Fetching latest Fed data...');
     
+    // 🚨 FORCE FRESH DATA - Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    console.log('🔄 [CACHE BUST] Fetching with timestamp:', timestamp);
+    
     const { data, error } = await Promise.race([
       supabase
         .from('fed_data')

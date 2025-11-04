@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { ScenarioCard } from "@/components/ScenarioCard";
-import { LeadingIndicators } from "@/components/LeadingIndicators";
 import { MetricsGrid } from "@/components/MetricsGrid";
 import { ScenarioAnalysis } from "@/components/ScenarioAnalysis";
 import { LiquidityMonitor } from "@/components/LiquidityMonitor";
 import { FedPolicyTracker } from "@/components/FedPolicyTracker";
 import { MarketImpact } from "@/components/MarketImpact";
+import { LiquidityScoreMeter } from "@/components/LiquidityScoreMeter";
+import { LeadingIndicatorsPanel } from "@/components/LeadingIndicatorsPanel";
+import { MLForecastPanel } from "@/components/MLForecastPanel";
 import { 
   fetchLatestFedData, 
   fetchLatestFedDataV2,
@@ -18,6 +20,24 @@ import {
   FedData,
   Signal
 } from "@/services/fedData";
+import { 
+  Signal as SignalIcon, 
+  TrendingUp, 
+  TrendingDown, 
+  Minus, 
+  AlertTriangle, 
+  CheckCircle, 
+  AlertCircle, 
+  XCircle, 
+  Target, 
+  Shield, 
+  Zap, 
+  Activity, 
+  BarChart3, 
+  Building2, 
+  ArrowUp, 
+  ArrowDown 
+} from "lucide-react";
 
 const Index = () => {
   const [latestData, setLatestData] = useState<FedData | null>(null);
@@ -49,14 +69,8 @@ const Index = () => {
     try {
       // Timeout per l'intero processo
       const loadPromise = (async () => {
-        // Try V2 first, fallback to V1 if columns don't exist yet
-        let latest;
-        try {
-          latest = await fetchLatestFedDataV2();
-        } catch (error) {
-          console.warn('V2 columns not available yet, falling back to V1:', error);
-          latest = await fetchLatestFedData();
-        }
+        // Always use V2 since columns exist
+        const latest = await fetchLatestFedDataV2();
         
         const [historical, recentSignals] = await Promise.all([
           fetchHistoricalFedData(90),
@@ -254,6 +268,25 @@ const Index = () => {
           onRefresh={() => loadData(true)}
         />
         
+        {/* 🚨 HOTFIX DEBUG PANEL */}
+        <div className="container mx-auto px-4 py-2">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <strong>🚨 DEBUG MODE ACTIVE</strong> - Check browser console for detailed logs
+            <button 
+              onClick={() => {
+                console.log('🔄 [MANUAL REFRESH] Force refreshing data...');
+                loadData(true);
+              }}
+              className="ml-4 px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
+            >
+              Force Refresh Data
+            </button>
+            <div className="mt-2 text-sm">
+              Latest Data: {latestData?.date} | EFFR: {latestData?.effr || 'NULL'} | Scenario: {latestData?.scenario}
+            </div>
+          </div>
+        </div>
+        
         <main className="container mx-auto px-4 py-8 space-y-12">
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -291,27 +324,13 @@ const Index = () => {
                       </p>
                       <div className="flex gap-3">
                         <button
-                          onClick={handleMigration}
-                          disabled={isMigrating}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                          onClick={calculateV2Data}
+                          disabled={isLoadingData}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
                         >
-                          {isMigrating ? 'Migrating...' : 'Upgrade to V2'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(MANUAL_MIGRATION_SQL);
-                            alert('SQL copied to clipboard! Paste it in your Supabase SQL Editor.');
-                          }}
-                          className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors"
-                        >
-                          Copy Manual SQL
+                          {isLoadingData ? 'Calculating...' : 'Calculate V2 Data'}
                         </button>
                       </div>
-                      {migrationMessage && (
-                        <div className={`mt-3 p-3 rounded-lg ${migrationMessage.includes('success') ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
-                          {migrationMessage}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -369,25 +388,55 @@ const Index = () => {
               />
             </section>
             
-            {/* Analisi Real-Time */}
-            <section className="space-y-4">
-              <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Analisi Real-Time</h2>
-              <div className="grid gap-6 md:grid-cols-2">
-                <ScenarioAnalysis currentData={latestData} />
-                <LiquidityMonitor currentData={latestData} />
-              </div>
-            </section>
+                    {/* V2 Advanced Analytics */}
+                    {latestData?.liquidity_score && (
+                      <section className="space-y-4">
+                        <h2 className="text-2xl font-bold border-l-4 border-emerald-500 pl-4">🚀 Quantitaizer V2 Analytics</h2>
+                        <div className="grid gap-6 lg:grid-cols-2">
+                          <LiquidityScoreMeter
+                            score={latestData.liquidity_score}
+                            grade={latestData.liquidity_grade || 'C'}
+                            trend={latestData.liquidity_trend || 'neutral'}
+                            confidence={latestData.liquidity_confidence || 50}
+                            components={{
+                              balanceSheet: 50,
+                              reserves: 50,
+                              stress: 50,
+                              momentum: 50
+                            }}
+                          />
+                          {latestData.leading_indicators && (
+                            <LeadingIndicatorsPanel data={{
+                              tga_trend: typeof latestData.leading_indicators.tga_trend === 'string' ? 
+                                parseFloat(latestData.leading_indicators.tga_trend) : 
+                                (latestData.leading_indicators.tga_trend || 0),
+                              rrp_velocity: typeof latestData.leading_indicators.rrp_velocity === 'string' ? 
+                                parseFloat(latestData.leading_indicators.rrp_velocity) : 
+                                (latestData.leading_indicators.rrp_velocity || 0),
+                              credit_stress_index: latestData.leading_indicators.credit_stress_index || 30,
+                              repo_spike_risk: latestData.leading_indicators.repo_spike_risk || 0,
+                              qt_pivot_probability: latestData.leading_indicators.qt_pivot_probability || 40,
+                              overall_signal: latestData.leading_indicators.overall_signal || 'neutral'
+                            }} />
+                          )}
+                        </div>
+                        
+                        {/* ML Forecast Panel - Phase 2 */}
+                        <div className="mt-6">
+                          <MLForecastPanel />
+                        </div>
+                      </section>
+                    )}
 
-            {/* V2 Leading Indicators */}
-            <section className="space-y-4">
-              <h2 className="text-2xl font-bold border-l-4 border-blue-500 pl-4 flex items-center gap-2">
-                Leading Indicators V2
-                <span className="text-sm font-normal text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
-                  EARLY WARNING
-                </span>
-              </h2>
-              <LeadingIndicators data={latestData} />
-            </section>
+                    {/* Analisi Real-Time */}
+                    <section className="space-y-4">
+                      <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Analisi Real-Time</h2>
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <ScenarioAnalysis currentData={latestData} />
+                        <LiquidityMonitor currentData={latestData} />
+                      </div>
+                    </section>
+
             
             {/* Market Intelligence */}
             <section className="space-y-4">
