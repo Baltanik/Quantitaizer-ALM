@@ -760,8 +760,8 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             {/* Data-Driven Market Alert */}
             {(() => {
               const vix = currentData.vix || 20;
-              const sofrEffr = currentData.sofr_effr_spread || 0;
-              
+              const sofrEffr = (currentData.sofr_effr_spread || 0) * 100; // Converti da decimale a bps
+
               // Determine alert level and message based on ACTUAL data
               if (vix < 16 && sofrEffr < 5) {
                 return (
@@ -772,7 +772,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                     <div className="space-y-1">
                       <h5 className="font-semibold text-green-400 text-sm">Mercato Monetario Calmo</h5>
                       <p className="text-sm text-green-300">
-                        Liquidità abbondante, spread ristretti. Ambiente a basso stress supporta asset rischiosi. 
+                        Liquidità abbondante, spread ristretti. Ambiente a basso stress supporta asset rischiosi.
                         VIX {vix.toFixed(1)} (calmo), SOFR-EFFR {sofrEffr.toFixed(1)}bps (normale).
                       </p>
                     </div>
@@ -785,7 +785,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                     <div className="space-y-1">
                       <h5 className="font-semibold text-yellow-400 text-sm">Cautela Moderata</h5>
                       <p className="text-sm text-yellow-300">
-                        Spread in allargamento, monitora segnali di stress. VIX {vix.toFixed(1)} (elevato), 
+                        Spread in allargamento, monitora segnali di stress. VIX {vix.toFixed(1)} (elevato),
                         SOFR-EFFR {sofrEffr.toFixed(1)}bps. Mantieni posizionamento bilanciato.
                       </p>
                     </div>
@@ -798,7 +798,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                     <div className="space-y-1">
                       <h5 className="font-semibold text-red-400 text-sm">STRESS RILEVATO</h5>
                       <p className="text-sm text-red-300">
-                        Inasprimento mercato monetario rilevato. VIX {vix.toFixed(1)} (stress), 
+                        Inasprimento mercato monetario rilevato. VIX {vix.toFixed(1)} (stress),
                         SOFR-EFFR {sofrEffr.toFixed(1)}bps (elevato). Risk management critico.
                       </p>
                     </div>
@@ -812,12 +812,12 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             {/* Data-Driven Drivers */}
             {(() => {
               const vix = currentData.vix || 20;
-              const sofrEffr = currentData.sofr_effr_spread || 0;
+              const sofrEffr = (currentData.sofr_effr_spread || 0) * 100; // Converti da decimale a bps
               const bsDelta = currentData.d_walcl_4w || 0;
               const rrpDelta = currentData.d_rrpontsyd_4w || 0;
-              
+
               const drivers: string[] = [];
-              
+
               if (Math.abs(bsDelta) > 10000) {
                 drivers.push(`Balance Sheet ${bsDelta > 0 ? 'espansione' : 'contrazione'}: ${(bsDelta/1000).toFixed(1)}B`);
               }
