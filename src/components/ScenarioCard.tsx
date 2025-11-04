@@ -763,6 +763,41 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
               const sofrEffr = (currentData.sofr_effr_spread || 0) * 100; // Converti da decimale a bps
 
               // Determine alert level and message based on ACTUAL data
+              // ORDINE IMPORTANTE: Controlla prima stress (rosso), poi cautela (giallo), infine calmo (verde)
+
+              // ROSSO: Stress rilevato (almeno una metrica oltre la soglia critica)
+              if (vix > 22 || sofrEffr > 10) {
+                return (
+                  <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <h5 className="font-semibold text-red-400 text-sm">STRESS RILEVATO</h5>
+                      <p className="text-sm text-red-300">
+                        Inasprimento mercato monetario rilevato. VIX {vix.toFixed(1)} (stress),
+                        SOFR-EFFR {sofrEffr.toFixed(1)}bps (elevato). Risk management critico.
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+
+              // GIALLO: Cautela moderata (metriche in range intermedio)
+              if ((vix >= 16 && vix <= 22) || (sofrEffr >= 5 && sofrEffr <= 10)) {
+                return (
+                  <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <h5 className="font-semibold text-yellow-400 text-sm">Cautela Moderata</h5>
+                      <p className="text-sm text-yellow-300">
+                        Spread in allargamento, monitora segnali di stress. VIX {vix.toFixed(1)} (elevato),
+                        SOFR-EFFR {sofrEffr.toFixed(1)}bps. Mantieni posizionamento bilanciato.
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+
+              // VERDE: Mercato calmo (tutte le metriche sotto soglie di stress)
               if (vix < 16 && sofrEffr < 5) {
                 return (
                   <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 flex items-start gap-3">
@@ -778,34 +813,8 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                     </div>
                   </div>
                 );
-              } else if ((vix >= 16 && vix <= 22) || (sofrEffr >= 5 && sofrEffr <= 10)) {
-                return (
-                  <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <h5 className="font-semibold text-yellow-400 text-sm">Cautela Moderata</h5>
-                      <p className="text-sm text-yellow-300">
-                        Spread in allargamento, monitora segnali di stress. VIX {vix.toFixed(1)} (elevato),
-                        SOFR-EFFR {sofrEffr.toFixed(1)}bps. Mantieni posizionamento bilanciato.
-                      </p>
-                    </div>
-                  </div>
-                );
-              } else if (vix > 22 || sofrEffr > 10) {
-                return (
-                  <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <h5 className="font-semibold text-red-400 text-sm">STRESS RILEVATO</h5>
-                      <p className="text-sm text-red-300">
-                        Inasprimento mercato monetario rilevato. VIX {vix.toFixed(1)} (stress),
-                        SOFR-EFFR {sofrEffr.toFixed(1)}bps (elevato). Risk management critico.
-                      </p>
-                    </div>
-                  </div>
-                );
               }
-              
+
               return null;
             })()}
 
