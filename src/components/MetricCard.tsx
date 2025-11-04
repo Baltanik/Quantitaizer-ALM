@@ -173,48 +173,86 @@ export function MetricCard({
     <Card className={`hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 relative overflow-hidden bg-slate-900/80 border-slate-800 ${
       isExpanded ? 'row-span-2' : ''
     }`}>
-      {/* COINMARKETCAP STYLE PERFECTED: Spacing e allineamento preciso */}
+      {/* RESPONSIVE: Mobile CoinMarketCap style, Desktop traditional */}
       {!isExpanded ? (
-        <div className="px-4 py-3 flex items-center min-h-[56px]">
-          {/* Left: Title - Larghezza fissa per allineamento perfetto */}
-          <div className="w-36 flex-shrink-0 pr-3">
-            <p className="text-sm font-medium text-muted-foreground uppercase truncate leading-tight">
-              {title}
-            </p>
+        <>
+          {/* MOBILE LAYOUT: CoinMarketCap style */}
+          <div className="sm:hidden px-4 py-3 flex items-center min-h-[56px]">
+            {/* Left: Title - Larghezza fissa per allineamento perfetto */}
+            <div className="w-36 flex-shrink-0 pr-3">
+              <p className="text-sm font-medium text-muted-foreground uppercase truncate leading-tight">
+                {title}
+              </p>
+            </div>
+            
+            {/* Center: Value - Allineato a destra con spazio controllato, NO LINE BREAK */}
+            <div className="flex-1 text-right pr-4">
+              <p className="font-mono font-bold text-base text-white leading-tight whitespace-nowrap">
+                {format === 'billion' && <span className="text-sm">$</span>}
+                <span>{formatValue(value)}</span>
+                <span className="text-muted-foreground text-sm ml-0.5">{getUnit()}</span>
+              </p>
+            </div>
+            
+            {/* Right: Trend - Larghezza fissa per evitare sovrapposizioni */}
+            <div className="w-16 flex items-center justify-center">
+              {trend !== null && (
+                <div className={`flex items-center gap-1 ${trendColor}`}>
+                  <TrendIcon className="h-3 w-3 flex-shrink-0" />
+                  <span className="font-mono text-xs font-semibold">
+                    {Math.abs(trend).toFixed(1)}%
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {/* Far Right: Expand button - Separato per evitare sovrapposizioni */}
+            <div className="w-8 flex items-center justify-center">
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="p-1 hover:bg-muted/20 rounded transition-colors"
+                aria-label="Espandi"
+              >
+                <ChevronDown className="h-3 w-3" />
+              </button>
+            </div>
           </div>
-          
-          {/* Center: Value - Allineato a destra con spazio controllato, NO LINE BREAK */}
-          <div className="flex-1 text-right pr-4">
-            <p className="font-mono font-bold text-base text-white leading-tight whitespace-nowrap">
-              {format === 'billion' && <span className="text-sm">$</span>}
-              <span>{formatValue(value)}</span>
-              <span className="text-muted-foreground text-sm ml-0.5">{getUnit()}</span>
-            </p>
-          </div>
-          
-          {/* Right: Trend - Larghezza fissa per evitare sovrapposizioni */}
-          <div className="w-16 flex items-center justify-center">
-            {trend !== null && (
-              <div className={`flex items-center gap-1 ${trendColor}`}>
-                <TrendIcon className="h-3 w-3 flex-shrink-0" />
-                <span className="font-mono text-xs font-semibold">
-                  {Math.abs(trend).toFixed(1)}%
-                </span>
+
+          {/* DESKTOP LAYOUT: Traditional card style */}
+          <div className="hidden sm:block">
+            <CardHeader className="pb-1">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center justify-between">
+                <span>{title}</span>
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="p-1 hover:bg-muted/20 rounded transition-colors"
+                  aria-label="Espandi"
+                >
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3">
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="font-mono font-bold text-2xl flex items-baseline gap-1 whitespace-nowrap">
+                    {format === 'billion' && <span className="text-base">$</span>}
+                    <span className="flex items-baseline gap-0">
+                      {formatValue(value)}
+                      <span className="text-muted-foreground ml-0.5 text-xs">{getUnit()}</span>
+                    </span>
+                  </p>
+                  {trend !== null && (
+                    <p className={`font-mono mt-1 flex items-center gap-1 ${trendColor} text-xs`}>
+                      <TrendIcon className="h-2.5 w-2.5" />
+                      {Math.abs(trend).toFixed(2)}%
+                    </p>
+                  )}
+                </div>
               </div>
-            )}
+            </CardContent>
           </div>
-          
-          {/* Far Right: Expand button - Separato per evitare sovrapposizioni */}
-          <div className="w-8 flex items-center justify-center">
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1 hover:bg-muted/20 rounded transition-colors"
-              aria-label="Espandi"
-            >
-              <ChevronDown className="h-3 w-3" />
-            </button>
-          </div>
-        </div>
+        </>
       ) : (
         // EXPANDED VIEW: Layout tradizionale
         <>
