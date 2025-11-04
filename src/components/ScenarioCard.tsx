@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Minus, LineChart, AlertTriangle, Info, Target } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, LineChart, AlertTriangle, Info, Target, DollarSign, Activity, Zap, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -605,7 +605,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
 
         <Separator />
 
-        {/* Analysis Section - Parsed & Visual */}
+        {/* Analysis Section - Compact Visual Cards */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-md bg-primary/10">
@@ -613,129 +613,173 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             </div>
             <h4 className="font-semibold text-sm">Analisi Situazione</h4>
           </div>
-          <div className="space-y-3 pl-2">
-            {config.getAnalysis && (() => {
-              const analysis = config.getAnalysis(currentData);
-              const lines = analysis.split('\n').filter(l => l.trim());
-              
-              return (
-                <div className="space-y-2">
-                  {lines.map((line, index) => {
-                    const trimmed = line.trim();
-                    
-                    // Header lines (ALL CAPS or contains scenario keywords) - COLOR CODED!
-                    if (trimmed.includes('STEALTH QE') || trimmed.includes('QE COMPLETO') || 
-                        trimmed.includes('CONTRAZIONE') || trimmed.includes('NEUTRALE') ||
-                        trimmed === trimmed.toUpperCase()) {
-                      
-                      let headerColor = 'text-emerald-400';  // Default green
-                      
-                      if (trimmed.includes('CONTRAZIONE') || trimmed.includes('QT')) {
-                        headerColor = 'text-red-400';  // CONTRAZIONE = ROSSO
-                      } else if (trimmed.includes('NEUTRALE')) {
-                        headerColor = 'text-yellow-400';  // NEUTRALE = GIALLO
-                      } else if (trimmed.includes('STEALTH QE') || trimmed.includes('QE')) {
-                        headerColor = 'text-green-400';  // QE = VERDE
-                      }
-                      
-                      return (
-                        <div key={index} className={`text-sm font-bold ${headerColor} mt-3`}>
-                          {trimmed}
-                        </div>
-                      );
-                    }
-                    
-                    // Focus lines (start with "FOCUS:") - OVERRIDE with data-driven logic
-                    if (trimmed.startsWith('FOCUS:')) {
-                      // Calculate actions based on ACTUAL metrics
-                      const vix = currentData?.vix || 20;
-                      const sofrEffr = currentData?.sofr_effr_spread || 0;
-                      const bsDelta = currentData?.d_walcl_4w || 0;
-                      
-                      let actions: string[] = [];
-                      let actionColor = 'border-emerald-500';
-                      
-                      // Action Matrix Logic - EDUCATIONAL: Cosa monitorare e perché
-                      if (vix < 16 && sofrEffr < 5 && bsDelta >= 0) {
-                        // CALM + EXPANDING = BULLISH ENVIRONMENT
-                        actions = [
-                          "Monitorare Balance Sheet Fed: espansione in corso indica iniezione liquidità nel sistema",
-                          "Osservare spread SOFR-EFFR sotto 5bps: segnala mercato monetario fluido senza tensioni",
-                          "Controllare VIX sotto 16: indica bassa percezione rischio e volatilità contenuta",
-                          "Seguire RRP e Riserve: variazioni rapide possono precedere cambi regime liquidità"
-                        ];
-                        actionColor = 'border-green-500';
-                      } else if (vix < 16 && sofrEffr < 5 && bsDelta < 0) {
-                        // CALM + CONTRACTING = NEUTRAL ENVIRONMENT
-                        actions = [
-                          "Monitorare ritmo contrazione Balance Sheet: velocità determina impatto su liquidità",
-                          "Osservare stabilità spread SOFR-EFFR: allargamento indicherebbe stress nascente",
-                          "Controllare Riserve bancarie: soglia critica varia per istituto e può causare tensioni",
-                          "Seguire HY OAS: spike sopra 4.5% segnalerebbe nervosismo credito corporate"
-                        ];
-                        actionColor = 'border-blue-500';
-                      } else if ((vix >= 16 && vix <= 22) || (sofrEffr >= 5 && sofrEffr <= 10)) {
-                        // MODERATE STRESS = CAUTIOUS ENVIRONMENT
-                        actions = [
-                          "Monitorare VIX 16-22: range indica nervosismo mercato, sopra 18 segnala stress crescente",
-                          "Osservare spread SOFR-EFFR 5-10bps: allargamento progressivo indica tensione liquidità interbancaria",
-                          "Controllare correlazioni asset: aumento indica flight-to-quality e risk-off sistemico",
-                          "Seguire volumi RRP: spike improvvisi possono segnalare ricerca sicurezza da parte banche"
-                        ];
-                        actionColor = 'border-yellow-500';
-                      } else if (vix > 22 || sofrEffr > 10) {
-                        // HIGH STRESS = DEFENSIVE ENVIRONMENT
-                        actions = [
-                          "Monitorare VIX sopra 22: indica stress elevato, sopra 25 territorio panico storico",
-                          "Osservare spread SOFR-EFFR sopra 10bps: segnala disfunzioni mercato monetario e carenza liquidità",
-                          "Controllare HY OAS: esplosione sopra 5.5% indica credit crunch e fuga da rischio corporate",
-                          "Seguire interventi Fed: facility emergenza (BTFP-like) segnalerebbero crisi sistemica"
-                        ];
-                        actionColor = 'border-red-500';
-                      }
-                      
-                      return (
-                        <div key={index} className="mt-4">
-                          <div className="text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wide flex items-center gap-2">
-                            <Target className="h-3 w-3" />
-                            Metriche da Monitorare (VIX: {vix.toFixed(1)}, SOFR-EFFR: {sofrEffr.toFixed(1)}bps)
-                          </div>
-                          <div className="grid gap-2">
-                            {actions.map((action, aIndex) => (
-                              <div 
-                                key={aIndex} 
-                                className={`bg-gradient-to-r from-slate-900/50 to-transparent border-l-2 ${actionColor} p-3 rounded text-sm text-slate-200 hover:bg-slate-800/30 transition-all`}
-                              >
-                                {action}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    }
-                    
-                    // Data lines (contain numbers, $, B, T, bps, etc)
-                    const hasData = /[\d$TBbps%]/.test(trimmed);
-                    if (hasData) {
-                      return (
-                        <div key={index} className="flex items-start gap-2 text-sm text-slate-300 bg-slate-900/30 p-2 rounded">
-                          <div className="w-1 h-1 bg-slate-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <span>{trimmed}</span>
-                        </div>
-                      );
-                    }
-                    
-                    // Regular text
-                    return (
-                      <div key={index} className="text-sm text-slate-400 pl-3">
-                        {trimmed}
-                      </div>
-                    );
-                  })}
+          
+          {currentData && (() => {
+            // Calculate key metrics for visual cards
+            const vix = currentData.vix || 20;
+            const sofrEffr = currentData.sofr_effr_spread || 0;
+            const bsDelta = currentData.d_walcl_4w || 0;
+            const balanceSheet = currentData.walcl ? (currentData.walcl / 1000000).toFixed(2) : 'N/A';
+            const rrpDelta = currentData.d_rrpontsyd_4w ? (currentData.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
+            const hyOAS = currentData.hy_oas || 0;
+            
+            // Determine scenario color and status
+            const scenarioLower = (scenario || '').toLowerCase();
+            let scenarioStatus = 'Neutrale';
+            let scenarioColor = 'text-blue-400';
+            let scenarioIcon = Activity;
+            
+            if (scenarioLower === 'stealth_qe') {
+              scenarioStatus = 'Stealth QE';
+              scenarioColor = 'text-yellow-400';
+              scenarioIcon = Zap;
+            } else if (scenarioLower === 'qe') {
+              scenarioStatus = 'QE Attivo';
+              scenarioColor = 'text-green-400';
+              scenarioIcon = TrendingUp;
+            } else if (scenarioLower === 'qt') {
+              scenarioStatus = 'QT Attivo';
+              scenarioColor = 'text-red-400';
+              scenarioIcon = TrendingDown;
+            }
+            
+            // Risk assessment
+            let riskStatus = 'Normale';
+            let riskColor = 'text-blue-400';
+            let riskIcon = Activity;
+            
+            if (vix > 22 || sofrEffr > 10) {
+              riskStatus = 'Elevato';
+              riskColor = 'text-red-400';
+              riskIcon = AlertTriangle;
+            } else if (vix > 16 || sofrEffr > 5) {
+              riskStatus = 'Moderato';
+              riskColor = 'text-yellow-400';
+              riskIcon = Eye;
+            } else if (vix < 14 && sofrEffr < 3) {
+              riskStatus = 'Basso';
+              riskColor = 'text-green-400';
+              riskIcon = TrendingUp;
+            }
+            
+            // Liquidity assessment
+            let liquidityStatus = 'Equilibrata';
+            let liquidityColor = 'text-blue-400';
+            let liquidityIcon = Activity;
+            
+            if (bsDelta > 10000 && parseFloat(rrpDelta) < -20) {
+              liquidityStatus = 'Espansiva';
+              liquidityColor = 'text-green-400';
+              liquidityIcon = TrendingUp;
+            } else if (bsDelta < -10000 || parseFloat(rrpDelta) > 20) {
+              liquidityStatus = 'Contrattiva';
+              liquidityColor = 'text-red-400';
+              liquidityIcon = TrendingDown;
+            }
+            
+            // Outlook assessment
+            let outlookStatus = 'Stabile';
+            let outlookColor = 'text-blue-400';
+            let outlookDesc = 'Condizioni equilibrate';
+            
+            if (vix < 16 && sofrEffr < 5 && bsDelta >= 0) {
+              outlookStatus = 'Supportivo';
+              outlookColor = 'text-green-400';
+              outlookDesc = 'Ambiente favorevole risk assets';
+            } else if (vix > 20 || sofrEffr > 8) {
+              outlookStatus = 'Cautela';
+              outlookColor = 'text-yellow-400';
+              outlookDesc = 'Monitorare sviluppi stress';
+            } else if (vix > 25 || sofrEffr > 15) {
+              outlookStatus = 'Difensivo';
+              outlookColor = 'text-red-400';
+              outlookDesc = 'Priorità preservazione capitale';
+            }
+            
+            const ScenarioIcon = scenarioIcon;
+            const RiskIcon = riskIcon;
+            const LiquidityIcon = liquidityIcon;
+            
+            return (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Card 1: Liquidità Fed */}
+                <div className="bg-slate-900/60 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all group">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`p-2 rounded-md bg-slate-800 group-hover:bg-emerald-900/30 transition-colors`}>
+                      <LiquidityIcon className={`h-4 w-4 ${liquidityColor} transition-colors`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-slate-400 uppercase tracking-wide">Liquidità</div>
+                      <div className={`text-sm font-semibold ${liquidityColor}`}>{liquidityStatus}</div>
+                    </div>
+                  </div>
+                  <div className="space-y-1 text-xs text-slate-400">
+                    <div>Balance Sheet: ${balanceSheet}T</div>
+                    <div>Δ 4w: {bsDelta > 0 ? '+' : ''}{(bsDelta/1000).toFixed(1)}B</div>
+                    <div>RRP Δ: {rrpDelta}B</div>
+                  </div>
                 </div>
-              );
-            })()}
-          </div>
+
+                {/* Card 2: Scenario Fed */}
+                <div className="bg-slate-900/60 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all group">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`p-2 rounded-md bg-slate-800 group-hover:bg-emerald-900/30 transition-colors`}>
+                      <ScenarioIcon className={`h-4 w-4 ${scenarioColor} transition-colors`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-slate-400 uppercase tracking-wide">Scenario</div>
+                      <div className={`text-sm font-semibold ${scenarioColor}`}>{scenarioStatus}</div>
+                    </div>
+                  </div>
+                  <div className="space-y-1 text-xs text-slate-400">
+                    <div>Policy: {scenarioLower === 'stealth_qe' ? 'Supportiva nascosta' : 
+                                   scenarioLower === 'qe' ? 'Espansiva attiva' :
+                                   scenarioLower === 'qt' ? 'Restrittiva' : 'Neutrale'}</div>
+                    <div>Durata: {scenarioLower === 'qe' ? 'Temporanea' : 'Medio termine'}</div>
+                  </div>
+                </div>
+
+                {/* Card 3: Risk Level */}
+                <div className="bg-slate-900/60 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all group">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`p-2 rounded-md bg-slate-800 group-hover:bg-emerald-900/30 transition-colors`}>
+                      <RiskIcon className={`h-4 w-4 ${riskColor} transition-colors`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-slate-400 uppercase tracking-wide">Risk Level</div>
+                      <div className={`text-sm font-semibold ${riskColor}`}>{riskStatus}</div>
+                    </div>
+                  </div>
+                  <div className="space-y-1 text-xs text-slate-400">
+                    <div>VIX: {vix.toFixed(1)} {vix > 22 ? '(Alto)' : vix > 16 ? '(Medio)' : '(Basso)'}</div>
+                    <div>SOFR-EFFR: {sofrEffr.toFixed(1)}bps</div>
+                    <div>HY OAS: {hyOAS.toFixed(1)}%</div>
+                  </div>
+                </div>
+
+                {/* Card 4: Market Outlook */}
+                <div className="bg-slate-900/60 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all group">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`p-2 rounded-md bg-slate-800 group-hover:bg-emerald-900/30 transition-colors`}>
+                      <Target className={`h-4 w-4 ${outlookColor} transition-colors`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-slate-400 uppercase tracking-wide">Outlook</div>
+                      <div className={`text-sm font-semibold ${outlookColor}`}>{outlookStatus}</div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    {outlookDesc}
+                  </div>
+                  <div className="mt-2 text-xs text-slate-500">
+                    {vix < 16 && sofrEffr < 5 ? '📈 Risk-on environment' :
+                     vix > 22 || sofrEffr > 10 ? '📉 Risk-off mode' :
+                     '⚖️ Mixed signals'}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         <Separator />
