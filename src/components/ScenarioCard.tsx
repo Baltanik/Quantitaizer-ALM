@@ -348,8 +348,10 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
               <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                 <div 
                   className={`h-full transition-all ${
-                    (currentData.vix || 0) > 25 ? 'bg-red-500' : 
-                    (currentData.vix || 0) > 20 ? 'bg-yellow-500' : 
+                    (currentData.vix || 0) > 25 ? 'bg-red-600' : 
+                    (currentData.vix || 0) > 22 ? 'bg-red-500' : 
+                    (currentData.vix || 0) > 18 ? 'bg-orange-500' : 
+                    (currentData.vix || 0) >= 14 ? 'bg-yellow-500' : 
                     'bg-green-500'
                   }`}
                   style={{
@@ -358,67 +360,176 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 ></div>
               </div>
               <div className="text-xs text-slate-400 mt-1">
-                {(currentData.vix || 0) > 25 ? 'Panic' : 
-                 (currentData.vix || 0) > 20 ? 'Elevated' : 
-                 (currentData.vix || 0) < 16 ? 'Calm' : 'Normal'}
+                {(currentData.vix || 0) > 25 ? 'Panic Mode' : 
+                 (currentData.vix || 0) > 22 ? 'High Stress' : 
+                 (currentData.vix || 0) > 18 ? 'Elevated' : 
+                 (currentData.vix || 0) >= 14 ? 'Normal' : 'Calm'}
               </div>
             </div>
           </div>
         )}
 
-        {/* Scenario Qualifiers */}
-        {scenarioState && (
+        {/* Data-Driven Badges */}
+        {currentData && (
           <>
             <div className="flex flex-wrap gap-2">
-              {/* Context Badge */}
-              <Badge className={`${getContextColor(scenarioState.context)} border`}>
-                {scenarioState.context.replace('_', ' ').toUpperCase()}
-              </Badge>
-              
-              {/* Risk Level Badge */}
-              <Badge className={`${getRiskColor(scenarioState.risk_level)} border`}>
-                Rischio: {scenarioState.risk_level.toUpperCase()}
-              </Badge>
-              
-              {/* Sustainability Badge */}
-              <Badge variant="outline" className="text-slate-300">
-                Sostenibilità: {scenarioState.sustainability.toUpperCase()}
-              </Badge>
-              
-              {/* Confidence Badge */}
-              <Badge variant="outline" className="text-slate-300">
-                Confidenza: {scenarioState.confidence.toUpperCase()}
-              </Badge>
+              {(() => {
+                // Calculate ACTUAL risk from metrics
+                const vix = currentData.vix || 20;
+                const sofrEffr = currentData.sofr_effr_spread || 0;
+                const bsDelta = currentData.d_walcl_4w || 0;
+                
+                // Risk Level Logic
+                let riskLevel = 'NORMALE';
+                let riskColor = 'bg-green-500/10 text-green-600 border-green-500/20';
+                
+                if (vix > 22 || sofrEffr > 10) {
+                  riskLevel = 'ELEVATO';
+                  riskColor = 'bg-red-500/10 text-red-600 border-red-500/20';
+                } else if (vix > 18 || sofrEffr > 5) {
+                  riskLevel = 'MEDIO';
+                  riskColor = 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
+                }
+                
+                // Sustainability Logic
+                let sustainability = 'MEDIA';
+                let sustainColor = 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
+                
+                if (Math.abs(bsDelta) < 10000 && sofrEffr < 5) {
+                  sustainability = 'ALTA';
+                  sustainColor = 'bg-green-500/10 text-green-600 border-green-500/20';
+                } else if (Math.abs(bsDelta) > 50000 || sofrEffr > 15) {
+                  sustainability = 'BASSA';
+                  sustainColor = 'bg-red-500/10 text-red-600 border-red-500/20';
+                }
+                
+                // Confidence Logic (count concordant signals)
+                const calmSignals = [
+                  vix < 18,
+                  sofrEffr < 5,
+                  Math.abs(bsDelta) < 20000
+                ].filter(Boolean).length;
+                
+                let confidence = 'BASSA';
+                let confColor = 'bg-red-500/10 text-red-600 border-red-500/20';
+                
+                if (calmSignals >= 2) {
+                  confidence = 'ALTA';
+                  confColor = 'bg-green-500/10 text-green-600 border-green-500/20';
+                } else if (calmSignals === 1) {
+                  confidence = 'MEDIA';
+                  confColor = 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
+                }
+                
+                return (
+                  <>
+                    <Badge className={`${riskColor} border`}>
+                      Rischio: {riskLevel}
+                    </Badge>
+                    
+                    <Badge className={`${sustainColor} border`}>
+                      Sostenibilità: {sustainability}
+                    </Badge>
+                    
+                    <Badge className={`${confColor} border`}>
+                      Confidenza: {confidence}
+                    </Badge>
+                  </>
+                );
+              })()}
             </div>
 
-            {/* Warning Banner per Risk Elevato */}
-            {scenarioState.risk_level !== 'normale' && (
-              <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <h5 className="font-semibold text-red-400 text-sm">Attenzione Investitori</h5>
-                  <p className="text-sm text-red-300">
-                    Questo pattern è associato a stress di mercato. La liquidità può sostenere i prezzi 
-                    temporaneamente ma non significa risk-on sostenibile. Valuta sempre risk management appropriato.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Drivers List */}
-            {scenarioState.drivers.length > 0 && (
-              <div className="space-y-2">
-                <h5 className="font-semibold text-sm text-slate-300">Drivers Chiave:</h5>
-                <div className="grid gap-1">
-                  {scenarioState.drivers.map((driver, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm text-slate-400">
-                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
-                      {driver}
+            {/* Data-Driven Market Alert */}
+            {(() => {
+              const vix = currentData.vix || 20;
+              const sofrEffr = currentData.sofr_effr_spread || 0;
+              
+              // Determine alert level and message based on ACTUAL data
+              if (vix < 16 && sofrEffr < 5) {
+                return (
+                  <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-2 h-2 rounded-full bg-white"></div>
                     </div>
-                  ))}
+                    <div className="space-y-1">
+                      <h5 className="font-semibold text-green-400 text-sm">📊 Money Market Calm</h5>
+                      <p className="text-sm text-green-300">
+                        Liquidity abundant, spreads tight. Low stress environment supports risk assets. 
+                        VIX {vix.toFixed(1)} (calm), SOFR-EFFR {sofrEffr.toFixed(1)}bps (normal).
+                      </p>
+                    </div>
+                  </div>
+                );
+              } else if ((vix >= 16 && vix <= 22) || (sofrEffr >= 5 && sofrEffr <= 10)) {
+                return (
+                  <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <h5 className="font-semibold text-yellow-400 text-sm">⚠️ Moderate Caution</h5>
+                      <p className="text-sm text-yellow-300">
+                        Spreads widening, monitor for stress signals. VIX {vix.toFixed(1)} (elevated), 
+                        SOFR-EFFR {sofrEffr.toFixed(1)}bps. Maintain balanced positioning.
+                      </p>
+                    </div>
+                  </div>
+                );
+              } else if (vix > 22 || sofrEffr > 10) {
+                return (
+                  <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <h5 className="font-semibold text-red-400 text-sm">🔴 STRESS DETECTED</h5>
+                      <p className="text-sm text-red-300">
+                        Money market tightening detected. VIX {vix.toFixed(1)} (stress), 
+                        SOFR-EFFR {sofrEffr.toFixed(1)}bps (elevated). Risk management critical.
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+              
+              return null;
+            })()}
+
+            {/* Data-Driven Drivers */}
+            {(() => {
+              const vix = currentData.vix || 20;
+              const sofrEffr = currentData.sofr_effr_spread || 0;
+              const bsDelta = currentData.d_walcl_4w || 0;
+              const rrpDelta = currentData.d_rrpontsyd_4w || 0;
+              
+              const drivers: string[] = [];
+              
+              if (Math.abs(bsDelta) > 10000) {
+                drivers.push(`Balance Sheet ${bsDelta > 0 ? 'espansione' : 'contrazione'}: ${(bsDelta/1000).toFixed(1)}B`);
+              }
+              if (Math.abs(rrpDelta) > 5000) {
+                drivers.push(`RRP ${rrpDelta > 0 ? 'accumulo' : 'drenaggio'}: ${(rrpDelta/1000).toFixed(1)}B`);
+              }
+              if (vix > 18) {
+                drivers.push(`VIX elevato: ${vix.toFixed(1)} (stress market)`);
+              }
+              if (sofrEffr > 5) {
+                drivers.push(`SOFR-EFFR spread: ${sofrEffr.toFixed(1)}bps (tensione)`);
+              }
+              if (vix < 16 && sofrEffr < 5) {
+                drivers.push(`Condizioni calme: VIX ${vix.toFixed(1)}, spread ${sofrEffr.toFixed(1)}bps`);
+              }
+              
+              return drivers.length > 0 ? (
+                <div className="space-y-2">
+                  <h5 className="font-semibold text-sm text-slate-300">Drivers Attuali:</h5>
+                  <div className="grid gap-1">
+                    {drivers.map((driver, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm text-slate-400">
+                        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
+                        {driver}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : null;
+            })()}
           </>
         )}
 
@@ -453,19 +564,65 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                       );
                     }
                     
-                    // Action lines (start with "AZIONE:")
+                    // Action lines (start with "AZIONE:") - OVERRIDE with data-driven logic
                     if (trimmed.startsWith('AZIONE:')) {
-                      const actions = trimmed.replace('AZIONE:', '').split(',').map(a => a.trim()).filter(Boolean);
+                      // Calculate actions based on ACTUAL metrics
+                      const vix = currentData?.vix || 20;
+                      const sofrEffr = currentData?.sofr_effr_spread || 0;
+                      const bsDelta = currentData?.d_walcl_4w || 0;
+                      
+                      let actions: string[] = [];
+                      let actionColor = 'border-emerald-500';
+                      
+                      // Action Matrix Logic
+                      if (vix < 16 && sofrEffr < 5 && bsDelta >= 0) {
+                        // CALM + EXPANDING = BULLISH
+                        actions = [
+                          "✅ Long equity +20% (low stress environment)",
+                          "📈 Diversify stock picks (quality + growth)",
+                          "🔍 Monitor macro data for breakout signals",
+                          "💰 Reduce cash drag, deploy capital"
+                        ];
+                        actionColor = 'border-green-500';
+                      } else if (vix < 16 && sofrEffr < 5 && bsDelta < 0) {
+                        // CALM + CONTRACTING = NEUTRAL
+                        actions = [
+                          "⚖️ Balanced 60/40 allocation",
+                          "🎯 Focus on stock picking (fundamentals)",
+                          "📊 Monitor Fed balance sheet trend",
+                          "🛡️ Maintain normal risk management"
+                        ];
+                        actionColor = 'border-blue-500';
+                      } else if ((vix >= 16 && vix <= 22) || (sofrEffr >= 5 && sofrEffr <= 10)) {
+                        // MODERATE STRESS = CAUTIOUS
+                        actions = [
+                          "⚠️ Reduce equity exposure -10%",
+                          "🏦 Increase short-duration Treasury +10%",
+                          "📉 Avoid high-beta/leverage plays",
+                          "👀 Watch for stress escalation signals"
+                        ];
+                        actionColor = 'border-yellow-500';
+                      } else if (vix > 22 || sofrEffr > 10) {
+                        // HIGH STRESS = DEFENSIVE
+                        actions = [
+                          "🔴 De-risk portfolio -40%",
+                          "💵 Increase cash + short Treasury +30%",
+                          "📉 Short risk assets if conviction high",
+                          "🛡️ Maximum risk management protocols"
+                        ];
+                        actionColor = 'border-red-500';
+                      }
+                      
                       return (
                         <div key={index} className="mt-4">
                           <div className="text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wide">
-                            🎯 Azioni Consigliate
+                            🎯 Azioni Data-Driven (VIX: {vix.toFixed(1)}, SOFR-EFFR: {sofrEffr.toFixed(1)}bps)
                           </div>
                           <div className="grid gap-2">
                             {actions.map((action, aIndex) => (
                               <div 
                                 key={aIndex} 
-                                className="bg-gradient-to-r from-emerald-900/30 to-transparent border-l-2 border-emerald-500 p-2 rounded text-sm text-slate-200"
+                                className={`bg-gradient-to-r from-slate-900/50 to-transparent border-l-2 ${actionColor} p-3 rounded text-sm text-slate-200 hover:bg-slate-800/30 transition-all`}
                               >
                                 {action}
                               </div>
