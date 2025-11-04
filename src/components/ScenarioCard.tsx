@@ -16,12 +16,39 @@ const scenarioConfig = {
     color: "success",
     icon: TrendingUp,
     description: "Espansione bilancio Fed con spread contratti",
-    analysis: "La Fed sta espandendo il proprio bilancio in modo silenzioso, iniettando liquidità nel sistema finanziario. Lo spread SOFR-IORB rimane contenuto, indicando condizioni di mercato stabili nonostante l'aumento della liquidità. Questo scenario è tipicamente positivo per gli asset rischiosi.",
-    indicators: [
-      { icon: TrendingUp, label: "Bilancio Fed", status: "In crescita" },
-      { icon: LineChart, label: "Spread SOFR-IORB", status: "< 10 bps" },
-      { icon: TrendingUp, label: "Riserve bancarie", status: "In aumento" }
-    ],
+    getAnalysis: (data: FedData | null) => {
+      if (!data) return "La Fed sta espandendo il proprio bilancio in modo silenzioso, iniettando liquidità nel sistema finanziario.";
+      
+      const balanceSheet = data.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const rrp_delta = data.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const vix = data.vix ?? 'N/A';
+      
+      return `🟡 STEALTH QE ATTIVA: Balance Sheet $${balanceSheet}T (+${bs_delta}B in 4w).
+      RRP drena ${Math.abs(parseFloat(rrp_delta))}B = Fed inietta liquidità nascosta.
+      SOFR-EFFR: ${sofr_effr}bps ✅ Spread bassi = nessuna tensione.
+      VIX: ${vix} ${parseFloat(vix.toString()) < 16 ? '🟢 BULLISH - Mercato calmo' : '🟡 Cauto'}.
+      
+      ⚡ AZIONE: Long equity (+20%), long crypto, compra small-cap, evita USD strength.`;
+    },
+    getIndicators: (data: FedData | null) => {
+      if (!data) return [
+        { icon: TrendingUp, label: "Bilancio Fed", status: "In crescita" },
+        { icon: LineChart, label: "Spread SOFR-IORB", status: "< 10 bps" },
+        { icon: TrendingUp, label: "Riserve bancarie", status: "In aumento" }
+      ];
+      
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const rrp_delta = data.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      
+      return [
+        { icon: TrendingUp, label: "Balance Sheet", status: `+${bs_delta}B (4w) 🟢 Espansione` },
+        { icon: TrendingDown, label: "RRP Drain", status: `${rrp_delta}B ✅ Fed inietta` },
+        { icon: LineChart, label: "SOFR-EFFR", status: `${sofr_effr}bps ✅ Basso stress` }
+      ];
+    },
     bgClass: "bg-success/5 border-success/30",
     textClass: "text-success",
     badgeVariant: "default" as const,
@@ -31,13 +58,37 @@ const scenarioConfig = {
     color: "success",
     icon: TrendingUp,
     description: "Espansione monetaria attiva da parte della Fed",
-    analysis: "La Federal Reserve sta attivamente espandendo il proprio bilancio attraverso acquisti di titoli, iniettando massiccia liquidità nel sistema bancario. Questo aumenta le riserve e riduce i tassi di interesse, stimolando prestiti e investimenti. Storicamente molto favorevole per mercati azionari e asset rischiosi.",
-    indicators: [
-      { icon: TrendingUp, label: "Bilancio Fed", status: "Forte crescita" },
-      { icon: TrendingUp, label: "Acquisti attivi", status: "Treasury/MBS" },
-      { icon: TrendingUp, label: "Riserve bancarie", status: "Rapida espansione" },
-      { icon: TrendingDown, label: "Tassi", status: "Pressione ribassista" }
-    ],
+    getAnalysis: (data: FedData | null) => {
+      if (!data) return "La Federal Reserve sta attivamente espandendo il proprio bilancio attraverso acquisti di titoli, iniettando massiccia liquidità nel sistema bancario.";
+      
+      const balanceSheet = data.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const reserves_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
+      const vix = data.vix ?? 'N/A';
+      
+      return `🟢 QE COMPLETO - STAMPA MONETA: Balance Sheet $${balanceSheet}T (+${bs_delta}B AGGRESSIVA espansione).
+      Riserve flood: +${reserves_delta}B in 4w = liquidità massiccia.
+      VIX: ${vix} ${parseFloat(vix.toString()) < 20 ? '🎉 EUPHORIA MODE' : '🟡 Cauto nonostante QE'}.
+      
+      ⚡ AZIONE: MAX long equity (+40%), MAX long crypto, long oro/commodities, evita cash.`;
+    },
+    getIndicators: (data: FedData | null) => {
+      if (!data) return [
+        { icon: TrendingUp, label: "Bilancio Fed", status: "Forte crescita" },
+        { icon: TrendingUp, label: "Acquisti attivi", status: "Treasury/MBS" },
+        { icon: TrendingUp, label: "Riserve bancarie", status: "Rapida espansione" }
+      ];
+      
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const res_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
+      const rrp_value = data.rrpontsyd ? (data.rrpontsyd/1000).toFixed(1) : 'N/A';
+      
+      return [
+        { icon: TrendingUp, label: "Balance Sheet", status: `+${bs_delta}B 🚀 AGGRESSIVA` },
+        { icon: TrendingUp, label: "Riserve Flood", status: `+${res_delta}B 🌊 Massiccia` },
+        { icon: TrendingUp, label: "RRP Overflow", status: `${rrp_value}B 🟢 Liquidità` }
+      ];
+    },
     bgClass: "bg-success/5 border-success/30",
     textClass: "text-success",
     badgeVariant: "default" as const,
@@ -47,13 +98,40 @@ const scenarioConfig = {
     color: "destructive",
     icon: TrendingDown,
     description: "Contrazione del bilancio Fed",
-    analysis: "La Fed sta riducendo il proprio bilancio lasciando scadere i titoli senza reinvestirli, drenando liquidità dal sistema finanziario. Questo riduce le riserve bancarie e può causare stress sui mercati. Lo spread SOFR-IORB tende ad ampliarsi indicando stress nella liquidità. Generalmente negativo per asset rischiosi.",
-    indicators: [
-      { icon: TrendingDown, label: "Bilancio Fed", status: "In contrazione" },
-      { icon: TrendingDown, label: "Riserve bancarie", status: "In calo" },
-      { icon: TrendingUp, label: "Spread SOFR-IORB", status: "> 15 bps" },
-      { icon: AlertTriangle, label: "Liquidità", status: "Tensioni possibili" }
-    ],
+    getAnalysis: (data: FedData | null) => {
+      if (!data) return "La Fed sta riducendo il proprio bilancio lasciando scadere i titoli senza reinvestirli, drenando liquidità dal sistema finanziario.";
+      
+      const balanceSheet = data.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const vix = data.vix ?? 'N/A';
+      
+      return `🔴 CONTRAZIONE ATTIVA: Balance Sheet $${balanceSheet}T (${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B in 4w). 
+      SOFR-EFFR spread: ${sofr_effr}bps ${parseFloat(sofr_effr) > 10 ? '⚠️ STRESS RILEVATO' : '✅ Controllato'}.
+      VIX: ${vix} ${parseFloat(vix.toString()) > 22 ? '🔴 Mercato nervoso' : '🟢 Situazione gestibile'}.
+      
+      ⚡ AZIONE: Riduci equity (-20%), aumenta Treasury short-term (+15%), evita leverage.`;
+    },
+    getIndicators: (data: FedData | null) => {
+      if (!data) return [
+        { icon: TrendingDown, label: "Bilancio Fed", status: "In contrazione" },
+        { icon: TrendingDown, label: "Riserve bancarie", status: "In calo" },
+        { icon: TrendingUp, label: "Spread SOFR-IORB", status: "> 15 bps" },
+        { icon: AlertTriangle, label: "Liquidità", status: "Tensioni possibili" }
+      ];
+      
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const res_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const rrp_delta = data.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
+      
+      return [
+        { icon: TrendingDown, label: "Bilancio Fed", status: `${bs_delta}B (4w) ${parseFloat(bs_delta) < -50 ? '🔴 Aggressiva' : '🟡 Moderata'}` },
+        { icon: TrendingDown, label: "Riserve", status: `${res_delta}B (4w) ${parseFloat(res_delta) < -20 ? '⚠️ Calo forte' : 'Calo normale'}` },
+        { icon: TrendingUp, label: "SOFR-EFFR", status: `${sofr_effr}bps ${parseFloat(sofr_effr) > 15 ? '🔴 Stress' : '🟡 Normale'}` },
+        { icon: AlertTriangle, label: "RRP", status: `${rrp_delta}B ${Math.abs(parseFloat(rrp_delta)) > 20 ? '🚨 Spike' : 'Normale'}` }
+      ];
+    },
     bgClass: "bg-destructive/5 border-destructive/30",
     textClass: "text-destructive",
     badgeVariant: "destructive" as const,
@@ -63,13 +141,37 @@ const scenarioConfig = {
     color: "warning",
     icon: Minus,
     description: "Condizioni monetarie stabili",
-    analysis: "La Fed mantiene una politica neutrale senza espandere né contrarre significativamente il bilancio. Le condizioni di liquidità sono stabili, con spread contenuti e riserve costanti. Questo scenario riflette un equilibrio tra domanda e offerta di liquidità nel sistema bancario.",
-    indicators: [
-      { icon: Minus, label: "Bilancio Fed", status: "Stabile" },
-      { icon: LineChart, label: "Spread SOFR-IORB", status: "5-15 bps (normale)" },
-      { icon: Minus, label: "Riserve bancarie", status: "Stabili" },
-      { icon: Info, label: "Repo/Reverse Repo", status: "Equilibrati" }
-    ],
+    getAnalysis: (data: FedData | null) => {
+      if (!data) return "La Fed mantiene una politica neutrale senza espandere né contrarre significativamente il bilancio.";
+      
+      const balanceSheet = data.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const vix = data.vix ?? 'N/A';
+      
+      return `⚪ NEUTRALE - EQUILIBRIO: Balance Sheet $${balanceSheet}T (${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B stabile).
+      SOFR-EFFR: ${sofr_effr}bps ✅ Range normale (5-15bps).
+      VIX: ${vix} ${parseFloat(vix.toString()) < 18 ? '🟢 CALM - Mercato stabile' : '🟡 Cautela'}.
+      
+      ⚡ AZIONE: Focus stock picking, diversificazione bilanciata, segui dati macro.`;
+    },
+    getIndicators: (data: FedData | null) => {
+      if (!data) return [
+        { icon: Minus, label: "Bilancio Fed", status: "Stabile" },
+        { icon: LineChart, label: "Spread SOFR-IORB", status: "5-15 bps (normale)" },
+        { icon: Minus, label: "Riserve bancarie", status: "Stabili" }
+      ];
+      
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const rrp_value = data.rrpontsyd ? (data.rrpontsyd/1000).toFixed(1) : 'N/A';
+      
+      return [
+        { icon: Minus, label: "Balance Sheet", status: `${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B ⚪ Stabile` },
+        { icon: LineChart, label: "SOFR-EFFR", status: `${sofr_effr}bps ✅ Normale` },
+        { icon: Info, label: "RRP", status: `${rrp_value}B ⚖️ Equilibrato` }
+      ];
+    },
     bgClass: "bg-warning/5 border-warning/30",
     textClass: "text-warning",
     badgeVariant: "secondary" as const,
@@ -79,13 +181,37 @@ const scenarioConfig = {
     color: "destructive",
     icon: TrendingDown,
     description: "Contrazione aggressiva della liquidità",
-    analysis: "La Fed sta attuando una politica di contrazione aggressiva, drenando liquidità dal sistema attraverso riduzione del bilancio e/o aumento dei tassi. Gli spread si ampliano e le condizioni di finanziamento si irrigidiscono. Scenario tipicamente negativo per asset rischiosi e favorevole al dollaro.",
-    indicators: [
-      { icon: TrendingDown, label: "Bilancio Fed", status: "Contrazione forte" },
-      { icon: TrendingDown, label: "Riserve bancarie", status: "In forte calo" },
-      { icon: TrendingUp, label: "Spread SOFR-IORB", status: "> 20 bps" },
-      { icon: AlertTriangle, label: "Liquidità", status: "Stress elevato" }
-    ],
+    getAnalysis: (data: FedData | null) => {
+      if (!data) return "La Fed sta attuando una politica di contrazione aggressiva, drenando liquidità dal sistema.";
+      
+      const balanceSheet = data.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const vix = data.vix ?? 'N/A';
+      
+      return `🔴 CONTRAZIONE AGGRESSIVA: Balance Sheet $${balanceSheet}T (${bs_delta}B forte calo).
+      SOFR-EFFR: ${sofr_effr}bps ${parseFloat(sofr_effr) > 20 ? '🚨 STRESS ELEVATO' : '⚠️ Tensione'}.
+      VIX: ${vix} ${parseFloat(vix.toString()) > 25 ? '🔴 PANIC MODE' : '🟡 Nervosismo'}.
+      
+      ⚡ AZIONE: Massima cautela, cash+Treasury, short risk assets, long USD.`;
+    },
+    getIndicators: (data: FedData | null) => {
+      if (!data) return [
+        { icon: TrendingDown, label: "Bilancio Fed", status: "Contrazione forte" },
+        { icon: TrendingDown, label: "Riserve bancarie", status: "In forte calo" },
+        { icon: TrendingUp, label: "Spread SOFR-IORB", status: "> 20 bps" }
+      ];
+      
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const res_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      
+      return [
+        { icon: TrendingDown, label: "Balance Sheet", status: `${bs_delta}B 🔴 FORTE calo` },
+        { icon: TrendingDown, label: "Riserve", status: `${res_delta}B 🚨 Drenaggio` },
+        { icon: AlertTriangle, label: "SOFR-EFFR", status: `${sofr_effr}bps 🔴 STRESS` }
+      ];
+    },
     bgClass: "bg-destructive/5 border-destructive/30",
     textClass: "text-destructive",
     badgeVariant: "destructive" as const,
@@ -227,9 +353,11 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             </div>
             <h4 className="font-semibold text-sm">Analisi Situazione</h4>
           </div>
-          <p className="text-sm text-slate-200 leading-relaxed pl-8">
-            {config.analysis}
-          </p>
+          <div className="text-sm text-slate-200 leading-relaxed pl-8">
+            <pre className="whitespace-pre-wrap font-sans">
+              {config.getAnalysis ? config.getAnalysis(currentData) : 'Analisi non disponibile'}
+            </pre>
+          </div>
         </div>
 
         <Separator />
@@ -243,7 +371,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             <h4 className="font-semibold text-sm">Indicatori Chiave</h4>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 pl-8">
-            {config.indicators.map((indicator, index) => {
+            {(config.getIndicators ? config.getIndicators(currentData) : config.indicators || []).map((indicator, index) => {
               const IndicatorIcon = indicator.icon;
               return (
                 <div
