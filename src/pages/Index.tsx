@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { ScenarioCard } from "@/components/ScenarioCard";
 import { MetricsGrid } from "@/components/MetricsGrid";
-import { ScenarioAnalysis } from "@/components/ScenarioAnalysis";
 import { LiquidityMonitor } from "@/components/LiquidityMonitor";
 import { FedPolicyTracker } from "@/components/FedPolicyTracker";
 import { MarketImpact } from "@/components/MarketImpact";
@@ -270,11 +269,8 @@ const Index = () => {
             
             {/* Analisi Real-Time */}
             <section className="space-y-4">
-              <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Analisi Real-Time</h2>
-              <div className="grid gap-6 md:grid-cols-2">
-                <ScenarioAnalysis currentData={latestData} />
-                <LiquidityMonitor currentData={latestData} />
-              </div>
+              <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Liquidità Sistema</h2>
+              <LiquidityMonitor currentData={latestData} />
             </section>
             
             {/* Market Intelligence */}

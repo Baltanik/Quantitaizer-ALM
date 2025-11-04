@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { FedData, ScenarioState } from "@/services/fedData";
 import { deriveScenario, canShowBullish, getContextColor, getRiskColor } from "@/utils/scenarioEngine";
+import { ExplanationTooltip } from "@/components/ui/ExplanationTooltip";
 
 // ============================================================================
 // VIX RISK LEVEL - SINGLE SOURCE OF TRUTH
@@ -336,8 +337,19 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             <Icon className={`h-10 w-10 ${config.textClass}`} />
           </div>
           <div className="flex-1 space-y-1">
-            <h3 className="text-3xl font-bold text-white">
+            <h3 className="text-3xl font-bold text-white flex items-center gap-2">
               {config.label}
+              {(() => {
+                // Map scenario to metricKey
+                const scenarioLower = (scenario || '').toLowerCase();
+                let metricKey = null;
+                if (scenarioLower === 'stealth_qe') metricKey = 'stealth_qe';
+                else if (scenarioLower === 'qe') metricKey = 'qe';
+                else if (scenarioLower === 'qt') metricKey = 'qt';
+                else if (scenarioLower === 'neutral') metricKey = 'neutral';
+                
+                return metricKey ? <ExplanationTooltip metricKey={metricKey} mode="full" size="md" /> : null;
+              })()}
             </h3>
             <p className="text-base text-slate-200">
               {config.description}
@@ -350,7 +362,10 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
           <div className="grid grid-cols-3 gap-4">
             {/* Balance Sheet */}
             <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all">
-              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">Balance Sheet</div>
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-2">
+                Balance Sheet
+                <ExplanationTooltip metricKey="balance_sheet" mode="full" size="sm" />
+              </div>
               <div className="text-2xl font-bold text-white">
                 ${currentData.walcl ? (currentData.walcl / 1000000).toFixed(2) : 'N/A'}T
               </div>
@@ -363,7 +378,10 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
 
             {/* SOFR-EFFR Spread */}
             <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all">
-              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">SOFR-EFFR Spread</div>
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-2">
+                SOFR-EFFR Spread
+                <ExplanationTooltip metricKey="sofr_effr_spread" mode="full" size="sm" />
+              </div>
               <div className="text-2xl font-bold text-white">
                 {currentData.sofr_effr_spread?.toFixed(1) ?? 'N/A'} bps
               </div>
@@ -388,7 +406,10 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
 
             {/* VIX */}
             <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all">
-              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">VIX (Fear Index)</div>
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-2">
+                VIX (Fear Index)
+                <ExplanationTooltip metricKey="vix" mode="full" size="sm" />
+              </div>
               <div className="text-2xl font-bold text-white">
                 {currentData.vix ?? 'N/A'}
               </div>
@@ -469,16 +490,19 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 
                 return (
                   <>
-                    <Badge className={`${riskColor} border`}>
+                    <Badge className={`${riskColor} border flex items-center gap-1.5`}>
                       Rischio: {riskLevel}
+                      <ExplanationTooltip metricKey="risk_level" mode="minimal" size="sm" />
                     </Badge>
                     
-                    <Badge className={`${sustainColor} border`}>
+                    <Badge className={`${sustainColor} border flex items-center gap-1.5`}>
                       Sostenibilità: {sustainability}
+                      <ExplanationTooltip metricKey="sustainability" mode="minimal" size="sm" />
                     </Badge>
                     
-                    <Badge className={`${confColor} border`}>
+                    <Badge className={`${confColor} border flex items-center gap-1.5`}>
                       Confidenza: {confidence}
+                      <ExplanationTooltip metricKey="confidence" mode="minimal" size="sm" />
                     </Badge>
                   </>
                 );
@@ -756,8 +780,21 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
                         {indicator.label}
+                        {(() => {
+                          // Map indicator label to metricKey
+                          const labelLower = indicator.label.toLowerCase();
+                          let metricKey = null;
+                          if (labelLower.includes('balance sheet') || labelLower.includes('bilancio')) metricKey = 'balance_sheet';
+                          else if (labelLower.includes('rrp')) metricKey = 'rrp';
+                          else if (labelLower.includes('sofr') && labelLower.includes('effr')) metricKey = 'sofr_effr_spread';
+                          else if (labelLower.includes('reserves') || labelLower.includes('riserve')) metricKey = 'reserves';
+                          else if (labelLower.includes('hy oas') || labelLower.includes('high yield')) metricKey = 'hy_oas';
+                          else if (labelLower.includes('vix')) metricKey = 'vix';
+                          
+                          return metricKey ? <ExplanationTooltip metricKey={metricKey} mode="minimal" size="sm" /> : null;
+                        })()}
                       </p>
                       <div className={`text-sm font-medium px-2 py-1 rounded ${badgeColor} inline-block`}>
                         {indicator.status}
