@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Minus, LineChart, AlertTriangle, Info, Target, DollarSign, Activity, Zap, Eye } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, LineChart, AlertTriangle, Info, Target, DollarSign, Activity, Zap, Eye, Wallet, Sparkles, Brain, TrendingUpDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -165,12 +165,76 @@ FOCUS: Monitorare velocità drenaggio liquidità, soglie Riserve critiche per ba
       const vix = data.vix ?? 'N/A';
       const vixRisk = getVixRiskLevel(data.vix || 20);
       
+      const bsDeltaNum = parseFloat(bs_delta);
+      const resDeltaNum = parseFloat(res_delta);
+      const sofrNum = parseFloat(sofr_effr);
+      const rrpDeltaNum = parseFloat(rrp_delta);
+      
+      // Balance Sheet status - FIXED LOGIC
+      let bsStatus = '';
+      let bsIcon = Minus;
+      if (Math.abs(bsDeltaNum) < 5) {
+        bsStatus = `${bs_delta}B Stabile`;
+        bsIcon = Minus;
+      } else if (bsDeltaNum < -50) {
+        bsStatus = `${bs_delta}B QT Aggressivo`;
+        bsIcon = TrendingDown;
+      } else if (bsDeltaNum < -10) {
+        bsStatus = `${bs_delta}B Contrazione`;
+        bsIcon = TrendingDown;
+      } else if (bsDeltaNum > 50) {
+        bsStatus = `+${bs_delta}B QE Attivo`;
+        bsIcon = TrendingUp;
+      } else if (bsDeltaNum > 10) {
+        bsStatus = `+${bs_delta}B Espansione`;
+        bsIcon = TrendingUp;
+      } else {
+        bsStatus = `${bsDeltaNum > 0 ? '+' : ''}${bs_delta}B Quasi stabile`;
+        bsIcon = Minus;
+      }
+      
+      // Reserves status - FIXED LOGIC
+      let resStatus = '';
+      if (Math.abs(resDeltaNum) < 5) {
+        resStatus = `${res_delta}B Stabili`;
+      } else if (resDeltaNum < -30) {
+        resStatus = `${res_delta}B Drenaggio forte`;
+      } else if (resDeltaNum < -10) {
+        resStatus = `${res_delta}B Calo moderato`;
+      } else if (resDeltaNum > 30) {
+        resStatus = `+${res_delta}B Flood massivo`;
+      } else if (resDeltaNum > 10) {
+        resStatus = `+${res_delta}B Accumulo`;
+      } else {
+        resStatus = `${resDeltaNum > 0 ? '+' : ''}${res_delta}B Quasi stabili`;
+      }
+      
+      // SOFR-EFFR status - FIXED LOGIC
+      let sofrStatus = '';
+      let sofrIcon = LineChart;
+      if (sofrNum < 3) {
+        sofrStatus = `${sofr_effr}bps Ottimo`;
+        sofrIcon = TrendingDown;
+      } else if (sofrNum < 5) {
+        sofrStatus = `${sofr_effr}bps Normale`;
+        sofrIcon = LineChart;
+      } else if (sofrNum < 10) {
+        sofrStatus = `${sofr_effr}bps Tensione iniziale`;
+        sofrIcon = TrendingUp;
+      } else if (sofrNum < 20) {
+        sofrStatus = `${sofr_effr}bps Stress rilevato`;
+        sofrIcon = AlertTriangle;
+      } else {
+        sofrStatus = `${sofr_effr}bps CRISI liquidità`;
+        sofrIcon = AlertTriangle;
+      }
+      
       return [
-        { icon: TrendingDown, label: "Bilancio Fed", status: `${bs_delta}B (4w) ${parseFloat(bs_delta) < -50 ? 'Aggressiva' : 'Moderata'}` },
-        { icon: TrendingDown, label: "Riserve", status: `${res_delta}B (4w) ${parseFloat(res_delta) < -20 ? 'Calo forte' : 'Calo normale'}` },
-        { icon: TrendingUp, label: "SOFR-EFFR", status: `${sofr_effr}bps ${parseFloat(sofr_effr) > 15 ? 'Stress' : 'Normale'}` },
-        { icon: AlertTriangle, label: "RRP", status: `${rrp_delta}B ${Math.abs(parseFloat(rrp_delta)) > 20 ? 'Spike' : 'Normale'}` },
-        { icon: TrendingUp, label: "HY OAS", status: `${hy_oas}% ${(data.hy_oas || 0) > 5.5 ? 'Credit Stress' : (data.hy_oas || 0) > 4 ? 'Normal' : 'Tight'}` },
+        { icon: bsIcon, label: "Balance Sheet", status: bsStatus },
+        { icon: resDeltaNum > 5 ? TrendingUp : resDeltaNum < -5 ? TrendingDown : Minus, label: "Riserve", status: resStatus },
+        { icon: sofrIcon, label: "SOFR-EFFR", status: sofrStatus },
+        { icon: Math.abs(rrpDeltaNum) > 30 ? AlertTriangle : LineChart, label: "RRP", status: `${rrp_delta}B ${Math.abs(rrpDeltaNum) > 30 ? 'Movimento forte' : Math.abs(rrpDeltaNum) > 10 ? 'Movimento' : 'Stabile'}` },
+        { icon: (data.hy_oas || 0) > 5.5 ? TrendingUp : (data.hy_oas || 0) < 3.5 ? TrendingDown : LineChart, label: "HY OAS", status: `${hy_oas}% ${(data.hy_oas || 0) > 5.5 ? 'Credit Stress' : (data.hy_oas || 0) > 4 ? 'Normal' : 'Tight'}` },
         { icon: AlertTriangle, label: "VIX", status: `${vix} ${vixRisk.label}` }
       ];
     },
@@ -215,11 +279,48 @@ FOCUS: Seguire comunicazioni Fed per segnali cambio policy, monitorare dati macr
       const vix = data.vix ?? 'N/A';
       const vixRisk = getVixRiskLevel(data.vix || 20);
       
+      const bsDeltaNum = parseFloat(bs_delta);
+      const sofrNum = parseFloat(sofr_effr);
+      
+      // Balance Sheet status - ACCURATE
+      let bsStatus = '';
+      let bsIcon = Minus;
+      if (Math.abs(bsDeltaNum) < 5) {
+        bsStatus = `${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B Stabile`;
+        bsIcon = Minus;
+      } else if (bsDeltaNum > 10) {
+        bsStatus = `+${bs_delta}B Espansione`;
+        bsIcon = TrendingUp;
+      } else if (bsDeltaNum < -10) {
+        bsStatus = `${bs_delta}B Contrazione`;
+        bsIcon = TrendingDown;
+      } else {
+        bsStatus = `${bsDeltaNum > 0 ? '+' : ''}${bs_delta}B Quasi stabile`;
+        bsIcon = Minus;
+      }
+      
+      // SOFR status - ACCURATE
+      let sofrStatus = '';
+      let sofrIcon = LineChart;
+      if (sofrNum < 3) {
+        sofrStatus = `${sofr_effr}bps Ottimo`;
+        sofrIcon = TrendingDown;
+      } else if (sofrNum < 8) {
+        sofrStatus = `${sofr_effr}bps Normale`;
+        sofrIcon = LineChart;
+      } else if (sofrNum < 15) {
+        sofrStatus = `${sofr_effr}bps Tensione`;
+        sofrIcon = TrendingUp;
+      } else {
+        sofrStatus = `${sofr_effr}bps Stress`;
+        sofrIcon = AlertTriangle;
+      }
+      
       return [
-        { icon: Minus, label: "Balance Sheet", status: `${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B Stabile` },
-        { icon: LineChart, label: "SOFR-EFFR", status: `${sofr_effr}bps Normale` },
+        { icon: bsIcon, label: "Balance Sheet", status: bsStatus },
+        { icon: sofrIcon, label: "SOFR-EFFR", status: sofrStatus },
         { icon: Info, label: "RRP", status: `${rrp_value}B Equilibrato` },
-        { icon: LineChart, label: "HY OAS", status: `${hy_oas}% ${(data.hy_oas || 0) > 5.5 ? 'Credit Stress' : (data.hy_oas || 0) > 4 ? 'Normal' : 'Tight'}` },
+        { icon: (data.hy_oas || 0) > 5.5 ? TrendingUp : (data.hy_oas || 0) < 3.5 ? TrendingDown : LineChart, label: "HY OAS", status: `${hy_oas}% ${(data.hy_oas || 0) > 5.5 ? 'Credit Stress' : (data.hy_oas || 0) > 4 ? 'Normal' : 'Tight'}` },
         { icon: AlertTriangle, label: "VIX", status: `${vix} ${vixRisk.label}` }
       ];
     },
@@ -670,22 +771,32 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
               }
             }
             
-            // Liquidity assessment - SAFE NULL HANDLING
+            // Liquidity assessment - SAFE NULL HANDLING + CONTEXT
             let liquidityStatus = 'Dati Mancanti';
             let liquidityColor = 'text-slate-400';
             let liquidityIcon = Activity;
             
             if (bsDelta !== null) {
               const rrpDeltaNum = rrpDelta !== 'N/A' ? parseFloat(rrpDelta) : 0;
+              const sofrNum = sofrEffr !== null ? sofrEffr : 10; // Default pessimistico se manca
               
-              if (bsDelta > 10000 && rrpDeltaNum < -20) {
+              // FIXED: Valutazione più sofisticata
+              if (bsDelta > 20 && sofrNum < 5) {
+                liquidityStatus = 'Espansiva Forte';
+                liquidityColor = 'text-green-400';
+                liquidityIcon = TrendingUp;
+              } else if (bsDelta > 5 || (rrpDeltaNum < -30 && sofrNum < 3)) {
                 liquidityStatus = 'Espansiva';
                 liquidityColor = 'text-green-400';
                 liquidityIcon = TrendingUp;
-              } else if (bsDelta < -10000 || rrpDeltaNum > 20) {
+              } else if (bsDelta < -20 || sofrNum > 10) {
                 liquidityStatus = 'Contrattiva';
                 liquidityColor = 'text-red-400';
                 liquidityIcon = TrendingDown;
+              } else if (Math.abs(bsDelta) < 5 && sofrNum < 5) {
+                liquidityStatus = 'Stabile (ottima)';
+                liquidityColor = 'text-blue-400';
+                liquidityIcon = Activity;
               } else {
                 liquidityStatus = 'Equilibrata';
                 liquidityColor = 'text-blue-400';
@@ -693,12 +804,17 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
               }
             }
             
-            // Outlook assessment - CONSISTENT THRESHOLDS
+            // Outlook assessment - CONSISTENT THRESHOLDS + CONTRARIAN SIGNALS
             let outlookStatus = 'Dati Insufficienti';
             let outlookColor = 'text-slate-400';
             let outlookDesc = 'Impossibile valutare senza dati completi';
             
             if (vix !== null && sofrEffr !== null && bsDelta !== null) {
+              const hyOasNum = hyOAS !== null ? hyOAS : 4.5;
+              
+              // Check for contrarian signals (VIX elevated BUT liquidity/credit perfect)
+              const contrarianSignal = vix > 16 && vix < 19 && sofrEffr < 3 && hyOasNum < 3.5;
+              
               if (vix > 25 || sofrEffr > 15) {
                 outlookStatus = 'Difensivo';
                 outlookColor = 'text-red-400';
@@ -707,6 +823,10 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 outlookStatus = 'Cautela';
                 outlookColor = 'text-yellow-400';
                 outlookDesc = 'Monitorare sviluppi stress';
+              } else if (contrarianSignal) {
+                outlookStatus = 'Segnali Misti';
+                outlookColor = 'text-yellow-400'; // FIXED: Yellow for mixed signals = caution
+                outlookDesc = 'Segnali contrastanti richiedono attenzione';
               } else if (vix < 16 && sofrEffr < 5 && bsDelta >= 0) {
                 outlookStatus = 'Supportivo';
                 outlookColor = 'text-green-400';
@@ -727,22 +847,33 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             const vixExplanation = getExplanation('vix');
             const scenarioExplanation = getExplanation(scenarioLower || 'neutral');
             
-            // Create beginner-friendly descriptions - NULL SAFE
+            // Create beginner-friendly descriptions - NULL SAFE + ACCURATE
             let liquiditySimpleDesc = 'Dati liquidità non disponibili';
             let liquidityDetailDesc = 'Impossibile valutare la situazione senza dati Fed completi';
             
             if (bsDelta !== null) {
               const rrpDeltaNum = rrpDelta !== 'N/A' ? parseFloat(rrpDelta) : 0;
+              const sofrNum = sofrEffr !== null ? sofrEffr : 10;
               
-              if (bsDelta > 10000 && rrpDeltaNum < -20) {
-                liquiditySimpleDesc = 'La Fed sta pompando soldi';
-                liquidityDetailDesc = 'La Fed ha iniettato liquidità nelle banche - più soldi disponibili per prestiti e investimenti';
-              } else if (bsDelta < -10000 || rrpDeltaNum > 20) {
-                liquiditySimpleDesc = 'La Fed sta drenando soldi';
-                liquidityDetailDesc = 'La Fed sta riducendo la liquidità - meno soldi in circolazione, più difficile ottenere prestiti';
-              } else {
+              // FIXED: Descrizioni più accurate basate su dati reali
+              if (bsDelta > 20 && sofrNum < 5) {
+                liquiditySimpleDesc = 'La Fed sta pompando soldi nel sistema';
+                liquidityDetailDesc = `La Fed ha iniettato ${(bsDelta/1000).toFixed(1)}B nelle banche - più liquidità disponibile per prestiti e investimenti. Mercato monetario fluido (spread ${sofrNum.toFixed(1)}bps).`;
+              } else if (bsDelta > 5) {
+                liquiditySimpleDesc = 'La Fed sta espandendo liquidità gradualmente';
+                liquidityDetailDesc = `Espansione moderata del bilancio (+${(bsDelta/1000).toFixed(1)}B) - supporto alla liquidità senza eccessi.`;
+              } else if (bsDelta < -20) {
+                liquiditySimpleDesc = 'La Fed sta drenando liquidità';
+                liquidityDetailDesc = `Contrazione del bilancio (${(bsDelta/1000).toFixed(1)}B) - Fed riduce la quantità di soldi in circolazione. ${sofrNum > 10 ? 'ATTENZIONE: Spread in allargamento, stress inizia.' : 'Finora senza tensioni.'}`;
+              } else if (Math.abs(bsDelta) < 5 && sofrNum < 3) {
+                liquiditySimpleDesc = 'Liquidità stabile e abbondante';
+                liquidityDetailDesc = `Balance Sheet quasi invariato (${(bsDelta/1000).toFixed(1)}B), ma spread SOFR-EFFR ${sofrNum.toFixed(1)}bps indica sistema monetario perfettamente fluido. Nessun problema di liquidità.`;
+              } else if (Math.abs(bsDelta) < 5 && sofrNum < 5) {
                 liquiditySimpleDesc = 'La Fed mantiene liquidità stabile';
-                liquidityDetailDesc = 'Nessun cambiamento significativo nella quantità di soldi in circolazione';
+                liquidityDetailDesc = `Nessun cambiamento significativo nel bilancio (${(bsDelta/1000).toFixed(1)}B). Mercato monetario normale (spread ${sofrNum.toFixed(1)}bps).`;
+              } else {
+                liquiditySimpleDesc = 'Situazione liquidità in transizione';
+                liquidityDetailDesc = `Bilancio ${bsDelta > 0 ? '+' : ''}${(bsDelta/1000).toFixed(1)}B, spread ${sofrNum.toFixed(1)}bps. Monitorare sviluppi.`;
               }
             }
             
@@ -761,43 +892,54 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
               scenarioDetailDesc = 'Quantitative Tightening - drena liquidità e mette pressione sui prezzi';
             }
             
-            // Risk simple descriptions - NULL SAFE
+            // Risk simple descriptions - NULL SAFE + NUANCED
             let riskSimpleDesc = 'Dati rischio non disponibili';
             let riskDetailDesc = 'Impossibile valutare il nervosismo del mercato senza dati VIX';
             
             if (vix !== null && sofrEffr !== null) {
+              const hyOasNum = hyOAS !== null ? hyOAS : 4.5; // Default neutrale
+              
+              // FIXED: Analisi più sofisticata che considera HY OAS
               if (vix > 22 || sofrEffr > 10) {
                 riskSimpleDesc = 'I mercati sono molto nervosi';
-                riskDetailDesc = 'Alta volatilità - investitori spaventati, possibili forti movimenti di prezzo';
-              } else if (vix > 16 || sofrEffr > 5) {
-                riskSimpleDesc = 'I mercati sono un po\' nervosi';
-                riskDetailDesc = 'Volatilità moderata - primi segnali di cautela tra gli investitori';
+                riskDetailDesc = `Alta volatilità (VIX ${vix.toFixed(1)}) ${sofrEffr > 10 ? 'e tensioni liquidità' : ''} - investitori spaventati, possibili forti movimenti di prezzo`;
+              } else if (vix > 18 || sofrEffr > 8) {
+                riskSimpleDesc = 'Nervosismo crescente nei mercati';
+                riskDetailDesc = `VIX ${vix.toFixed(1)} indica cautela. ${hyOasNum < 3.5 ? 'Però credito ancora tight (investitori cercano yield) - segnale misto.' : 'Credit spread confermano cautela.'}`;
+              } else if (vix > 16 && sofrEffr < 3) {
+                riskSimpleDesc = 'Cautela moderata nonostante liquidità ottima';
+                riskDetailDesc = `VIX ${vix.toFixed(1)} leggermente elevato MA spread ${sofrEffr.toFixed(1)}bps ottimo. ${hyOasNum < 3.5 ? 'HY OAS ' + hyOasNum.toFixed(1) + '% tight = investitori cercano rischio. Segnali contrastanti.' : 'Cautela giustificata.'}`;
               } else if (vix >= 14 || sofrEffr >= 3) {
                 riskSimpleDesc = 'I mercati sono tranquilli';
-                riskDetailDesc = 'Volatilità normale - investitori non sono particolarmente spaventati';
+                riskDetailDesc = `Volatilità normale (VIX ${vix.toFixed(1)}), spread ${sofrEffr.toFixed(1)}bps - investitori non sono particolarmente spaventati`;
               } else {
                 riskSimpleDesc = 'I mercati sono molto calmi';
-                riskDetailDesc = 'Volatilità bassa - investitori fiduciosi, possibile eccessiva tranquillità';
+                riskDetailDesc = `Volatilità bassa (VIX ${vix.toFixed(1)}) - investitori fiduciosi. ${hyOasNum < 3 ? 'ATTENZIONE: HY OAS ' + hyOasNum.toFixed(1) + '% troppo tight, possibile complacency.' : 'Calma giustificata.'}`;
               }
             }
             
-            // Outlook simple descriptions - NULL SAFE
+            // Outlook simple descriptions - NULL SAFE + CONTEXT AWARE
             let outlookSimpleDesc = 'Impossibile valutare momento';
             let outlookDetailDesc = 'Servono dati completi per dare indicazioni sul timing investimenti';
             
             if (vix !== null && sofrEffr !== null && bsDelta !== null) {
+              const hyOasNum = hyOAS !== null ? hyOAS : 4.5;
+              
               if (vix > 25 || sofrEffr > 15) {
                 outlookSimpleDesc = 'Momento difficile - proteggere capitale';
-                outlookDetailDesc = 'Alta tensione - priorità alla sicurezza, evitare investimenti rischiosi';
+                outlookDetailDesc = `Alta tensione (VIX ${vix.toFixed(1)}, spread ${sofrEffr.toFixed(1)}bps) - priorità alla sicurezza, evitare investimenti rischiosi`;
               } else if (vix > 20 || sofrEffr > 8) {
                 outlookSimpleDesc = 'Momento di cautela negli investimenti';
-                outlookDetailDesc = 'Segnali di stress - meglio essere prudenti e monitorare sviluppi';
+                outlookDetailDesc = `Segnali di stress (VIX ${vix.toFixed(1)}) - meglio essere prudenti e monitorare sviluppi`;
               } else if (vix < 16 && sofrEffr < 5 && bsDelta >= 0) {
-                outlookSimpleDesc = 'Buon momento per investimenti rischiosi';
-                outlookDetailDesc = 'Ambiente supportivo - liquidità abbondante e mercati calmi favoriscono crescita';
+                outlookSimpleDesc = 'Ambiente generalmente supportivo';
+                outlookDetailDesc = `Liquidità ${Math.abs(bsDelta) < 5 ? 'stabile' : 'in espansione'} (${(bsDelta/1000).toFixed(1)}B), spread ${sofrEffr.toFixed(1)}bps ottimo. ${hyOasNum < 3 ? 'ATTENZIONE: HY OAS ' + hyOasNum.toFixed(1) + '% troppo tight (possibile complacency)' : 'Condizioni favorevoli per risk assets'}`;
+              } else if (vix > 16 && vix < 19 && sofrEffr < 3 && hyOasNum < 3.5) {
+                outlookSimpleDesc = 'Segnali contrastanti - prudenza';
+                outlookDetailDesc = `VIX ${vix.toFixed(1)} (cautela) MA liquidità ottima (spread ${sofrEffr.toFixed(1)}bps) e credit tight (HY ${hyOasNum.toFixed(1)}%). Investitori cercano yield nonostante nervosismo. Seguire attentamente.`;
               } else {
-                outlookSimpleDesc = 'Momento normale per investire';
-                outlookDetailDesc = 'Condizioni equilibrate - né particolarmente favorevoli né sfavorevoli';
+                outlookSimpleDesc = 'Momento equilibrato per investire';
+                outlookDetailDesc = `Condizioni miste - VIX ${vix.toFixed(1)}, spread ${sofrEffr.toFixed(1)}bps, bilancio ${(bsDelta/1000).toFixed(1)}B. Approccio bilanciato consigliato.`;
               }
             }
             
@@ -817,8 +959,9 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                   <div className="text-xs text-slate-300 leading-relaxed">
                     {liquidityDetailDesc}
                   </div>
-                  <div className="mt-2 pt-2 border-t border-slate-700 text-xs text-slate-500">
-                    💰 Balance Sheet: ${balanceSheet}T {bsDelta !== null ? (bsDelta > 0 ? '(+' + (bsDelta/1000).toFixed(1) + 'B)' : bsDelta < 0 ? '(' + (bsDelta/1000).toFixed(1) + 'B)' : '(stabile)') : '(dati mancanti)'}
+                  <div className="mt-2 pt-2 border-t border-slate-700 flex items-center gap-2 text-xs text-slate-500">
+                    <Wallet className="h-3.5 w-3.5 text-slate-400" />
+                    <span>Balance Sheet: ${balanceSheet}T {bsDelta !== null ? (bsDelta > 0 ? '(+' + (bsDelta/1000).toFixed(1) + 'B)' : bsDelta < 0 ? '(' + (bsDelta/1000).toFixed(1) + 'B)' : '(stabile)') : '(dati mancanti)'}</span>
                   </div>
                 </div>
 
@@ -836,8 +979,9 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                   <div className="text-xs text-slate-300 leading-relaxed">
                     {scenarioDetailDesc}
                   </div>
-                  <div className="mt-2 pt-2 border-t border-slate-700 text-xs text-slate-500">
-                    ⚡ Policy: {scenarioStatus} {scenarioLower === 'qe' ? '(Temporanea)' : '(Medio termine)'}
+                  <div className="mt-2 pt-2 border-t border-slate-700 flex items-center gap-2 text-xs text-slate-500">
+                    <Zap className="h-3.5 w-3.5 text-slate-400" />
+                    <span>Policy: {scenarioStatus} {scenarioLower === 'qe' ? '(Temporanea)' : '(Medio termine)'}</span>
                   </div>
                 </div>
 
@@ -855,8 +999,9 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                   <div className="text-xs text-slate-300 leading-relaxed">
                     {riskDetailDesc}
                   </div>
-                  <div className="mt-2 pt-2 border-t border-slate-700 text-xs text-slate-500">
-                    📊 Fear Index (VIX): {vix !== null ? vix.toFixed(1) + ' ' + (vix > 22 ? '😰 Alto' : vix > 16 ? '😐 Medio' : '😌 Basso') : 'N/A (dati mancanti)'}
+                  <div className="mt-2 pt-2 border-t border-slate-700 flex items-center gap-2 text-xs text-slate-500">
+                    <Brain className="h-3.5 w-3.5 text-slate-400" />
+                    <span>Fear Index (VIX): {vix !== null ? vix.toFixed(1) + ' - ' + (vix > 22 ? 'Alto' : vix > 16 ? 'Medio' : 'Basso') : 'N/A (dati mancanti)'}</span>
                   </div>
                 </div>
 
@@ -874,12 +1019,30 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                   <div className="text-xs text-slate-300 leading-relaxed">
                     {outlookDetailDesc}
                   </div>
-                  <div className="mt-2 pt-2 border-t border-slate-700 text-xs text-slate-500">
-                    {vix !== null && sofrEffr !== null ? 
-                      (vix < 16 && sofrEffr < 5 ? '📈 Ambiente Risk-On (favorevole)' :
-                       vix > 22 || sofrEffr > 10 ? '📉 Ambiente Risk-Off (difensivo)' :
-                       '⚖️ Segnali misti (prudenza)') :
-                      '❓ Dati insufficienti per valutazione'}
+                  <div className="mt-2 pt-2 border-t border-slate-700 flex items-center gap-2 text-xs text-slate-500">
+                    {vix !== null && sofrEffr !== null ? (
+                      vix < 16 && sofrEffr < 5 ? (
+                        <>
+                          <TrendingUp className="h-3.5 w-3.5 text-green-400" />
+                          <span>Ambiente Risk-On (favorevole)</span>
+                        </>
+                      ) : vix > 22 || sofrEffr > 10 ? (
+                        <>
+                          <TrendingDown className="h-3.5 w-3.5 text-red-400" />
+                          <span>Ambiente Risk-Off (difensivo)</span>
+                        </>
+                      ) : (
+                        <>
+                          <TrendingUpDown className="h-3.5 w-3.5 text-yellow-400" />
+                          <span>Segnali misti (prudenza)</span>
+                        </>
+                      )
+                    ) : (
+                      <>
+                        <AlertTriangle className="h-3.5 w-3.5 text-slate-400" />
+                        <span>Dati insufficienti per valutazione</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
