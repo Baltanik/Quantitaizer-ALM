@@ -211,15 +211,15 @@ export function MarketImpact({ currentData }: MarketImpactProps) {
               <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/40 border border-slate-700/30 hover:border-slate-600/50 transition-all duration-200">
                 <span className="text-sm font-medium text-slate-200">{sector.sector}</span>
                 <div className="flex items-center gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
-                    sector.impact === '+' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 
-                    sector.impact === '-' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 
-                    'bg-slate-500/20 text-slate-300 border border-slate-500/30'
-                  }`}>
-                    {sector.impact}
-                  </div>
-                  <div className="px-2 py-1 rounded text-xs font-medium bg-slate-700/50 text-slate-300 border border-slate-600/30">
-                    {sector.strength}
+                  <div className="w-20 px-2 py-1 rounded text-xs font-medium bg-slate-700/50 text-slate-300 border border-slate-600/30 flex items-center justify-between">
+                    <span>{sector.strength}</span>
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                      sector.impact === '+' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 
+                      sector.impact === '-' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 
+                      'bg-slate-500/20 text-slate-300 border border-slate-500/30'
+                    }`}>
+                      {sector.impact}
+                    </div>
                   </div>
                 </div>
               </div>
