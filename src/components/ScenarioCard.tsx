@@ -462,12 +462,12 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
         {/* Hero Metrics - Top 3 Critical Data Points - MOBILE OPTIMIZED */}
         {currentData && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Balance Sheet - CLEAN ORGANIZED LAYOUT */}
-            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-5 hover:border-emerald-500/30 transition-all">
-              <div className="space-y-4">
+            {/* Balance Sheet - COMPACT SIZE */}
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all">
+              <div className="space-y-3">
                 {/* Header */}
                 <div className="text-center">
-                  <div className="text-xs text-slate-400 uppercase tracking-wide flex items-center justify-center gap-2 mb-2">
+                  <div className="text-xs text-slate-400 uppercase tracking-wide flex items-center justify-center gap-2">
                     Balance Sheet
                     <ExplanationTooltip metricKey="balance_sheet" mode="full" size="sm" />
                   </div>
@@ -475,7 +475,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 
                 {/* Main Value */}
                 <div className="text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-white">
+                  <div className="text-xl sm:text-2xl font-bold text-white">
                     ${currentData.walcl ? (currentData.walcl / 1000000).toFixed(2) : 'N/A'}T
                   </div>
                 </div>
@@ -491,12 +491,12 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
               </div>
             </div>
 
-            {/* SOFR-EFFR Spread - CLEAN ORGANIZED LAYOUT */}
-            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-5 hover:border-emerald-500/30 transition-all">
-              <div className="space-y-4">
+            {/* SOFR-EFFR Spread - COMPACT SIZE */}
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all">
+              <div className="space-y-3">
                 {/* Header */}
                 <div className="text-center">
-                  <div className="text-xs text-slate-400 uppercase tracking-wide flex items-center justify-center gap-2 mb-2">
+                  <div className="text-xs text-slate-400 uppercase tracking-wide flex items-center justify-center gap-2">
                     SOFR-EFFR Spread
                     <ExplanationTooltip metricKey="sofr_effr_spread" mode="full" size="sm" />
                   </div>
@@ -504,7 +504,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 
                 {/* Main Value */}
                 <div className="text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-white">
+                  <div className="text-xl sm:text-2xl font-bold text-white">
                     {currentData.sofr_effr_spread?.toFixed(1) ?? 'N/A'} bps
                   </div>
                 </div>
@@ -536,12 +536,12 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
               </div>
             </div>
 
-            {/* VIX - CLEAN ORGANIZED LAYOUT */}
-            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-5 hover:border-emerald-500/30 transition-all">
-              <div className="space-y-4">
+            {/* VIX - COMPACT SIZE */}
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all">
+              <div className="space-y-3">
                 {/* Header */}
                 <div className="text-center">
-                  <div className="text-xs text-slate-400 uppercase tracking-wide flex items-center justify-center gap-2 mb-2">
+                  <div className="text-xs text-slate-400 uppercase tracking-wide flex items-center justify-center gap-2">
                     VIX (Fear Index)
                     <ExplanationTooltip metricKey="vix" mode="full" size="sm" />
                   </div>
@@ -549,7 +549,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 
                 {/* Main Value */}
                 <div className="text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-white">
+                  <div className="text-xl sm:text-2xl font-bold text-white">
                     {currentData.vix ?? 'N/A'}
                   </div>
                 </div>

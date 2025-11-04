@@ -183,12 +183,12 @@ export function MetricCard({
             </p>
           </div>
           
-          {/* Center: Value - Allineato a destra con spazio controllato */}
+          {/* Center: Value - Allineato a destra con spazio controllato, NO LINE BREAK */}
           <div className="flex-1 text-right pr-4">
-            <p className="font-mono font-bold text-base text-white leading-tight">
+            <p className="font-mono font-bold text-base text-white leading-tight whitespace-nowrap">
               {format === 'billion' && <span className="text-sm">$</span>}
               <span>{formatValue(value)}</span>
-              <span className="text-muted-foreground text-sm ml-1">{getUnit()}</span>
+              <span className="text-muted-foreground text-sm ml-0.5">{getUnit()}</span>
             </p>
           </div>
           
