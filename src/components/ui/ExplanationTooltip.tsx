@@ -35,7 +35,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ExplanationTooltipProps {
   metricKey: string;
-  mode?: "minimal" | "full"; // minimal = solo tooltip, full = tooltip + dialog
+  mode?: "minimal" | "full" | "preview"; // minimal = solo tooltip, full = tooltip + dialog, preview = tooltip ricco + dialog
   size?: "sm" | "md";
 }
 
@@ -51,34 +51,10 @@ export function ExplanationTooltip({
     return null; // Metrica non ha spiegazione disponibile
   }
 
-  const iconSize = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
+  const iconSize = size === "sm" ? "h-4 w-4" : "h-5 w-5";
   const IconComponent = mode === "minimal" ? Info : HelpCircle;
 
-  // Minimal mode: solo tooltip hover
-  if (mode === "minimal") {
-    return (
-      <TooltipProvider delayDuration={200}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button className="inline-flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity">
-              <IconComponent className={`${iconSize} text-slate-400`} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent 
-            side="top" 
-            className="max-w-xs bg-slate-800 border-slate-700 text-slate-200 p-3"
-          >
-            <p className="text-xs leading-relaxed">{explanation.shortExplanation}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
-  // Full mode: tooltip + dialog/drawer cliccabile (responsive)
-  const isMobile = useIsMobile();
-
-  // Shared content component for both mobile and desktop
+  // Shared content component - DEFINED FIRST to avoid hoisting issues
   const ExplanationContent = () => (
     <div className="space-y-4">
       {/* Spiegazione completa */}
@@ -153,16 +129,140 @@ export function ExplanationTooltip({
     </div>
   );
 
-  // MOBILE: Drawer (bottom sheet)
+  // PREVIEW MODE: Tooltip ricco + dialog - MASSIMO APPEAL
+  if (mode === "preview") {
+    const isMobile = useIsMobile();
+    
+    if (isMobile) {
+      // Mobile: Solo icona che brilla - PULITO
+      return (
+        <Drawer open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DrawerTrigger asChild>
+            <button 
+              className="group relative inline-flex items-center justify-center transition-all duration-300 active:scale-95"
+              style={{ minWidth: '44px', minHeight: '44px' }}
+            >
+              {/* Solo icona che brilla con pulsazione elegante */}
+              <HelpCircle className={`${iconSize} text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.7)] animate-pulse`} />
+            </button>
+          </DrawerTrigger>
+          <DrawerContent className="bg-slate-900 border-slate-700 text-slate-200 max-h-[85vh]">
+            <DrawerHeader className="border-b border-slate-700">
+              <DrawerTitle className="text-lg font-bold text-white flex items-center gap-2">
+                <Info className="h-5 w-5 text-emerald-400" />
+                {explanation.name}
+              </DrawerTitle>
+              <DrawerDescription className="text-slate-400 text-sm italic">
+                {explanation.shortExplanation}
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="overflow-y-auto p-4">
+              <ExplanationContent />
+            </div>
+          </DrawerContent>
+        </Drawer>
+      );
+    }
+    
+    // Desktop: SOLO punto di domanda che brilla - PULITO
+    return (
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <TooltipProvider delayDuration={150}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DialogTrigger asChild>
+                <button className="inline-flex items-center justify-center transition-all duration-300 hover:scale-110 focus:scale-110 focus:outline-none opacity-70 hover:opacity-100">
+                  {/* Icona più grande che brilla con pulsazione elegante */}
+                  <HelpCircle className={`h-5 w-5 text-slate-400 hover:text-emerald-400 transition-all duration-200 hover:drop-shadow-[0_0_8px_rgba(52,211,153,0.8)] hover:animate-pulse`} />
+                </button>
+              </DialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent 
+              side="top" 
+              className="max-w-xs bg-gradient-to-br from-slate-800 to-slate-900 border-emerald-500/30 text-slate-200 p-3 shadow-2xl shadow-emerald-500/20"
+            >
+              <div className="space-y-2">
+                {/* Nome metrica */}
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-semibold text-emerald-400">{explanation.name}</span>
+                </div>
+                
+                {/* Call to action semplice */}
+                <div className="flex items-center gap-2 pt-1">
+                  <div className="flex gap-1">
+                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                    <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse delay-150"></div>
+                  </div>
+                  <span className="text-sm text-white font-medium">Clicca per maggiori informazioni</span>
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <DialogContent className="max-w-2xl bg-slate-900 border-slate-700 text-slate-200 max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <Info className="h-5 w-5 text-emerald-400" />
+              {explanation.name}
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 text-sm italic">
+              {explanation.shortExplanation}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            <ExplanationContent />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Minimal mode: solo tooltip hover MA più accattivante
+  if (mode === "minimal") {
+    return (
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button className="group inline-flex items-center justify-center opacity-70 hover:opacity-100 transition-all duration-200 hover:scale-110">
+              <div className="relative">
+                <IconComponent className={`${iconSize} text-slate-400 group-hover:text-emerald-400 transition-colors`} />
+                {/* Pulse ring per attirare attenzione */}
+                <div className="absolute inset-0 rounded-full bg-emerald-400/20 animate-ping opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                {/* Subtle glow */}
+                <div className="absolute inset-0 rounded-full bg-emerald-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm"></div>
+              </div>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent 
+            side="top" 
+            className="max-w-xs bg-slate-800 border-slate-700 text-slate-200 p-3 shadow-xl"
+          >
+            <p className="text-xs leading-relaxed">{explanation.shortExplanation}</p>
+            <div className="mt-2 pt-2 border-t border-slate-600">
+              <p className="text-xs text-emerald-400 font-medium">💡 Hover per info rapida</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  // Full mode: tooltip + dialog/drawer cliccabile (responsive)
+  const isMobile = useIsMobile();
+
+  // MOBILE: Drawer (bottom sheet) - Solo icona pulita
   if (isMobile) {
     return (
       <Drawer open={dialogOpen} onOpenChange={setDialogOpen}>
         <DrawerTrigger asChild>
           <button 
-            className="inline-flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity active:scale-95"
+            className="group relative inline-flex items-center justify-center transition-all duration-300 active:scale-95"
             style={{ minWidth: '44px', minHeight: '44px' }} // iOS tap target
           >
-            <IconComponent className={`${iconSize} text-slate-400`} />
+            {/* Solo icona pulita con pulsazione elegante */}
+            <IconComponent className={`${iconSize} text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.7)] animate-pulse`} />
           </button>
         </DrawerTrigger>
         <DrawerContent className="bg-slate-900 border-slate-700 text-slate-200 max-h-[85vh]">
@@ -183,24 +283,36 @@ export function ExplanationTooltip({
     );
   }
 
-  // DESKTOP: Dialog + Tooltip
+  // DESKTOP: SOLO icona che brilla - PULITO
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      <TooltipProvider delayDuration={200}>
+      <TooltipProvider delayDuration={150}>
         <Tooltip>
           <TooltipTrigger asChild>
             <DialogTrigger asChild>
-              <button className="inline-flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity hover:text-emerald-400">
-                <IconComponent className={`${iconSize} text-slate-400 hover:text-emerald-400 transition-colors`} />
+              <button className="inline-flex items-center justify-center transition-all duration-300 hover:scale-110 focus:scale-110 focus:outline-none opacity-70 hover:opacity-100">
+                {/* Icona più grande che brilla con pulsazione elegante */}
+                <IconComponent className={`h-5 w-5 text-slate-400 hover:text-emerald-400 transition-all duration-200 hover:drop-shadow-[0_0_8px_rgba(52,211,153,0.8)] hover:animate-pulse`} />
               </button>
             </DialogTrigger>
           </TooltipTrigger>
           <TooltipContent 
             side="top" 
-            className="max-w-xs bg-slate-800 border-slate-700 text-slate-200 p-3"
+            className="max-w-sm bg-gradient-to-br from-slate-800 to-slate-900 border-emerald-500/30 text-slate-200 p-4 shadow-2xl shadow-emerald-500/20"
           >
-            <p className="text-xs leading-relaxed">{explanation.shortExplanation}</p>
-            <p className="text-xs text-slate-400 mt-1 italic">Click per dettagli completi</p>
+            <div className="space-y-2">
+              <p className="text-xs leading-relaxed font-medium">{explanation.shortExplanation}</p>
+              <div className="flex items-center gap-2 pt-2 border-t border-slate-600">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                  <span className="text-xs text-emerald-400 font-bold">CLICK</span>
+                </div>
+                <span className="text-xs text-slate-300">per spiegazione completa con esempi</span>
+              </div>
+              <div className="text-xs text-slate-400 italic">
+                📊 Include: soglie, contesto storico, cosa monitorare
+              </div>
+            </div>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

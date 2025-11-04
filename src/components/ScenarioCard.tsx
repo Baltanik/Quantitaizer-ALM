@@ -442,7 +442,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             <h3 className="text-3xl font-bold text-white flex items-center gap-2">
               {config.label}
               {(() => {
-                // Map scenario to metricKey
+                // Map scenario to metricKey - USA PREVIEW MODE per massimo appeal
                 const scenarioLower = (scenario || '').toLowerCase();
                 let metricKey = null;
                 if (scenarioLower === 'stealth_qe') metricKey = 'stealth_qe';
@@ -450,7 +450,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 else if (scenarioLower === 'qt') metricKey = 'qt';
                 else if (scenarioLower === 'neutral') metricKey = 'neutral';
                 
-                return metricKey ? <ExplanationTooltip metricKey={metricKey} mode="full" size="md" /> : null;
+                return metricKey ? <ExplanationTooltip metricKey={metricKey} mode="preview" size="md" /> : null;
               })()}
             </h3>
             <p className="text-base text-slate-200">
@@ -466,9 +466,8 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             <div className="hidden sm:grid grid-cols-3 gap-4">
               {/* Balance Sheet */}
               <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all text-center">
-                <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center justify-center gap-2">
+                <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">
                   Balance Sheet
-                  <ExplanationTooltip metricKey="balance_sheet" mode="full" size="sm" />
                 </div>
                 <div className="text-2xl font-bold text-white">
                   ${currentData.walcl ? (currentData.walcl / 1000000).toFixed(2) : 'N/A'}T
@@ -478,13 +477,15 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 }`}>
                   {(currentData.d_walcl_4w || 0) > 0 ? '↗' : '↘'} {currentData.d_walcl_4w ? Math.abs(currentData.d_walcl_4w/1000).toFixed(1) : '0'}B (4w)
                 </div>
+                <div className="flex justify-center mt-3">
+                  <ExplanationTooltip metricKey="balance_sheet" mode="preview" size="sm" />
+                </div>
               </div>
 
               {/* SOFR-EFFR Spread */}
               <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all text-center">
-                <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center justify-center gap-2">
+                <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">
                   SOFR-EFFR Spread
-                  <ExplanationTooltip metricKey="sofr_effr_spread" mode="full" size="sm" />
                 </div>
                 <div className="text-2xl font-bold text-white">
                   {currentData.sofr_effr_spread?.toFixed(1) ?? 'N/A'} bps
@@ -506,13 +507,15 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                    (currentData.sofr_effr_spread || 0) > 10 ? 'Elevated' : 
                    'Normal'}
                 </div>
+                <div className="flex justify-center mt-3">
+                  <ExplanationTooltip metricKey="sofr_effr_spread" mode="preview" size="sm" />
+                </div>
               </div>
 
               {/* VIX */}
               <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all text-center">
-                <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center justify-center gap-2">
+                <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">
                   VIX (Fear Index)
-                  <ExplanationTooltip metricKey="vix" mode="full" size="sm" />
                 </div>
                 <div className="text-2xl font-bold text-white">
                   {currentData.vix ?? 'N/A'}
@@ -527,6 +530,9 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 </div>
                 <div className="text-xs text-slate-400 mt-1">
                   {getVixRiskLevel(currentData.vix || 0).label}
+                </div>
+                <div className="flex justify-center mt-3">
+                  <ExplanationTooltip metricKey="vix" mode="preview" size="sm" />
                 </div>
               </div>
             </div>
