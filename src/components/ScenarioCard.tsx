@@ -462,9 +462,9 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
         {/* Hero Metrics - Top 3 Critical Data Points - MOBILE OPTIMIZED */}
         {currentData && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Balance Sheet */}
-            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all">
-              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-2">
+            {/* Balance Sheet - CENTERED CONTENT */}
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all text-center">
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center justify-center gap-2">
                 Balance Sheet
                 <ExplanationTooltip metricKey="balance_sheet" mode="full" size="sm" />
               </div>
@@ -478,9 +478,9 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
               </div>
             </div>
 
-            {/* SOFR-EFFR Spread */}
-            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all">
-              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-2">
+            {/* SOFR-EFFR Spread - CENTERED CONTENT */}
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all text-center">
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center justify-center gap-2">
                 SOFR-EFFR Spread
                 <ExplanationTooltip metricKey="sofr_effr_spread" mode="full" size="sm" />
               </div>
@@ -506,9 +506,9 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
               </div>
             </div>
 
-            {/* VIX */}
-            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all">
-              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-2">
+            {/* VIX - CENTERED CONTENT */}
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all text-center">
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center justify-center gap-2">
                 VIX (Fear Index)
                 <ExplanationTooltip metricKey="vix" mode="full" size="sm" />
               </div>

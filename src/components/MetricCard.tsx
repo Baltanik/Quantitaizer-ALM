@@ -173,90 +173,113 @@ export function MetricCard({
     <Card className={`hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 relative overflow-hidden bg-slate-900/80 border-slate-800 ${
       isExpanded ? 'row-span-2' : ''
     }`}>
-      <CardHeader className="pb-1">
-        <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center justify-between">
-          <span>{title}</span>
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1 hover:bg-muted/20 rounded transition-colors"
-            aria-label={isExpanded ? "Comprimi" : "Espandi"}
-          >
-            {isExpanded ? (
-              <ChevronUp className="h-3 w-3" />
-            ) : (
-              <ChevronDown className="h-3 w-3" />
-            )}
-          </button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className={isExpanded ? "space-y-3" : "pb-3"}>
-        {/* Contenuto sempre visibile - MOBILE OPTIMIZED: layout orizzontale su mobile quando compresso */}
-        <div className={`flex items-center ${isExpanded ? 'flex-col items-start space-y-2' : 'justify-between'}`}>
-          <div className={isExpanded ? 'w-full' : 'flex-1 min-w-0'}>
-            <p className={`font-mono font-bold flex items-baseline gap-1 ${
-              isExpanded ? "text-3xl" : "text-lg sm:text-xl"
-            } ${isExpanded ? '' : 'truncate'}`}>
-              {format === 'billion' && <span className={isExpanded ? "text-lg" : "text-sm"}>$</span>}
-              <span className="flex items-baseline gap-0">
-                {formatValue(value)}
-                <span className={`text-muted-foreground ml-0.5 ${
-                  isExpanded ? "text-sm" : "text-xs"
-                }`}>{getUnit()}</span>
-              </span>
+      {/* COINMARKETCAP STYLE: Header e content in un unico layout orizzontale quando compresso */}
+      {!isExpanded ? (
+        <div className="p-3 flex items-center justify-between gap-3">
+          {/* Left: Title */}
+          <div className="flex-shrink-0 min-w-0">
+            <p className="text-xs font-medium text-muted-foreground uppercase truncate">
+              {title}
             </p>
           </div>
           
-          {/* Trend indicator - posizionato a destra su mobile quando compresso */}
-          {trend !== null && (
-            <div className={`flex items-center ${isExpanded ? 'w-full justify-start' : 'flex-shrink-0'}`}>
-              <p className={`font-mono flex items-center gap-1 ${trendColor} ${
-                isExpanded ? "text-xs" : "text-xs"
-              }`}>
-                <TrendIcon className={isExpanded ? "h-3 w-3" : "h-3 w-3"} />
-                <span className={isExpanded ? '' : 'hidden sm:inline'}>
-                  {Math.abs(trend).toFixed(2)}%
+          {/* Center: Value */}
+          <div className="flex-1 text-center min-w-0">
+            <p className="font-mono font-bold text-sm sm:text-base text-white truncate">
+              {format === 'billion' && <span className="text-xs">$</span>}
+              <span>{formatValue(value)}</span>
+              <span className="text-muted-foreground text-xs ml-0.5">{getUnit()}</span>
+            </p>
+          </div>
+          
+          {/* Right: Trend + Expand button */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {trend !== null && (
+              <div className={`flex items-center gap-1 ${trendColor}`}>
+                <TrendIcon className="h-3 w-3" />
+                <span className="font-mono text-xs hidden sm:inline">
+                  {Math.abs(trend).toFixed(1)}%
                 </span>
-                {/* Solo icona su mobile quando compresso */}
-                <span className={isExpanded ? 'hidden' : 'sm:hidden'}>
-                  {trend > 0 ? '+' : ''}
-                </span>
-              </p>
-            </div>
-          )}
-        </div>
-        
-        {/* Contenuto espandibile */}
-        {isExpanded && (
-          <>
-            {chartData.length > 1 && (
-              <div className="h-12 -mx-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <YAxis 
-                      domain={getYAxisDomain()}
-                      hide={true}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="value" 
-                      stroke="hsl(var(--primary))" 
-                      strokeWidth={1.5}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
               </div>
             )}
-            
-            {/* Spiegazione della metrica */}
-            <div className="pt-2 border-t border-border/50">
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {getMetricDescription(title)}
-              </p>
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="p-1 hover:bg-muted/20 rounded transition-colors"
+              aria-label="Espandi"
+            >
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        // EXPANDED VIEW: Layout tradizionale
+        <>
+          <CardHeader className="pb-1">
+            <CardTitle className="text-xs font-medium text-muted-foreground uppercase flex items-center justify-between">
+              <span>{title}</span>
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="p-1 hover:bg-muted/20 rounded transition-colors"
+                aria-label="Comprimi"
+              >
+                <ChevronUp className="h-3 w-3" />
+              </button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Contenuto espanso */}
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="font-mono font-bold text-3xl flex items-baseline gap-1 whitespace-nowrap">
+                  {format === 'billion' && <span className="text-lg">$</span>}
+                  <span className="flex items-baseline gap-0">
+                    {formatValue(value)}
+                    <span className="text-muted-foreground ml-0.5 text-sm">{getUnit()}</span>
+                  </span>
+                </p>
+                {trend !== null && (
+                  <p className={`font-mono mt-1 flex items-center gap-1 ${trendColor} text-xs`}>
+                    <TrendIcon className="h-3 w-3" />
+                    {Math.abs(trend).toFixed(2)}%
+                  </p>
+                )}
+              </div>
             </div>
-          </>
-        )}
-      </CardContent>
+          </CardContent>
+        </>
+      )}
+      
+      {/* Contenuto espandibile - solo quando expanded */}
+      {isExpanded && (
+        <CardContent className="pt-0 space-y-3">
+          {chartData.length > 1 && (
+            <div className="h-12 -mx-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <YAxis 
+                    domain={getYAxisDomain()}
+                    hide={true}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={1.5}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+          
+          {/* Spiegazione della metrica */}
+          <div className="pt-2 border-t border-border/50">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {getMetricDescription(title)}
+            </p>
+          </div>
+        </CardContent>
+      )}
     </Card>
   );
 }
