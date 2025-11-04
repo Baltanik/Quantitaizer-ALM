@@ -4,7 +4,11 @@ export const metricDescriptions: Record<string, string> = {
   
   "IORB": "Tasso pagato dalla Fed alle banche sulle riserve. Rappresenta il floor dei tassi di mercato.",
   
+  "EFFR": "Tasso effettivo Fed Funds. Tasso overnight non garantito tra banche. Riflette condizioni reali del mercato monetario.",
+  
   "Spread SOFR-IORB": "Indicatore di stress liquidità. <15bps = liquidità abbondante, >25bps = tensioni nel sistema.",
+  
+  "SOFR-EFFR Spread": "Differenza tra tassi garantiti e non garantiti. >10bps = stress mercato monetario, >20bps = tensioni critiche.",
   
   "Bilancio Fed": "Dimensione totale bilancio Fed. Espansione = QE, contrazione = QT. Range normale $6-8T.",
   

@@ -74,6 +74,22 @@ const scenarioConfig = {
     textClass: "text-warning",
     badgeVariant: "secondary" as const,
   },
+  contraction: {
+    label: "Contrazione",
+    color: "destructive",
+    icon: TrendingDown,
+    description: "Contrazione aggressiva della liquidità",
+    analysis: "La Fed sta attuando una politica di contrazione aggressiva, drenando liquidità dal sistema attraverso riduzione del bilancio e/o aumento dei tassi. Gli spread si ampliano e le condizioni di finanziamento si irrigidiscono. Scenario tipicamente negativo per asset rischiosi e favorevole al dollaro.",
+    indicators: [
+      { icon: TrendingDown, label: "Bilancio Fed", status: "Contrazione forte" },
+      { icon: TrendingDown, label: "Riserve bancarie", status: "In forte calo" },
+      { icon: TrendingUp, label: "Spread SOFR-IORB", status: "> 20 bps" },
+      { icon: AlertTriangle, label: "Liquidità", status: "Stress elevato" }
+    ],
+    bgClass: "bg-destructive/5 border-destructive/30",
+    textClass: "text-destructive",
+    badgeVariant: "destructive" as const,
+  },
 };
 
 export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
