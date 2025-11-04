@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { FedData, ScenarioState } from "@/services/fedData";
 import { deriveScenario, canShowBullish, getContextColor, getRiskColor } from "@/utils/scenarioEngine";
 import { ExplanationTooltip } from "@/components/ui/ExplanationTooltip";
+import { getExplanation } from "@/utils/explanationEngine";
 
 // ============================================================================
 // VIX RISK LEVEL - SINGLE SOURCE OF TRUTH
@@ -615,13 +616,13 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
           </div>
           
           {currentData && (() => {
-            // Calculate key metrics for visual cards
-            const vix = currentData.vix || 20;
-            const sofrEffr = currentData.sofr_effr_spread || 0;
-            const bsDelta = currentData.d_walcl_4w || 0;
+            // Calculate key metrics for visual cards - SAFE DEFAULTS
+            const vix = currentData.vix ?? null; // No default - use null to detect missing data
+            const sofrEffr = currentData.sofr_effr_spread ?? null;
+            const bsDelta = currentData.d_walcl_4w ?? null;
             const balanceSheet = currentData.walcl ? (currentData.walcl / 1000000).toFixed(2) : 'N/A';
             const rrpDelta = currentData.d_rrpontsyd_4w ? (currentData.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
-            const hyOAS = currentData.hy_oas || 0;
+            const hyOAS = currentData.hy_oas ?? null;
             
             // Determine scenario color and status
             const scenarioLower = (scenario || '').toLowerCase();
@@ -643,138 +644,242 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
               scenarioIcon = TrendingDown;
             }
             
-            // Risk assessment
-            let riskStatus = 'Normale';
-            let riskColor = 'text-blue-400';
+            // Risk assessment - FIXED LOGIC WITH PROPER COVERAGE
+            let riskStatus = 'Dati Mancanti';
+            let riskColor = 'text-slate-400';
             let riskIcon = Activity;
             
-            if (vix > 22 || sofrEffr > 10) {
-              riskStatus = 'Elevato';
-              riskColor = 'text-red-400';
-              riskIcon = AlertTriangle;
-            } else if (vix > 16 || sofrEffr > 5) {
-              riskStatus = 'Moderato';
-              riskColor = 'text-yellow-400';
-              riskIcon = Eye;
-            } else if (vix < 14 && sofrEffr < 3) {
-              riskStatus = 'Basso';
-              riskColor = 'text-green-400';
-              riskIcon = TrendingUp;
+            // Only calculate if we have valid data
+            if (vix !== null && sofrEffr !== null) {
+              if (vix > 22 || sofrEffr > 10) {
+                riskStatus = 'Elevato';
+                riskColor = 'text-red-400';
+                riskIcon = AlertTriangle;
+              } else if (vix > 16 || sofrEffr > 5) {
+                riskStatus = 'Moderato';
+                riskColor = 'text-yellow-400';
+                riskIcon = Eye;
+              } else if (vix >= 14 || sofrEffr >= 3) { // FIXED: Cover 14-16 range
+                riskStatus = 'Normale';
+                riskColor = 'text-blue-400';
+                riskIcon = Activity;
+              } else {
+                riskStatus = 'Basso';
+                riskColor = 'text-green-400';
+                riskIcon = TrendingUp;
+              }
             }
             
-            // Liquidity assessment
-            let liquidityStatus = 'Equilibrata';
-            let liquidityColor = 'text-blue-400';
+            // Liquidity assessment - SAFE NULL HANDLING
+            let liquidityStatus = 'Dati Mancanti';
+            let liquidityColor = 'text-slate-400';
             let liquidityIcon = Activity;
             
-            if (bsDelta > 10000 && parseFloat(rrpDelta) < -20) {
-              liquidityStatus = 'Espansiva';
-              liquidityColor = 'text-green-400';
-              liquidityIcon = TrendingUp;
-            } else if (bsDelta < -10000 || parseFloat(rrpDelta) > 20) {
-              liquidityStatus = 'Contrattiva';
-              liquidityColor = 'text-red-400';
-              liquidityIcon = TrendingDown;
+            if (bsDelta !== null) {
+              const rrpDeltaNum = rrpDelta !== 'N/A' ? parseFloat(rrpDelta) : 0;
+              
+              if (bsDelta > 10000 && rrpDeltaNum < -20) {
+                liquidityStatus = 'Espansiva';
+                liquidityColor = 'text-green-400';
+                liquidityIcon = TrendingUp;
+              } else if (bsDelta < -10000 || rrpDeltaNum > 20) {
+                liquidityStatus = 'Contrattiva';
+                liquidityColor = 'text-red-400';
+                liquidityIcon = TrendingDown;
+              } else {
+                liquidityStatus = 'Equilibrata';
+                liquidityColor = 'text-blue-400';
+                liquidityIcon = Activity;
+              }
             }
             
-            // Outlook assessment
-            let outlookStatus = 'Stabile';
-            let outlookColor = 'text-blue-400';
-            let outlookDesc = 'Condizioni equilibrate';
+            // Outlook assessment - CONSISTENT THRESHOLDS
+            let outlookStatus = 'Dati Insufficienti';
+            let outlookColor = 'text-slate-400';
+            let outlookDesc = 'Impossibile valutare senza dati completi';
             
-            if (vix < 16 && sofrEffr < 5 && bsDelta >= 0) {
-              outlookStatus = 'Supportivo';
-              outlookColor = 'text-green-400';
-              outlookDesc = 'Ambiente favorevole risk assets';
-            } else if (vix > 20 || sofrEffr > 8) {
-              outlookStatus = 'Cautela';
-              outlookColor = 'text-yellow-400';
-              outlookDesc = 'Monitorare sviluppi stress';
-            } else if (vix > 25 || sofrEffr > 15) {
-              outlookStatus = 'Difensivo';
-              outlookColor = 'text-red-400';
-              outlookDesc = 'Priorità preservazione capitale';
+            if (vix !== null && sofrEffr !== null && bsDelta !== null) {
+              if (vix > 25 || sofrEffr > 15) {
+                outlookStatus = 'Difensivo';
+                outlookColor = 'text-red-400';
+                outlookDesc = 'Priorità preservazione capitale';
+              } else if (vix > 20 || sofrEffr > 8) {
+                outlookStatus = 'Cautela';
+                outlookColor = 'text-yellow-400';
+                outlookDesc = 'Monitorare sviluppi stress';
+              } else if (vix < 16 && sofrEffr < 5 && bsDelta >= 0) {
+                outlookStatus = 'Supportivo';
+                outlookColor = 'text-green-400';
+                outlookDesc = 'Ambiente favorevole risk assets';
+              } else {
+                outlookStatus = 'Stabile';
+                outlookColor = 'text-blue-400';
+                outlookDesc = 'Condizioni equilibrate';
+              }
             }
             
             const ScenarioIcon = scenarioIcon;
             const RiskIcon = riskIcon;
             const LiquidityIcon = liquidityIcon;
             
+            // Get explanations from existing engine
+            const balanceExplanation = getExplanation('balance_sheet');
+            const vixExplanation = getExplanation('vix');
+            const scenarioExplanation = getExplanation(scenarioLower || 'neutral');
+            
+            // Create beginner-friendly descriptions - NULL SAFE
+            let liquiditySimpleDesc = 'Dati liquidità non disponibili';
+            let liquidityDetailDesc = 'Impossibile valutare la situazione senza dati Fed completi';
+            
+            if (bsDelta !== null) {
+              const rrpDeltaNum = rrpDelta !== 'N/A' ? parseFloat(rrpDelta) : 0;
+              
+              if (bsDelta > 10000 && rrpDeltaNum < -20) {
+                liquiditySimpleDesc = 'La Fed sta pompando soldi';
+                liquidityDetailDesc = 'La Fed ha iniettato liquidità nelle banche - più soldi disponibili per prestiti e investimenti';
+              } else if (bsDelta < -10000 || rrpDeltaNum > 20) {
+                liquiditySimpleDesc = 'La Fed sta drenando soldi';
+                liquidityDetailDesc = 'La Fed sta riducendo la liquidità - meno soldi in circolazione, più difficile ottenere prestiti';
+              } else {
+                liquiditySimpleDesc = 'La Fed mantiene liquidità stabile';
+                liquidityDetailDesc = 'Nessun cambiamento significativo nella quantità di soldi in circolazione';
+              }
+            }
+            
+            // Scenario simple descriptions
+            let scenarioSimpleDesc = 'La Fed non sta aiutando né ostacolando';
+            let scenarioDetailDesc = 'Policy neutrale - mercati guidati da fondamentali economici';
+            
+            if (scenarioLower === 'stealth_qe') {
+              scenarioSimpleDesc = 'La Fed aiuta i mercati di nascosto';
+              scenarioDetailDesc = 'Supporto silenzioso - inietta liquidità senza annunciarlo ufficialmente';
+            } else if (scenarioLower === 'qe') {
+              scenarioSimpleDesc = 'La Fed aiuta attivamente i mercati';
+              scenarioDetailDesc = 'Quantitative Easing - compra titoli e pompa liquidità massiccia nel sistema';
+            } else if (scenarioLower === 'qt') {
+              scenarioSimpleDesc = 'La Fed ostacola i mercati';
+              scenarioDetailDesc = 'Quantitative Tightening - drena liquidità e mette pressione sui prezzi';
+            }
+            
+            // Risk simple descriptions - NULL SAFE
+            let riskSimpleDesc = 'Dati rischio non disponibili';
+            let riskDetailDesc = 'Impossibile valutare il nervosismo del mercato senza dati VIX';
+            
+            if (vix !== null && sofrEffr !== null) {
+              if (vix > 22 || sofrEffr > 10) {
+                riskSimpleDesc = 'I mercati sono molto nervosi';
+                riskDetailDesc = 'Alta volatilità - investitori spaventati, possibili forti movimenti di prezzo';
+              } else if (vix > 16 || sofrEffr > 5) {
+                riskSimpleDesc = 'I mercati sono un po\' nervosi';
+                riskDetailDesc = 'Volatilità moderata - primi segnali di cautela tra gli investitori';
+              } else if (vix >= 14 || sofrEffr >= 3) {
+                riskSimpleDesc = 'I mercati sono tranquilli';
+                riskDetailDesc = 'Volatilità normale - investitori non sono particolarmente spaventati';
+              } else {
+                riskSimpleDesc = 'I mercati sono molto calmi';
+                riskDetailDesc = 'Volatilità bassa - investitori fiduciosi, possibile eccessiva tranquillità';
+              }
+            }
+            
+            // Outlook simple descriptions - NULL SAFE
+            let outlookSimpleDesc = 'Impossibile valutare momento';
+            let outlookDetailDesc = 'Servono dati completi per dare indicazioni sul timing investimenti';
+            
+            if (vix !== null && sofrEffr !== null && bsDelta !== null) {
+              if (vix > 25 || sofrEffr > 15) {
+                outlookSimpleDesc = 'Momento difficile - proteggere capitale';
+                outlookDetailDesc = 'Alta tensione - priorità alla sicurezza, evitare investimenti rischiosi';
+              } else if (vix > 20 || sofrEffr > 8) {
+                outlookSimpleDesc = 'Momento di cautela negli investimenti';
+                outlookDetailDesc = 'Segnali di stress - meglio essere prudenti e monitorare sviluppi';
+              } else if (vix < 16 && sofrEffr < 5 && bsDelta >= 0) {
+                outlookSimpleDesc = 'Buon momento per investimenti rischiosi';
+                outlookDetailDesc = 'Ambiente supportivo - liquidità abbondante e mercati calmi favoriscono crescita';
+              } else {
+                outlookSimpleDesc = 'Momento normale per investire';
+                outlookDetailDesc = 'Condizioni equilibrate - né particolarmente favorevoli né sfavorevoli';
+              }
+            }
+            
             return (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {/* Card 1: Liquidità Fed */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Card 1: Liquidità Fed - BEGINNER FRIENDLY */}
                 <div className="bg-slate-900/60 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all group">
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`p-2 rounded-md bg-slate-800 group-hover:bg-emerald-900/30 transition-colors`}>
                       <LiquidityIcon className={`h-4 w-4 ${liquidityColor} transition-colors`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs text-slate-400 uppercase tracking-wide">Liquidità</div>
-                      <div className={`text-sm font-semibold ${liquidityColor}`}>{liquidityStatus}</div>
+                      <div className="text-xs text-slate-400 uppercase tracking-wide">Liquidità Fed</div>
+                      <div className={`text-sm font-semibold ${liquidityColor}`}>{liquiditySimpleDesc}</div>
                     </div>
                   </div>
-                  <div className="space-y-1 text-xs text-slate-400">
-                    <div>Balance Sheet: ${balanceSheet}T</div>
-                    <div>Δ 4w: {bsDelta > 0 ? '+' : ''}{(bsDelta/1000).toFixed(1)}B</div>
-                    <div>RRP Δ: {rrpDelta}B</div>
+                  <div className="text-xs text-slate-300 leading-relaxed">
+                    {liquidityDetailDesc}
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-slate-700 text-xs text-slate-500">
+                    💰 Balance Sheet: ${balanceSheet}T {bsDelta !== null ? (bsDelta > 0 ? '(+' + (bsDelta/1000).toFixed(1) + 'B)' : bsDelta < 0 ? '(' + (bsDelta/1000).toFixed(1) + 'B)' : '(stabile)') : '(dati mancanti)'}
                   </div>
                 </div>
 
-                {/* Card 2: Scenario Fed */}
+                {/* Card 2: Scenario Fed - BEGINNER FRIENDLY */}
                 <div className="bg-slate-900/60 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all group">
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`p-2 rounded-md bg-slate-800 group-hover:bg-emerald-900/30 transition-colors`}>
                       <ScenarioIcon className={`h-4 w-4 ${scenarioColor} transition-colors`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs text-slate-400 uppercase tracking-wide">Scenario</div>
-                      <div className={`text-sm font-semibold ${scenarioColor}`}>{scenarioStatus}</div>
+                      <div className="text-xs text-slate-400 uppercase tracking-wide">Scenario Fed</div>
+                      <div className={`text-sm font-semibold ${scenarioColor}`}>{scenarioSimpleDesc}</div>
                     </div>
                   </div>
-                  <div className="space-y-1 text-xs text-slate-400">
-                    <div>Policy: {scenarioLower === 'stealth_qe' ? 'Supportiva nascosta' : 
-                                   scenarioLower === 'qe' ? 'Espansiva attiva' :
-                                   scenarioLower === 'qt' ? 'Restrittiva' : 'Neutrale'}</div>
-                    <div>Durata: {scenarioLower === 'qe' ? 'Temporanea' : 'Medio termine'}</div>
+                  <div className="text-xs text-slate-300 leading-relaxed">
+                    {scenarioDetailDesc}
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-slate-700 text-xs text-slate-500">
+                    ⚡ Policy: {scenarioStatus} {scenarioLower === 'qe' ? '(Temporanea)' : '(Medio termine)'}
                   </div>
                 </div>
 
-                {/* Card 3: Risk Level */}
+                {/* Card 3: Risk Level - BEGINNER FRIENDLY */}
                 <div className="bg-slate-900/60 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all group">
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`p-2 rounded-md bg-slate-800 group-hover:bg-emerald-900/30 transition-colors`}>
                       <RiskIcon className={`h-4 w-4 ${riskColor} transition-colors`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs text-slate-400 uppercase tracking-wide">Risk Level</div>
-                      <div className={`text-sm font-semibold ${riskColor}`}>{riskStatus}</div>
+                      <div className="text-xs text-slate-400 uppercase tracking-wide">Livello Paura</div>
+                      <div className={`text-sm font-semibold ${riskColor}`}>{riskSimpleDesc}</div>
                     </div>
                   </div>
-                  <div className="space-y-1 text-xs text-slate-400">
-                    <div>VIX: {vix.toFixed(1)} {vix > 22 ? '(Alto)' : vix > 16 ? '(Medio)' : '(Basso)'}</div>
-                    <div>SOFR-EFFR: {sofrEffr.toFixed(1)}bps</div>
-                    <div>HY OAS: {hyOAS.toFixed(1)}%</div>
+                  <div className="text-xs text-slate-300 leading-relaxed">
+                    {riskDetailDesc}
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-slate-700 text-xs text-slate-500">
+                    📊 Fear Index (VIX): {vix !== null ? vix.toFixed(1) + ' ' + (vix > 22 ? '😰 Alto' : vix > 16 ? '😐 Medio' : '😌 Basso') : 'N/A (dati mancanti)'}
                   </div>
                 </div>
 
-                {/* Card 4: Market Outlook */}
+                {/* Card 4: Market Outlook - BEGINNER FRIENDLY */}
                 <div className="bg-slate-900/60 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all group">
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`p-2 rounded-md bg-slate-800 group-hover:bg-emerald-900/30 transition-colors`}>
                       <Target className={`h-4 w-4 ${outlookColor} transition-colors`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs text-slate-400 uppercase tracking-wide">Outlook</div>
-                      <div className={`text-sm font-semibold ${outlookColor}`}>{outlookStatus}</div>
+                      <div className="text-xs text-slate-400 uppercase tracking-wide">Momento Investimenti</div>
+                      <div className={`text-sm font-semibold ${outlookColor}`}>{outlookSimpleDesc}</div>
                     </div>
                   </div>
-                  <div className="text-xs text-slate-400">
-                    {outlookDesc}
+                  <div className="text-xs text-slate-300 leading-relaxed">
+                    {outlookDetailDesc}
                   </div>
-                  <div className="mt-2 text-xs text-slate-500">
-                    {vix < 16 && sofrEffr < 5 ? '📈 Risk-on environment' :
-                     vix > 22 || sofrEffr > 10 ? '📉 Risk-off mode' :
-                     '⚖️ Mixed signals'}
+                  <div className="mt-2 pt-2 border-t border-slate-700 text-xs text-slate-500">
+                    {vix !== null && sofrEffr !== null ? 
+                      (vix < 16 && sofrEffr < 5 ? '📈 Ambiente Risk-On (favorevole)' :
+                       vix > 22 || sofrEffr > 10 ? '📉 Ambiente Risk-Off (difensivo)' :
+                       '⚖️ Segnali misti (prudenza)') :
+                      '❓ Dati insufficienti per valutazione'}
                   </div>
                 </div>
               </div>
@@ -856,4 +961,4 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
       </CardContent>
     </Card>
   );
-}
+};
