@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Minus, LineChart, AlertTriangle, Info, Target, Eye, BarChart3, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, LineChart, AlertTriangle, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -10,359 +10,407 @@ interface ScenarioCardProps {
   currentData?: FedData | null;
 }
 
-// Bloomberg-style scenario configurations
-const getScenarioConfig = (scenario: string, data: FedData | null) => {
-  const balanceSheet = data?.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
-  const bs_delta = data?.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
-  const sofr_effr = data?.sofr_effr_spread?.toFixed(1) ?? 'N/A';
-  const vix = data?.vix ?? 'N/A';
-  const hyOAS = data?.hy_oas ?? 'N/A';
-  const rrp_delta = data?.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
-  const res_delta = data?.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
+const scenarioConfig = {
+  stealth_qe: {
+    label: "Stealth QE",
+    color: "success",
+    icon: TrendingUp,
+    description: "Espansione bilancio Fed con spread contratti",
+    getAnalysis: (data: FedData | null) => {
+      if (!data) return "La Fed sta espandendo il proprio bilancio in modo silenzioso, iniettando liquidità nel sistema finanziario.";
+      
+      const balanceSheet = data.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const rrp_delta = data.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const vix = data.vix ?? 'N/A';
+      
+      return `STEALTH QE ATTIVA: Balance Sheet $${balanceSheet}T (+${bs_delta}B in 4w).
 
-  const configs = {
-    qt: {
-      label: "Quantitative Tightening",
-      shortLabel: "QT",
-      color: "destructive",
-      gradient: "from-red-500 to-red-600",
-      icon: TrendingDown,
-      
-      // Top metric (most important)
-      topMetric: {
-        label: "Balance Sheet",
-        value: `$${balanceSheet}T`,
-        change: `${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B`,
-        period: "4w",
-        trend: parseFloat(bs_delta) < 0 ? "down" : "up"
-      },
-      
-      // Risk assessment
-      risk: {
-        level: parseFloat(sofr_effr) > 15 ? "HIGH" : parseFloat(sofr_effr) > 10 ? "MEDIUM" : "LOW",
-        color: parseFloat(sofr_effr) > 15 ? "red" : parseFloat(sofr_effr) > 10 ? "yellow" : "green"
-      },
-      
-      // Key metrics table
-      metrics: [
-        { label: "SOFR-EFFR", value: `${sofr_effr}bps`, status: parseFloat(sofr_effr) > 15 ? "STRESS" : "Normal" },
-        { label: "Reserve Drain", value: `${res_delta}B`, status: parseFloat(res_delta) < -20 ? "AGGRESSIVE" : "Moderate" },
-        { label: "VIX", value: vix, status: parseFloat(vix.toString()) > 22 ? "Elevated" : "Normal" },
-        { label: "HY OAS", value: `${hyOAS}%`, status: parseFloat(hyOAS.toString()) > 5.5 ? "Stress" : "Stable" }
-      ],
-      
-      // Headline (concise explanation)
-      headline: "Fed riduce il bilancio. Liquidità esce dal sistema. Meno soldi → Asset rischiosi soffrono.",
-      
-      // Action cards (3 concrete steps)
-      actions: [
-        { icon: "📊", title: "Riduci", subtitle: "equity", detail: "-20%" },
-        { icon: "📈", title: "Long", subtitle: "Treasury", detail: "3-6m" },
-        { icon: "🛑", title: "Close", subtitle: "crypto 2x+", detail: "" }
-      ],
-      
-      // Exit signals
-      exitSignals: [
-        "SOFR-EFFR: < 5bps",
-        "RRP: > $30B spike", 
-        "BS Trend: Positivo"
-      ]
-    },
-    
-    stealth_qe: {
-      label: "Stealth QE",
-      shortLabel: "Stealth QE",
-      color: "warning",
-      gradient: "from-yellow-500 to-yellow-600",
-      icon: TrendingUp,
-      
-      topMetric: {
-        label: "Balance Sheet",
-        value: `$${balanceSheet}T`,
-        change: `+${bs_delta}B`,
-        period: "4w",
-        trend: "up"
-      },
-      
-      risk: {
-        level: parseFloat(vix.toString()) < 16 ? "LOW" : "MEDIUM",
-        color: parseFloat(vix.toString()) < 16 ? "green" : "yellow"
-      },
-      
-      metrics: [
-        { label: "RRP Drain", value: `${Math.abs(parseFloat(rrp_delta))}B`, status: "Fed inietta" },
-        { label: "SOFR-EFFR", value: `${sofr_effr}bps`, status: "Basso stress" },
-        { label: "VIX", value: vix, status: parseFloat(vix.toString()) < 16 ? "Bullish" : "Cauto" },
-        { label: "Reserves", value: `+${res_delta}B`, status: "Crescita" }
-      ],
-      
-      headline: "Fed pompa liquidità nascosto. Bilancio cresce + RRP drena = Più soldi per banche.",
-      
-      actions: [
-        { icon: "📈", title: "Long", subtitle: "equity", detail: "+20%" },
-        { icon: "🚀", title: "Long", subtitle: "crypto", detail: "momentum" },
-        { icon: "🏢", title: "Buy", subtitle: "small-cap", detail: "liquidità" }
-      ],
-      
-      exitSignals: [
-        "RRP: Starts rising",
-        "BS: Turns negative",
-        "SOFR-EFFR: > 15bps"
-      ]
-    },
-    
-    qe: {
-      label: "Quantitative Easing",
-      shortLabel: "QE",
-      color: "success",
-      gradient: "from-green-500 to-green-600",
-      icon: TrendingUp,
-      
-      topMetric: {
-        label: "Balance Sheet",
-        value: `$${balanceSheet}T`,
-        change: `+${bs_delta}B`,
-        period: "4w",
-        trend: "up"
-      },
-      
-      risk: {
-        level: "LOW",
-        color: "green"
-      },
-      
-      metrics: [
-        { label: "Reserve Flood", value: `+${res_delta}B`, status: "MASSIVE" },
-        { label: "SOFR-EFFR", value: `${sofr_effr}bps`, status: "Suppressed" },
-        { label: "VIX", value: vix, status: parseFloat(vix.toString()) < 20 ? "Euphoria" : "Cauto" },
-        { label: "RRP", value: `${Math.abs(parseFloat(rrp_delta))}B`, status: "Overflow" }
-      ],
-      
-      headline: "Fed annuncia ufficialmente QE. Massima espansione monetaria. Asset prices to the moon.",
-      
-      actions: [
-        { icon: "🚀", title: "MAX", subtitle: "equity", detail: "+40%" },
-        { icon: "💎", title: "MAX", subtitle: "crypto", detail: "parabolic" },
-        { icon: "🥇", title: "Long", subtitle: "oro/commodities", detail: "inflazione" }
-      ],
-      
-      exitSignals: [
-        "Fed: Tapering talk",
-        "Inflation: > 6%",
-        "VIX: > 25"
-      ]
-    },
-    
-    neutral: {
-      label: "Neutrale",
-      shortLabel: "Neutral",
-      color: "secondary",
-      gradient: "from-blue-500 to-blue-600",
-      icon: Minus,
-      
-      topMetric: {
-        label: "Balance Sheet",
-        value: `$${balanceSheet}T`,
-        change: `${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B`,
-        period: "4w",
-        trend: "flat"
-      },
-      
-      risk: {
-        level: "MEDIUM",
-        color: "blue"
-      },
-      
-      metrics: [
-        { label: "SOFR-EFFR", value: `${sofr_effr}bps`, status: "Normal range" },
-        { label: "Reserves", value: `${res_delta}B`, status: "Stable" },
-        { label: "VIX", value: vix, status: parseFloat(vix.toString()) < 18 ? "Calm" : "Cautious" },
-        { label: "RRP", value: `${Math.abs(parseFloat(rrp_delta))}B`, status: "Equilibrium" }
-      ],
-      
-      headline: "Fed non sta né pompando né drenando liquidità. Mercati guidati da fondamentali normali.",
-      
-      actions: [
-        { icon: "📊", title: "Focus", subtitle: "stock picking", detail: "earnings" },
-        { icon: "⚖️", title: "Diversify", subtitle: "60/40", detail: "balanced" },
-        { icon: "📈", title: "Follow", subtitle: "macro data", detail: "GDP/jobs" }
-      ],
-      
-      exitSignals: [
-        "BS: > ±$50B shift",
-        "SOFR-EFFR: > 20bps",
-        "Fed: Policy change"
-      ]
-    }
-  };
+RRP drena ${Math.abs(parseFloat(rrp_delta))}B = Fed inietta liquidità nascosta.
 
-  return configs[scenario as keyof typeof configs] || configs.neutral;
-};
+SOFR-EFFR: ${sofr_effr}bps - Spread bassi = nessuna tensione.
 
-// Sparkline component
-const Sparkline = ({ values, color }: { values: number[], color: string }) => {
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const range = max - min || 1;
-  
-  return (
-    <div className="flex items-end gap-0.5 h-8">
-      {values.map((value, index) => {
-        const height = ((value - min) / range) * 100;
-        return (
-          <div
-            key={index}
-            className={`w-1 bg-${color}-500/60 rounded-sm`}
-            style={{ height: `${Math.max(height, 10)}%` }}
-          />
-        );
-      })}
-    </div>
-  );
+VIX: ${vix} ${parseFloat(vix.toString()) < 16 ? 'BULLISH - Mercato calmo' : 'Cauto'}.
+
+AZIONE: Long equity (+20%), long crypto, compra small-cap, evita USD strength.`;
+    },
+    getIndicators: (data: FedData | null) => {
+      if (!data) return [
+        { icon: TrendingUp, label: "Bilancio Fed", status: "In crescita" },
+        { icon: LineChart, label: "Spread SOFR-IORB", status: "< 10 bps" },
+        { icon: TrendingUp, label: "Riserve bancarie", status: "In aumento" }
+      ];
+      
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const rrp_delta = data.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      
+      return [
+        { icon: TrendingUp, label: "Balance Sheet", status: `+${bs_delta}B (4w) Espansione` },
+        { icon: TrendingDown, label: "RRP Drain", status: `${rrp_delta}B Fed inietta` },
+        { icon: LineChart, label: "SOFR-EFFR", status: `${sofr_effr}bps Basso stress` }
+      ];
+    },
+    bgClass: "bg-success/5 border-success/30",
+    textClass: "text-success",
+    badgeVariant: "default" as const,
+  },
+  qe: {
+    label: "Quantitative Easing",
+    color: "success",
+    icon: TrendingUp,
+    description: "Espansione monetaria attiva da parte della Fed",
+    getAnalysis: (data: FedData | null) => {
+      if (!data) return "La Federal Reserve sta attivamente espandendo il proprio bilancio attraverso acquisti di titoli, iniettando massiccia liquidità nel sistema bancario.";
+      
+      const balanceSheet = data.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const reserves_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
+      const vix = data.vix ?? 'N/A';
+      
+      return `QE COMPLETO - STAMPA MONETA: Balance Sheet $${balanceSheet}T (+${bs_delta}B AGGRESSIVA espansione).
+
+Riserve flood: +${reserves_delta}B in 4w = liquidità massiccia.
+
+VIX: ${vix} ${parseFloat(vix.toString()) < 20 ? 'EUPHORIA MODE' : 'Cauto nonostante QE'}.
+
+AZIONE: MAX long equity (+40%), MAX long crypto, long oro/commodities, evita cash.`;
+    },
+    getIndicators: (data: FedData | null) => {
+      if (!data) return [
+        { icon: TrendingUp, label: "Bilancio Fed", status: "Forte crescita" },
+        { icon: TrendingUp, label: "Acquisti attivi", status: "Treasury/MBS" },
+        { icon: TrendingUp, label: "Riserve bancarie", status: "Rapida espansione" }
+      ];
+      
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const res_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
+      const rrp_value = data.rrpontsyd ? (data.rrpontsyd/1000).toFixed(1) : 'N/A';
+      
+      return [
+        { icon: TrendingUp, label: "Balance Sheet", status: `+${bs_delta}B AGGRESSIVA` },
+        { icon: TrendingUp, label: "Riserve Flood", status: `+${res_delta}B Massiccia` },
+        { icon: TrendingUp, label: "RRP Overflow", status: `${rrp_value}B Liquidità` }
+      ];
+    },
+    bgClass: "bg-success/5 border-success/30",
+    textClass: "text-success",
+    badgeVariant: "default" as const,
+  },
+  qt: {
+    label: "Quantitative Tightening",
+    color: "destructive",
+    icon: TrendingDown,
+    description: "Contrazione del bilancio Fed",
+    getAnalysis: (data: FedData | null) => {
+      if (!data) return "La Fed sta riducendo il proprio bilancio lasciando scadere i titoli senza reinvestirli, drenando liquidità dal sistema finanziario.";
+      
+      const balanceSheet = data.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const vix = data.vix ?? 'N/A';
+      
+      return `CONTRAZIONE ATTIVA: Balance Sheet $${balanceSheet}T (${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B in 4w).
+
+SOFR-EFFR spread: ${sofr_effr}bps ${parseFloat(sofr_effr) > 10 ? 'STRESS RILEVATO' : 'Controllato'}.
+
+VIX: ${vix} ${parseFloat(vix.toString()) > 22 ? 'Mercato nervoso' : 'Situazione gestibile'}.
+
+AZIONE: Riduci equity (-20%), aumenta Treasury short-term (+15%), evita leverage.`;
+    },
+    getIndicators: (data: FedData | null) => {
+      if (!data) return [
+        { icon: TrendingDown, label: "Bilancio Fed", status: "In contrazione" },
+        { icon: TrendingDown, label: "Riserve bancarie", status: "In calo" },
+        { icon: TrendingUp, label: "Spread SOFR-IORB", status: "> 15 bps" },
+        { icon: AlertTriangle, label: "Liquidità", status: "Tensioni possibili" }
+      ];
+      
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const res_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const rrp_delta = data.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
+      
+      return [
+        { icon: TrendingDown, label: "Bilancio Fed", status: `${bs_delta}B (4w) ${parseFloat(bs_delta) < -50 ? 'Aggressiva' : 'Moderata'}` },
+        { icon: TrendingDown, label: "Riserve", status: `${res_delta}B (4w) ${parseFloat(res_delta) < -20 ? 'Calo forte' : 'Calo normale'}` },
+        { icon: TrendingUp, label: "SOFR-EFFR", status: `${sofr_effr}bps ${parseFloat(sofr_effr) > 15 ? 'Stress' : 'Normale'}` },
+        { icon: AlertTriangle, label: "RRP", status: `${rrp_delta}B ${Math.abs(parseFloat(rrp_delta)) > 20 ? 'Spike' : 'Normale'}` }
+      ];
+    },
+    bgClass: "bg-destructive/5 border-destructive/30",
+    textClass: "text-destructive",
+    badgeVariant: "destructive" as const,
+  },
+  neutral: {
+    label: "Neutrale",
+    color: "warning",
+    icon: Minus,
+    description: "Condizioni monetarie stabili",
+    getAnalysis: (data: FedData | null) => {
+      if (!data) return "La Fed mantiene una politica neutrale senza espandere né contrarre significativamente il bilancio.";
+      
+      const balanceSheet = data.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const vix = data.vix ?? 'N/A';
+      
+      return `NEUTRALE - EQUILIBRIO: Balance Sheet $${balanceSheet}T (${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B stabile).
+
+SOFR-EFFR: ${sofr_effr}bps - Range normale (5-15bps).
+
+VIX: ${vix} ${parseFloat(vix.toString()) < 18 ? 'CALM - Mercato stabile' : 'Cautela'}.
+
+AZIONE: Focus stock picking, diversificazione bilanciata, segui dati macro.`;
+    },
+    getIndicators: (data: FedData | null) => {
+      if (!data) return [
+        { icon: Minus, label: "Bilancio Fed", status: "Stabile" },
+        { icon: LineChart, label: "Spread SOFR-IORB", status: "5-15 bps (normale)" },
+        { icon: Minus, label: "Riserve bancarie", status: "Stabili" }
+      ];
+      
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const rrp_value = data.rrpontsyd ? (data.rrpontsyd/1000).toFixed(1) : 'N/A';
+      
+      return [
+        { icon: Minus, label: "Balance Sheet", status: `${parseFloat(bs_delta) > 0 ? '+' : ''}${bs_delta}B Stabile` },
+        { icon: LineChart, label: "SOFR-EFFR", status: `${sofr_effr}bps Normale` },
+        { icon: Info, label: "RRP", status: `${rrp_value}B Equilibrato` }
+      ];
+    },
+    bgClass: "bg-warning/5 border-warning/30",
+    textClass: "text-warning",
+    badgeVariant: "secondary" as const,
+  },
+  contraction: {
+    label: "Contrazione",
+    color: "destructive",
+    icon: TrendingDown,
+    description: "Contrazione aggressiva della liquidità",
+    getAnalysis: (data: FedData | null) => {
+      if (!data) return "La Fed sta attuando una politica di contrazione aggressiva, drenando liquidità dal sistema.";
+      
+      const balanceSheet = data.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      const vix = data.vix ?? 'N/A';
+      
+      return `CONTRAZIONE AGGRESSIVA: Balance Sheet $${balanceSheet}T (${bs_delta}B forte calo).
+
+SOFR-EFFR: ${sofr_effr}bps ${parseFloat(sofr_effr) > 20 ? 'STRESS ELEVATO' : 'Tensione'}.
+
+VIX: ${vix} ${parseFloat(vix.toString()) > 25 ? 'PANIC MODE' : 'Nervosismo'}.
+
+AZIONE: Massima cautela, cash+Treasury, short risk assets, long USD.`;
+    },
+    getIndicators: (data: FedData | null) => {
+      if (!data) return [
+        { icon: TrendingDown, label: "Bilancio Fed", status: "Contrazione forte" },
+        { icon: TrendingDown, label: "Riserve bancarie", status: "In forte calo" },
+        { icon: TrendingUp, label: "Spread SOFR-IORB", status: "> 20 bps" }
+      ];
+      
+      const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const res_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
+      const sofr_effr = data.sofr_effr_spread?.toFixed(1) ?? 'N/A';
+      
+      return [
+        { icon: TrendingDown, label: "Balance Sheet", status: `${bs_delta}B FORTE calo` },
+        { icon: TrendingDown, label: "Riserve", status: `${res_delta}B Drenaggio` },
+        { icon: AlertTriangle, label: "SOFR-EFFR", status: `${sofr_effr}bps STRESS` }
+      ];
+    },
+    bgClass: "bg-destructive/5 border-destructive/30",
+    textClass: "text-destructive",
+    badgeVariant: "destructive" as const,
+  },
 };
 
 export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
-  const config = getScenarioConfig(scenario || 'neutral', currentData);
+  const config = scenarioConfig[scenario as keyof typeof scenarioConfig] || scenarioConfig.neutral;
   const Icon = config.icon;
 
-  // Generate mock sparkline data based on trend
-  const generateSparkline = (trend: string) => {
-    const base = [45, 42, 48, 44, 46, 43, 47, 45];
-    if (trend === 'up') return base.map((v, i) => v + i * 2);
-    if (trend === 'down') return base.map((v, i) => v - i * 2);
-    return base;
-  };
-
-  const sparklineData = generateSparkline(config.topMetric.trend);
+  // Calcola qualificatori scenario se abbiamo i dati
+  let scenarioState: ScenarioState | null = null;
+  if (currentData) {
+    try {
+      scenarioState = deriveScenario({
+        walcl: currentData.walcl || 0,
+        dWalcl_4w: currentData.d_walcl_4w || 0,
+        wresbal: currentData.wresbal || 0,
+        dWresbal_4w: currentData.d_wresbal_4w || 0,
+        rrpon: currentData.rrpontsyd || 0,
+        dRrpon_4w: currentData.d_rrpontsyd_4w || 0,
+        sofr: currentData.sofr || 0,
+        iorb: currentData.iorb || 0,
+        vix: currentData.vix || 20, // Default neutrale
+        hyOAS: currentData.hy_oas || 4.5, // Default neutrale
+        t10y3m: currentData.t10y3m || 1, // Default neutrale
+        dT10y3m_4w: currentData.d_t10y3m_4w || 0,
+        dxyBroad: currentData.dxy_broad || 100, // Default neutrale
+        dDxy_4w: currentData.d_dxy_4w || 0
+      });
+    } catch (error) {
+      console.warn('Error calculating scenario qualifiers:', error);
+    }
+  }
 
   return (
-    <Card className="bg-slate-900 border-slate-700 hover:border-slate-600 transition-all duration-300 relative overflow-hidden">
-      {/* Top gradient bar */}
-      <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${config.gradient}`}></div>
+    <Card className="bg-slate-800 border-slate-600 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 relative overflow-hidden">
+      {/* Data Processing Animation - Light Beam Perimeter */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-300 to-transparent animate-pulse shadow-lg shadow-emerald-400/50" style={{animationDuration: '2s'}}></div>
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-300 to-transparent animate-pulse shadow-lg shadow-emerald-400/50" style={{animationDuration: '2.5s', animationDelay: '0.5s'}}></div>
+      <div className="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-transparent via-emerald-300 to-transparent animate-pulse shadow-lg shadow-emerald-400/50" style={{animationDuration: '3s', animationDelay: '1s'}}></div>
+      <div className="absolute right-0 top-0 w-1 h-full bg-gradient-to-b from-transparent via-emerald-300 to-transparent animate-pulse shadow-lg shadow-emerald-400/50" style={{animationDuration: '2.8s', animationDelay: '1.5s'}}></div>
       
-      {/* Live indicator */}
-      <div className="absolute top-3 right-4 flex items-center gap-1">
-        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
-        <span className="text-xs text-emerald-400 font-mono">LIVE</span>
+      {/* Flowing Data Stream */}
+      <div className="absolute top-2 right-4 flex items-center gap-1 opacity-80">
+        <div className="w-1 h-1 bg-emerald-400 rounded-full animate-ping delay-100"></div>
+        <div className="w-1 h-1 bg-emerald-400 rounded-full animate-ping delay-300"></div>
+        <div className="w-1 h-1 bg-emerald-400 rounded-full animate-ping delay-500"></div>
+        <span className="text-xs text-emerald-400 font-mono ml-2 animate-pulse">LIVE</span>
       </div>
-
-      <CardContent className="p-6 space-y-6">
-        {/* Header with icon and name */}
-        <div className="flex items-center gap-3">
-          <div className={`p-3 rounded-lg bg-gradient-to-br ${config.gradient}`}>
-            <Icon className="h-6 w-6 text-white" />
+      
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium text-slate-300 uppercase tracking-wider">
+            Scenario di Mercato Attuale
+          </CardTitle>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        {/* Hero Section */}
+        <div className="flex items-start gap-4">
+          <div className={`p-4 rounded-xl ${config.bgClass} ring-2 ring-${config.color}/20`}>
+            <Icon className={`h-10 w-10 ${config.textClass}`} />
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-white">{config.shortLabel}</h2>
-            <p className="text-sm text-slate-400">{config.label}</p>
+          <div className="flex-1 space-y-1">
+            <h3 className="text-3xl font-bold text-white">
+              {config.label}
+            </h3>
+            <p className="text-base text-slate-200">
+              {config.description}
+            </p>
           </div>
         </div>
 
-        {/* Top metric dashboard */}
-        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-sm text-slate-400 mb-1">{config.topMetric.label}</p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-white">{config.topMetric.value}</span>
-                <span className={`text-sm font-medium ${
-                  config.topMetric.trend === 'up' ? 'text-green-400' : 
-                  config.topMetric.trend === 'down' ? 'text-red-400' : 'text-slate-400'
-                }`}>
-                  {config.topMetric.change} ({config.topMetric.period})
-                </span>
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <Badge variant={config.risk.color === 'red' ? 'destructive' : 
-                             config.risk.color === 'yellow' ? 'secondary' : 'default'}>
-                Risk: {config.risk.level}
+        {/* Scenario Qualifiers */}
+        {scenarioState && (
+          <>
+            <div className="flex flex-wrap gap-2">
+              {/* Context Badge */}
+              <Badge className={`${getContextColor(scenarioState.context)} border`}>
+                {scenarioState.context.replace('_', ' ').toUpperCase()}
               </Badge>
-              <Sparkline values={sparklineData} color={config.risk.color} />
+              
+              {/* Risk Level Badge */}
+              <Badge className={`${getRiskColor(scenarioState.risk_level)} border`}>
+                Rischio: {scenarioState.risk_level.toUpperCase()}
+              </Badge>
+              
+              {/* Sustainability Badge */}
+              <Badge variant="outline" className="text-slate-300">
+                Sostenibilità: {scenarioState.sustainability.toUpperCase()}
+              </Badge>
+              
+              {/* Confidence Badge */}
+              <Badge variant="outline" className="text-slate-300">
+                Confidenza: {scenarioState.confidence.toUpperCase()}
+              </Badge>
             </div>
-          </div>
-        </div>
 
-        {/* Key metrics table */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            KEY METRICS
-          </h3>
-          <div className="space-y-2">
-            {config.metrics.map((metric, index) => (
-              <div key={index} className="flex justify-between items-center py-2 border-b border-slate-800 last:border-b-0">
-                <span className="text-sm text-slate-400">{metric.label}</span>
-                <div className="text-right">
-                  <span className="text-sm font-mono text-white">{metric.value}</span>
-                  <span className={`ml-2 text-xs px-2 py-0.5 rounded ${
-                    metric.status.includes('STRESS') || metric.status.includes('AGGRESSIVE') ? 
-                    'bg-red-500/20 text-red-400' :
-                    metric.status.includes('Bullish') || metric.status.includes('MASSIVE') ?
-                    'bg-green-500/20 text-green-400' :
-                    'bg-slate-700 text-slate-300'
-                  }`}>
-                    {metric.status}
-                  </span>
+            {/* Warning Banner per Risk Elevato */}
+            {scenarioState.risk_level !== 'normale' && (
+              <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h5 className="font-semibold text-red-400 text-sm">Attenzione Investitori</h5>
+                  <p className="text-sm text-red-300">
+                    Questo pattern è associato a stress di mercato. La liquidità può sostenere i prezzi 
+                    temporaneamente ma non significa risk-on sostenibile. Valuta sempre risk management appropriato.
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            )}
 
-        {/* Headline */}
-        <div className="bg-slate-800/30 rounded-lg p-4 border-l-4 border-slate-600">
-          <p className="text-sm text-slate-200 leading-relaxed">
-            {config.headline}
-          </p>
-        </div>
-
-        {/* Action cards */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            COSA FARE ORA
-          </h3>
-          <div className="grid grid-cols-3 gap-3">
-            {config.actions.map((action, index) => (
-              <div key={index} className="bg-slate-800/50 rounded-lg p-3 border border-slate-700 hover:border-slate-600 transition-colors">
-                <div className="text-center">
-                  <div className="text-lg mb-1">{action.icon}</div>
-                  <div className="text-sm font-semibold text-white">{action.title}</div>
-                  <div className="text-xs text-slate-400">{action.subtitle}</div>
-                  {action.detail && (
-                    <div className="text-xs text-slate-500 mt-1">{action.detail}</div>
-                  )}
+            {/* Drivers List */}
+            {scenarioState.drivers.length > 0 && (
+              <div className="space-y-2">
+                <h5 className="font-semibold text-sm text-slate-300">Drivers Chiave:</h5>
+                <div className="grid gap-1">
+                  {scenarioState.drivers.map((driver, index) => (
+                    <div key={index} className="flex items-center gap-2 text-sm text-slate-400">
+                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
+                      {driver}
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
+          </>
+        )}
+
+        <Separator />
+
+        {/* Analysis Section */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-primary/10">
+              <LineChart className="h-4 w-4 text-primary" />
+            </div>
+            <h4 className="font-semibold text-sm">Analisi Situazione</h4>
+          </div>
+          <div className="text-sm text-slate-200 leading-relaxed pl-8 space-y-3">
+            {config.getAnalysis ? 
+              config.getAnalysis(currentData).split('\n\n').map((paragraph, index) => (
+                <p key={index} className="leading-relaxed">
+                  {paragraph.trim()}
+                </p>
+              )) : 
+              <p>Analisi non disponibile</p>
+            }
           </div>
         </div>
 
-        {/* Exit signals */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
-            <Eye className="h-4 w-4" />
-            MONITORA EXIT
-          </h3>
-          <div className="space-y-2">
-            {config.exitSignals.map((signal, index) => (
-              <div key={index} className="flex items-center gap-2 text-sm text-slate-400">
-                <div className="w-1.5 h-1.5 bg-slate-500 rounded-full"></div>
-                {signal}
-              </div>
-            ))}
-          </div>
-        </div>
+        <Separator />
 
-        {/* Footer */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-800">
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <DollarSign className="h-3 w-3" />
-            Real FRED data
+        {/* Indicators Grid */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-primary/10">
+              <Info className="h-4 w-4 text-primary" />
+            </div>
+            <h4 className="font-semibold text-sm">Indicatori Chiave</h4>
           </div>
-          <div className="text-xs text-slate-500">
-            15m ago
+          <div className="grid gap-3 sm:grid-cols-2 pl-8">
+            {(config.getIndicators ? config.getIndicators(currentData) : []).map((indicator, index) => {
+              const IndicatorIcon = indicator.icon;
+              return (
+                <div
+                  key={index}
+                  className="flex items-start gap-3 p-3 rounded-lg bg-card/50 border border-border/50 hover:bg-card/70 transition-all duration-300 relative"
+                >
+                  {/* Data processing indicator */}
+                  <div className="absolute top-1 right-1 w-1 h-1 bg-emerald-400/40 rounded-full animate-ping" style={{animationDelay: `${index * 200}ms`}}></div>
+                  
+                  <div className="p-1.5 rounded-md bg-muted">
+                    <IndicatorIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-white">
+                      {indicator.label}
+                    </p>
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      {indicator.status}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </CardContent>
