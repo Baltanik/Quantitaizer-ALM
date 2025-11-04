@@ -85,45 +85,6 @@ export function FedPolicyTracker({ currentData }: FedPolicyTrackerProps) {
   const policy = getPolicyDirection();
   const PolicyIcon = policy.icon;
 
-  // Calcola prossime mosse probabili
-  const getNextMoves = () => {
-    const scenario = currentData.scenario;
-    
-    switch (scenario) {
-      case 'stealth_qe':
-        return [
-          { move: 'Continua espansione bilancio', probability: 75 },
-          { move: 'Mantiene tassi bassi', probability: 85 },
-          { move: 'Aumenta liquidità', probability: 70 }
-        ];
-      case 'qe':
-        return [
-          { move: 'Accelera acquisti asset', probability: 90 },
-          { move: 'Taglia tassi ulteriormente', probability: 60 },
-          { move: 'Forward guidance dovish', probability: 85 }
-        ];
-      case 'qt':
-        return [
-          { move: 'Riduce bilancio', probability: 80 },
-          { move: 'Alza tassi', probability: 70 },
-          { move: 'Drena liquidità', probability: 75 }
-        ];
-      case 'contraction':
-        return [
-          { move: 'Continua riduzione bilancio', probability: 85 },
-          { move: 'Mantiene tassi alti', probability: 75 },
-          { move: 'Monitora inflazione', probability: 90 }
-        ];
-      default:
-        return [
-          { move: 'Mantiene status quo', probability: 60 },
-          { move: 'Monitora inflazione', probability: 80 },
-          { move: 'Data-dependent approach', probability: 90 }
-        ];
-    }
-  };
-
-  const nextMoves = getNextMoves();
 
   // Strumenti Fed attivi
   const fedTools = [
@@ -181,20 +142,6 @@ export function FedPolicyTracker({ currentData }: FedPolicyTrackerProps) {
           </div>
         </div>
 
-        {/* Prossime Mosse */}
-        <div>
-          <h4 className="font-medium text-sm mb-3">Prossime Mosse Probabili:</h4>
-          <div className="space-y-2">
-            {nextMoves.map((move, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <p className="text-sm">{move.move}</p>
-                <Badge variant="outline" className="text-xs">
-                  {move.probability}%
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

@@ -24,10 +24,31 @@ export function MarketImpact({ currentData }: MarketImpactProps) {
     );
   }
 
+  // Deriva scenario dai dati (più affidabile di currentData.scenario)
+  const deriveScenarioFromData = () => {
+    const bsDelta = currentData.d_walcl_4w || 0;
+    const rrpDelta = currentData.d_rrpontsyd_4w || 0;
+    const spread = currentData.sofr_effr_spread || 0;
+    
+    // Logica coerente con ScenarioCard
+    if (bsDelta > 10000 && rrpDelta < -20000 && spread < 0.05) {
+      return 'stealth_qe';
+    } else if (bsDelta > 50000) {
+      return 'qe';
+    } else if (bsDelta < -50000 || spread > 0.15) {
+      return 'contraction';
+    } else if (bsDelta < -10000) {
+      return 'qt';
+    } else {
+      return 'neutral';
+    }
+  };
+
   // Analizza l'impatto sui mercati
   const getMarketImpact = () => {
-    const scenario = currentData.scenario;
-    const spread = currentData.sofr_iorb_spread || 0;
+    // Usa scenario derivato dai dati come fallback
+    const scenario = currentData.scenario || deriveScenarioFromData();
+    const spread = currentData.sofr_effr_spread || 0; // FIXED: Campo corretto
     
     switch (scenario) {
       case 'stealth_qe':
@@ -72,7 +93,7 @@ export function MarketImpact({ currentData }: MarketImpactProps) {
 
   // Settori più impattati
   const getSectorImpact = () => {
-    const scenario = currentData.scenario;
+    const scenario = currentData.scenario || deriveScenarioFromData();
     
     if (scenario === 'stealth_qe' || scenario === 'qe') {
       return [
@@ -105,15 +126,17 @@ export function MarketImpact({ currentData }: MarketImpactProps) {
 
   // Risk-On vs Risk-Off
   const getRiskSentiment = () => {
-    const scenario = currentData.scenario;
-    const spread = currentData.sofr_iorb_spread || 0;
+    const scenario = currentData.scenario || deriveScenarioFromData();
+    const spread = currentData.sofr_effr_spread || 0; // FIXED: Campo corretto
+    const vix = currentData.vix || 20; // Aggiungi VIX per analisi più accurata
     
-    if ((scenario === 'stealth_qe' || scenario === 'qe') && spread < 0.15) {
-      return { sentiment: 'Risk-On', color: 'text-green-600', description: 'Liquidità abbondante favorisce risk assets' };
-    } else if ((scenario === 'qt' || scenario === 'contraction') || spread > 0.25) {
-      return { sentiment: 'Risk-Off', color: 'text-red-600', description: 'Liquidità scarsa favorisce safe haven' };
+    // FIXED: Soglie realistiche coerenti con ScenarioCard
+    if ((scenario === 'stealth_qe' || scenario === 'qe') && spread < 0.05 && vix < 18) {
+      return { sentiment: 'Risk-On', color: 'text-green-600', description: 'Liquidità abbondante e volatilità bassa favoriscono risk assets' };
+    } else if ((scenario === 'qt' || scenario === 'contraction') || spread > 0.10 || vix > 22) {
+      return { sentiment: 'Risk-Off', color: 'text-red-600', description: 'Liquidità scarsa o volatilità alta favoriscono safe haven' };
     } else {
-      return { sentiment: 'Neutrale', color: 'text-blue-600', description: 'Sentiment bilanciato' };
+      return { sentiment: 'Neutrale', color: 'text-blue-600', description: 'Sentiment bilanciato - condizioni miste' };
     }
   };
 
