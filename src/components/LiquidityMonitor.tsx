@@ -28,14 +28,21 @@ export function LiquidityMonitor({ currentData }: LiquidityMonitorProps) {
   const calculateLiquidityLevel = () => {
     const reserves = currentData.wresbal || 0;
     const spread = currentData.sofr_iorb_spread || 0;
+    const scenario = currentData.scenario;
     
-    // Normalizza riserve (0-4000 miliardi = 0-50 punti)
-    const reserveScore = Math.min((reserves / 4000) * 50, 50);
+    // Normalizza riserve (2000-4000 miliardi = 0-50 punti) - più sensibile
+    const reserveScore = Math.min(Math.max((reserves - 2000) / 2000 * 50, 0), 50);
     
-    // Normalizza spread (0-50bps invertito = 0-50 punti)
-    const spreadScore = Math.max(50 - (spread / 0.50) * 50, 0);
+    // Normalizza spread (0-30bps invertito = 0-50 punti) - più sensibile
+    const spreadScore = Math.max(50 - (spread / 0.30) * 50, 0);
     
-    return Math.round(reserveScore + spreadScore);
+    // Penalità per scenario restrittivo
+    let scenarioPenalty = 0;
+    if (scenario === 'qt' || scenario === 'contraction') {
+      scenarioPenalty = 15; // -15 punti per scenario restrittivo
+    }
+    
+    return Math.round(Math.max(reserveScore + spreadScore - scenarioPenalty, 0));
   };
 
   const liquidityLevel = calculateLiquidityLevel();
@@ -79,20 +86,20 @@ export function LiquidityMonitor({ currentData }: LiquidityMonitorProps) {
     {
       label: 'Riserve Bancarie',
       value: currentData.wresbal ? `$${(currentData.wresbal / 1000).toFixed(2)}T` : 'N/A',
-      target: '$3.0T',
-      isGood: (currentData.wresbal || 0) > 3000
+      target: '>$2.5T',
+      isGood: (currentData.wresbal || 0) > 2500
     },
     {
       label: 'Reverse Repo',
       value: currentData.rrpontsyd ? `$${(currentData.rrpontsyd / 1000).toFixed(2)}T` : 'N/A',
-      target: '<$2.0T',
-      isGood: (currentData.rrpontsyd || 0) < 2000000
+      target: '<$0.5T',
+      isGood: (currentData.rrpontsyd || 0) < 500000
     },
     {
       label: 'Spread SOFR-IORB',
       value: currentData.sofr_iorb_spread ? `${currentData.sofr_iorb_spread.toFixed(2)}bps` : 'N/A',
-      target: '<15bps',
-      isGood: (currentData.sofr_iorb_spread || 0) < 0.15
+      target: '<25bps',
+      isGood: (currentData.sofr_iorb_spread || 0) < 0.25
     }
   ];
 

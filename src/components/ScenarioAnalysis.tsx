@@ -65,6 +65,19 @@ export function ScenarioAnalysis({ currentData }: ScenarioAnalysisProps) {
             'Meglio cash e bond quality'
           ]
         };
+      case 'contraction':
+        return {
+          title: 'Contrazione (Bilancio Fed in Calo)',
+          description: 'Fed sta riducendo il bilancio attivamente. Liquidità del sistema in diminuzione, pressione sui mercati.',
+          color: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
+          icon: TrendingDown,
+          implications: [
+            'Mercati sotto pressione da liquidità scarsa',
+            'Volatilità in aumento',
+            'Dollaro tende a rafforzarsi',
+            'Cautela su risk assets'
+          ]
+        };
       default:
         return {
           title: 'Neutrale (Equilibrio)',

@@ -51,6 +51,13 @@ export function MarketImpact({ currentData }: MarketImpactProps) {
           dollar: { impact: 'Positivo', strength: 'Medio', icon: TrendingUp, color: 'text-green-600' },
           crypto: { impact: 'Negativo', strength: 'Alto', icon: TrendingDown, color: 'text-red-600' }
         };
+      case 'contraction':
+        return {
+          equity: { impact: 'Negativo', strength: 'Medio', icon: TrendingDown, color: 'text-red-600' },
+          bonds: { impact: 'Misto', strength: 'Medio', icon: Target, color: 'text-yellow-600' },
+          dollar: { impact: 'Positivo', strength: 'Alto', icon: TrendingUp, color: 'text-green-600' },
+          crypto: { impact: 'Negativo', strength: 'Medio', icon: TrendingDown, color: 'text-red-600' }
+        };
       default:
         return {
           equity: { impact: 'Neutrale', strength: 'Basso', icon: Target, color: 'text-blue-600' },
@@ -75,7 +82,7 @@ export function MarketImpact({ currentData }: MarketImpactProps) {
         { sector: 'Utilities', impact: '-', strength: 'Basso' },
         { sector: 'Energy', impact: '+', strength: 'Medio' }
       ];
-    } else if (scenario === 'qt') {
+    } else if (scenario === 'qt' || scenario === 'contraction') {
       return [
         { sector: 'Tech Growth', impact: '-', strength: 'Alto' },
         { sector: 'Real Estate', impact: '-', strength: 'Alto' },
@@ -103,7 +110,7 @@ export function MarketImpact({ currentData }: MarketImpactProps) {
     
     if ((scenario === 'stealth_qe' || scenario === 'qe') && spread < 0.15) {
       return { sentiment: 'Risk-On', color: 'text-green-600', description: 'Liquidità abbondante favorisce risk assets' };
-    } else if (scenario === 'qt' || spread > 0.25) {
+    } else if ((scenario === 'qt' || scenario === 'contraction') || spread > 0.25) {
       return { sentiment: 'Risk-Off', color: 'text-red-600', description: 'Liquidità scarsa favorisce safe haven' };
     } else {
       return { sentiment: 'Neutrale', color: 'text-blue-600', description: 'Sentiment bilanciato' };

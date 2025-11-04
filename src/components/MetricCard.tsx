@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { LineChart, Line, ResponsiveContainer } from "recharts";
+import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
 import { getMetricDescription } from "@/lib/metricDescriptions";
 
 interface MetricCardProps {
@@ -67,6 +67,11 @@ export function MetricCard({
         maxChange = 2000; // Fino a 2000% per strumenti di emergenza
       }
       
+      // Spread possono avere variazioni molto ampie (es. da 0.18 a 0.36 = +100%)
+      if (title.includes('Spread') || title.includes('spread')) {
+        maxChange = 500; // Fino a 500% per spread
+      }
+      
       if (Math.abs(change) > maxChange) {
         if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie', 'Repo ON', 'Repo Term'].includes(title)) {
           console.log('   🚨 CHANGE TOO HIGH for', title);
@@ -105,6 +110,11 @@ export function MetricCard({
       maxChange = 2000; // Fino a 2000% per strumenti di emergenza
     }
     
+    // Spread possono avere variazioni molto ampie
+    if (title.includes('Spread') || title.includes('spread')) {
+      maxChange = 500; // Fino a 500% per spread
+    }
+    
     if (Math.abs(change) > maxChange) {
       if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie', 'Repo ON', 'Repo Term'].includes(title)) {
         console.log('   🚨 HISTORICAL CHANGE TOO HIGH for', title);
@@ -128,6 +138,27 @@ export function MetricCard({
 
   // Filter out null values for chart
   const chartData = historicalData.filter(d => d.value !== null);
+  
+  // Calculate dynamic Y-axis domain for better visualization
+  const getYAxisDomain = () => {
+    if (chartData.length === 0) return ['auto', 'auto'];
+    
+    const values = chartData.map(d => d.value as number);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min;
+    
+    // Se il range è molto piccolo, espandi per mostrare variazioni
+    if (range < max * 0.01) { // Se variazione < 1%
+      const center = (min + max) / 2;
+      const expandedRange = Math.max(center * 0.02, range * 10); // Almeno 2% o 10x il range
+      return [center - expandedRange, center + expandedRange];
+    }
+    
+    // Altrimenti usa padding normale
+    const padding = range * 0.1;
+    return [min - padding, max + padding];
+  };
 
   return (
     <Card className="hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 relative overflow-hidden bg-slate-900/80 border-slate-800">
@@ -160,6 +191,10 @@ export function MetricCard({
             <div className="h-12 -mx-2">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
+                  <YAxis 
+                    domain={getYAxisDomain()}
+                    hide={true}
+                  />
                   <Line 
                     type="monotone" 
                     dataKey="value" 

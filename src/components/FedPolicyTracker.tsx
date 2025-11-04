@@ -29,9 +29,10 @@ export function FedPolicyTracker({ currentData }: FedPolicyTrackerProps) {
     const balanceSheet = currentData.walcl || 0;
     const reserves = currentData.wresbal || 0;
     const spread = currentData.sofr_iorb_spread || 0;
+    const scenario = currentData.scenario;
 
-    // Espansiva se bilancio alto e spread basso
-    if (balanceSheet > 6800000 && spread < 0.20) {
+    // Usa scenario come indicatore principale
+    if (scenario === 'stealth_qe' || scenario === 'qe') {
       return {
         direction: 'Espansiva',
         trend: 'up',
@@ -41,8 +42,28 @@ export function FedPolicyTracker({ currentData }: FedPolicyTrackerProps) {
       };
     }
 
-    // Restrittiva se bilancio basso e spread alto
-    if (balanceSheet < 6500000 && spread > 0.25) {
+    if (scenario === 'qt' || scenario === 'contraction') {
+      return {
+        direction: 'Restrittiva',
+        trend: 'down',
+        color: 'bg-red-500/10 text-red-600 border-red-500/20',
+        icon: TrendingDown,
+        description: 'Politica di contenimento attiva'
+      };
+    }
+
+    // Fallback su metriche se scenario neutrale
+    if (balanceSheet > 7000000 && spread < 0.15) {
+      return {
+        direction: 'Espansiva',
+        trend: 'up',
+        color: 'bg-green-500/10 text-green-600 border-green-500/20',
+        icon: TrendingUp,
+        description: 'Politica accomodante in corso'
+      };
+    }
+
+    if (balanceSheet < 6000000 || spread > 0.30) {
       return {
         direction: 'Restrittiva',
         trend: 'down',
@@ -87,6 +108,12 @@ export function FedPolicyTracker({ currentData }: FedPolicyTrackerProps) {
           { move: 'Alza tassi', probability: 70 },
           { move: 'Drena liquidità', probability: 75 }
         ];
+      case 'contraction':
+        return [
+          { move: 'Continua riduzione bilancio', probability: 85 },
+          { move: 'Mantiene tassi alti', probability: 75 },
+          { move: 'Monitora inflazione', probability: 90 }
+        ];
       default:
         return [
           { move: 'Mantiene status quo', probability: 60 },
@@ -102,17 +129,20 @@ export function FedPolicyTracker({ currentData }: FedPolicyTrackerProps) {
   const fedTools = [
     {
       tool: 'Balance Sheet',
-      status: currentData.walcl && currentData.walcl > 7000000 ? 'Espansione' : 'Stabile',
+      status: currentData.walcl && currentData.walcl > 6800000 ? 'Espansione' : 
+              currentData.walcl && currentData.walcl < 6200000 ? 'Contrazione' : 'Stabile',
       value: currentData.walcl ? `$${(currentData.walcl / 1000000).toFixed(2)}T` : 'N/A'
     },
     {
       tool: 'IORB Rate',
-      status: currentData.iorb && currentData.iorb > 4.5 ? 'Restrittivo' : 'Accomodante',
+      status: currentData.iorb && currentData.iorb > 4.0 ? 'Restrittivo' : 
+              currentData.iorb && currentData.iorb < 2.0 ? 'Molto Accomodante' : 'Accomodante',
       value: currentData.iorb ? `${currentData.iorb.toFixed(2)}%` : 'N/A'
     },
     {
       tool: 'Reverse Repo',
-      status: currentData.rrpontsyd && currentData.rrpontsyd > 100000 ? 'Attivo' : 'Limitato',
+      status: currentData.rrpontsyd && currentData.rrpontsyd > 500000 ? 'Molto Attivo' :
+              currentData.rrpontsyd && currentData.rrpontsyd > 50000 ? 'Attivo' : 'Limitato',
       value: currentData.rrpontsyd ? `$${(currentData.rrpontsyd / 1000).toFixed(2)}B` : '$0.00B'
     }
   ];
