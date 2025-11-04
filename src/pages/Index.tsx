@@ -6,6 +6,8 @@ import { ScenarioAnalysis } from "@/components/ScenarioAnalysis";
 import { LiquidityMonitor } from "@/components/LiquidityMonitor";
 import { FedPolicyTracker } from "@/components/FedPolicyTracker";
 import { MarketImpact } from "@/components/MarketImpact";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
 import { 
   fetchLatestFedData, 
   fetchHistoricalFedData, 
@@ -212,6 +214,49 @@ const Index = () => {
                 currentData={latestData}
               />
             </section>
+
+            {/* RRP Alert - Spike Detection */}
+            {latestData && latestData.d_rrpontsyd_4w !== null && 
+             Math.abs(latestData.d_rrpontsyd_4w) > 20 && (
+              <Alert 
+                variant={latestData.d_rrpontsyd_4w > 0 ? "default" : "destructive"}
+                className="bg-slate-900/80 border-slate-700 hover:border-emerald-500/30 transition-all duration-300"
+              >
+                <div className="flex items-center gap-2">
+                  {latestData.d_rrpontsyd_4w > 0 ? (
+                    <TrendingUp className="h-5 w-5 text-blue-400" />
+                  ) : (
+                    <TrendingDown className="h-5 w-5 text-red-400" />
+                  )}
+                  <AlertCircle className="h-4 w-4" />
+                </div>
+                <AlertTitle className="text-white font-semibold">
+                  🚨 RRP Spike Rilevato - Movimento Significativo
+                </AlertTitle>
+                <AlertDescription className="text-slate-200">
+                  <div className="space-y-2">
+                    <p>
+                      <strong>Reverse Repo {latestData.d_rrpontsyd_4w > 0 ? "aumentato" : "diminuito"}</strong> di{" "}
+                      <span className={`font-mono font-bold ${latestData.d_rrpontsyd_4w > 0 ? 'text-blue-400' : 'text-red-400'}`}>
+                        ${Math.abs(latestData.d_rrpontsyd_4w).toFixed(1)}B
+                      </span>{" "}
+                      nelle ultime 4 settimane.
+                    </p>
+                    <p className="text-sm text-slate-300">
+                      {latestData.d_rrpontsyd_4w > 20 && 
+                        "⚠️ Liquidità in eccesso torna alla Fed. Possibile stress bancario o mancanza investimenti alternativi."
+                      }
+                      {latestData.d_rrpontsyd_4w < -20 && 
+                        "📈 Drenaggio liquidità in corso. Fed sta riducendo RRP - liquidità fluisce verso mercati."
+                      }
+                    </p>
+                    <div className="text-xs text-slate-400 mt-2">
+                      <strong>Soglia Alert:</strong> Movimenti &gt;$20B in 4 settimane indicano cambiamenti significativi nella liquidità Fed.
+                    </div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Metriche Rapide */}
             <section className="space-y-4">

@@ -151,7 +151,7 @@ export function MetricsGrid({ currentData, previousData, historicalData }: Metri
       )}
       {currentData.dxy_broad !== undefined && (
         <MetricCard
-          title="Dollar Index"
+          title="DXY Proxy (FRED)"
           value={currentData.dxy_broad}
           previousValue={previousData?.dxy_broad}
           historicalData={createHistoricalArray('dxy_broad')}

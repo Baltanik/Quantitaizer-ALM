@@ -30,7 +30,7 @@ export const metricDescriptions: Record<string, string> = {
   
   "Curva 10Y-3M": "Spread rendimenti Treasury 10 anni vs 3 mesi. >150bps = crescita attesa, <50bps = rallentamento, <0 = possibile recessione.",
   
-  "Dollar Index": "Indice forza dollaro USA vs basket valute. >105 = dollaro forte (flight to quality), <95 = dollaro debole (risk-on globale)."
+  "DXY Proxy (FRED)": "Approssimazione DXY ICE calcolata da 6 tassi FX FRED (EUR, JPY, GBP, CAD, SEK, CHF). Correlazione ~0.90 con DXY futures ufficiale. Range tipico: 90-110. Per trading professionale usare DXY ICE futures (ticker: DX-Y.NYB)."
 };
 
 // Funzione helper per ottenere la descrizione
