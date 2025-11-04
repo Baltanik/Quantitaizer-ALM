@@ -35,9 +35,10 @@ export function LiquidityMonitor({ currentData }: LiquidityMonitorProps) {
     
     // Normalizza riserve (2000-4000 miliardi = 0-50 punti) - più sensibile
     const reserveScore = Math.min(Math.max((reserves - 2000) / 2000 * 50, 0), 50);
-    
+
     // Normalizza spread (0-30bps invertito = 0-50 punti) - più sensibile
-    const spreadScore = Math.max(50 - (spread / 0.30) * 50, 0);
+    // Spread è in formato decimale (0.30 = 30 bps), quindi moltiplichiamo per 100
+    const spreadScore = Math.max(50 - ((spread * 100) / 30) * 50, 0);
     
     // Penalità per scenario restrittivo
     let scenarioPenalty = 0;
@@ -102,10 +103,10 @@ export function LiquidityMonitor({ currentData }: LiquidityMonitorProps) {
     },
     {
       label: 'Spread SOFR-EFFR',
-      value: currentData.sofr_effr_spread ? `${currentData.sofr_effr_spread.toFixed(1)}bps` : 'N/A',
+      value: currentData.sofr_effr_spread ? `${(currentData.sofr_effr_spread * 100).toFixed(1)}bps` : 'N/A',
       target: '<10bps',
-      isGood: (currentData.sofr_effr_spread || 0) < 0.10,
-      explanation: `Spread tra tassi interbancari garantiti (SOFR) e non garantiti (EFFR). Attualmente ${currentData.sofr_effr_spread ? currentData.sofr_effr_spread.toFixed(1) : 'N/A'}bps. Spread basso = mercato monetario fluido, spread alto = tensioni liquidità tra banche.`
+      isGood: ((currentData.sofr_effr_spread || 0) * 100) < 10,
+      explanation: `Spread tra tassi interbancari garantiti (SOFR) e non garantiti (EFFR). Attualmente ${currentData.sofr_effr_spread ? (currentData.sofr_effr_spread * 100).toFixed(1) : 'N/A'}bps. Spread basso = mercato monetario fluido, spread alto = tensioni liquidità tra banche.`
     }
   ];
 

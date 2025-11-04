@@ -31,10 +31,12 @@ export function MetricCard({
   }, [defaultExpanded]);
   const formatValue = (val: number | null | undefined) => {
     if (val === null || val === undefined || isNaN(val)) return 'N/A';
-    
+
     switch (format) {
       case 'bps':
-        return val.toFixed(2);
+        // Gli spread nel DB sono in formato decimale (0.27 = 27 bps)
+        // Moltiplichiamo per 100 per mostrare in basis points
+        return (val * 100).toFixed(2);
       case 'billion':
         return (val / 1000).toFixed(2);
       default:

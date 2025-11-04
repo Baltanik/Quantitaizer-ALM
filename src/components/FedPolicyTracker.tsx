@@ -51,6 +51,7 @@ export function FedPolicyTracker({ currentData }: FedPolicyTrackerProps) {
     }
 
     // Stealth QE
+    // Spread è in decimale (0.05 = 5 bps), quindi confrontiamo con valore decimale
     if (scenario === 'stealth_qe' || (bsDelta > 5000 && spread < 0.05)) {
       return {
         direction: 'Stealth QE',
@@ -63,6 +64,7 @@ export function FedPolicyTracker({ currentData }: FedPolicyTrackerProps) {
     }
 
     // QT Aggressivo
+    // Spread è in decimale (0.15 = 15 bps)
     if (scenario === 'contraction' || bsDelta < -50000 || spread > 0.15) {
       return {
         direction: 'QT Aggressivo',

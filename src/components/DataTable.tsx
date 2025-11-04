@@ -62,7 +62,7 @@ export function DataTable({ data }: DataTableProps) {
                 <TableHead>Data</TableHead>
                 <TableHead>SOFR</TableHead>
                 <TableHead>IORB</TableHead>
-                <TableHead>Spread</TableHead>
+                <TableHead>Spread (bps)</TableHead>
                 <TableHead>Bilancio Fed</TableHead>
                 <TableHead>Riserve</TableHead>
                 <TableHead>Scenario</TableHead>
@@ -81,7 +81,7 @@ export function DataTable({ data }: DataTableProps) {
                     {row.iorb?.toFixed(2) ?? 'N/A'}
                   </TableCell>
                   <TableCell className="font-mono text-xs">
-                    {row.sofr_iorb_spread?.toFixed(2) ?? 'N/A'}
+                    {row.sofr_iorb_spread ? (row.sofr_iorb_spread * 100).toFixed(2) : 'N/A'}
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     ${(row.walcl ? row.walcl / 1000 : 0).toFixed(2)}T
