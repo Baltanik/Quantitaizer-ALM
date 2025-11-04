@@ -193,6 +193,9 @@ Deno.serve(async (req) => {
       'TOTRESNS': 'wresbal',
       'RRPONTSYD': 'rrpontsyd',
       'DGS10': 'us10y',
+      'SOFR': 'sofr',            // HOTFIX 2025-11-04: Secured Overnight Financing Rate
+      'IORB': 'iorb',            // HOTFIX 2025-11-04: Interest on Reserve Balances
+      'DFF': 'effr',             // HOTFIX 2025-11-04: Effective Federal Funds Rate
       'DEXUSEU': 'dexuseu',
       'DEXJPUS': 'dexjpus',
       'DEXUSUK': 'dexusuk',
@@ -245,6 +248,41 @@ Deno.serve(async (req) => {
       };
       fredData.dxy = calculateDXY(fxRates);
     }
+
+    // HOTFIX 2025-11-04: Calculate money market spreads
+    // SOFR-IORB spread (secured vs Fed floor)
+    if (fredData.sofr !== undefined && fredData.iorb !== undefined) {
+      fredData.sofr_iorb_spread = parseFloat((fredData.sofr - fredData.iorb).toFixed(4));
+      console.log(`✅ SOFR-IORB spread: ${(fredData.sofr_iorb_spread * 100).toFixed(2)}bps`);
+    }
+
+    // SOFR-EFFR spread (secured vs unsecured - MONEY MARKET STRESS INDICATOR)
+    if (fredData.sofr !== undefined && fredData.effr !== undefined) {
+      fredData.sofr_effr_spread = parseFloat((fredData.sofr - fredData.effr).toFixed(4));
+      console.log(`✅ SOFR-EFFR spread: ${(fredData.sofr_effr_spread * 100).toFixed(2)}bps`);
+      
+      // Alert if spread is elevated (>10bps = stress, >20bps = critical)
+      const spreadBps = Math.abs(fredData.sofr_effr_spread * 100);
+      if (spreadBps > 20) {
+        console.warn(`🚨 CRITICAL: SOFR-EFFR spread elevated at ${spreadBps.toFixed(2)}bps - Money market stress detected`);
+      } else if (spreadBps > 10) {
+        console.warn(`⚠️ WARNING: SOFR-EFFR spread elevated at ${spreadBps.toFixed(2)}bps - Elevated money market risk`);
+      }
+    }
+
+    // EFFR-IORB spread (fed funds vs Fed floor - FED CONTROL EFFECTIVENESS)
+    if (fredData.effr !== undefined && fredData.iorb !== undefined) {
+      fredData.effr_iorb_spread = parseFloat((fredData.effr - fredData.iorb).toFixed(4));
+      console.log(`✅ EFFR-IORB spread: ${(fredData.effr_iorb_spread * 100).toFixed(2)}bps`);
+    }
+
+    // Log all rates for diagnostic
+    console.log('═══════════════════════════════════════');
+    console.log('💰 MONEY MARKET RATES (HOTFIX V1):');
+    console.log(`   SOFR: ${fredData.sofr ? fredData.sofr.toFixed(2) + '%' : 'N/A'}`);
+    console.log(`   IORB: ${fredData.iorb ? fredData.iorb.toFixed(2) + '%' : 'N/A'}`);
+    console.log(`   EFFR: ${fredData.effr ? fredData.effr.toFixed(2) + '%' : 'N/A'}`);
+    console.log('═══════════════════════════════════════');
 
     // Per ora usiamo un valore fisso per ig_spread (da implementare in futuro)
     fredData.ig_spread = 1.5; // Placeholder
