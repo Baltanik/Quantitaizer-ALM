@@ -1,13 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Droplets, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { Droplets, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronRight } from "lucide-react";
 import { FedData } from "@/services/fedData";
+import { useState } from "react";
 
 interface LiquidityMonitorProps {
   currentData: FedData | null;
 }
 
 export function LiquidityMonitor({ currentData }: LiquidityMonitorProps) {
+  const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
+
   if (!currentData) {
     return (
       <Card>
@@ -27,7 +30,7 @@ export function LiquidityMonitor({ currentData }: LiquidityMonitorProps) {
   // Calcola livello di liquidità (0-100)
   const calculateLiquidityLevel = () => {
     const reserves = currentData.wresbal || 0;
-    const spread = currentData.sofr_iorb_spread || 0;
+    const spread = currentData.sofr_effr_spread || 0; // FIXED: Campo corretto
     const scenario = currentData.scenario;
     
     // Normalizza riserve (2000-4000 miliardi = 0-50 punti) - più sensibile
@@ -81,25 +84,28 @@ export function LiquidityMonitor({ currentData }: LiquidityMonitorProps) {
   const status = getLiquidityStatus(liquidityLevel);
   const StatusIcon = status.icon;
 
-  // Metriche di liquidità
+  // Metriche di liquidità con spiegazioni
   const metrics = [
     {
       label: 'Riserve Bancarie',
       value: currentData.wresbal ? `$${(currentData.wresbal / 1000).toFixed(2)}T` : 'N/A',
       target: '>$2.5T',
-      isGood: (currentData.wresbal || 0) > 2500
+      isGood: (currentData.wresbal || 0) > 2500,
+      explanation: `Le riserve bancarie sono i depositi che le banche tengono presso la Fed. Attualmente ${currentData.wresbal ? (currentData.wresbal / 1000).toFixed(2) : 'N/A'}T. Sopra $2.5T = sistema bancario liquido, sotto = possibili tensioni. Durante QT le riserve scendono perché la Fed drena liquidità.`
     },
     {
       label: 'Reverse Repo',
-      value: currentData.rrpontsyd ? `$${(currentData.rrpontsyd / 1000).toFixed(2)}T` : 'N/A',
-      target: '<$0.5T',
-      isGood: (currentData.rrpontsyd || 0) < 500000
+      value: currentData.rrpontsyd ? `$${(currentData.rrpontsyd / 1000).toFixed(0)}B` : 'N/A',
+      target: '<$500B',
+      isGood: (currentData.rrpontsyd || 0) < 500000,
+      explanation: `RRP è dove banche/fondi parcheggiano liquidità in eccesso presso la Fed overnight. Attualmente ${currentData.rrpontsyd ? (currentData.rrpontsyd / 1000).toFixed(0) : '0'}B. RRP alto = troppa liquidità nel sistema, RRP basso = liquidità viene investita altrove.`
     },
     {
-      label: 'Spread SOFR-IORB',
-      value: currentData.sofr_iorb_spread ? `${currentData.sofr_iorb_spread.toFixed(2)}bps` : 'N/A',
-      target: '<25bps',
-      isGood: (currentData.sofr_iorb_spread || 0) < 0.25
+      label: 'Spread SOFR-EFFR',
+      value: currentData.sofr_effr_spread ? `${currentData.sofr_effr_spread.toFixed(1)}bps` : 'N/A',
+      target: '<10bps',
+      isGood: (currentData.sofr_effr_spread || 0) < 0.10,
+      explanation: `Spread tra tassi interbancari garantiti (SOFR) e non garantiti (EFFR). Attualmente ${currentData.sofr_effr_spread ? currentData.sofr_effr_spread.toFixed(1) : 'N/A'}bps. Spread basso = mercato monetario fluido, spread alto = tensioni liquidità tra banche.`
     }
   ];
 
@@ -128,20 +134,43 @@ export function LiquidityMonitor({ currentData }: LiquidityMonitorProps) {
         {/* Metriche Dettagliate */}
         <div className="space-y-3">
           <h4 className="font-medium text-sm">Indicatori Chiave:</h4>
-          {metrics.map((metric, index) => (
-            <div key={index} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-              <div>
-                <p className="text-sm font-medium">{metric.label}</p>
-                <p className="text-xs text-muted-foreground">Target: {metric.target}</p>
+          {metrics.map((metric, index) => {
+            const isExpanded = expandedMetric === metric.label;
+            return (
+              <div key={index} className="rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
+                <button 
+                  onClick={() => setExpandedMetric(isExpanded ? null : metric.label)}
+                  className="w-full p-3 text-left"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium">{metric.label}</p>
+                      {isExpanded ? 
+                        <ChevronDown className="h-3.5 w-3.5 text-slate-400" /> : 
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      }
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-mono font-bold">{metric.value}</p>
+                      <div className={`text-xs ${metric.isGood ? 'text-green-600' : 'text-yellow-600'}`}>
+                        {metric.isGood ? '✓ OK' : '⚠ Watch'}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Target: {metric.target}</p>
+                </button>
+                
+                {isExpanded && (
+                  <div className="px-3 pb-3 border-t border-muted">
+                    <div className="mt-3 p-3 bg-slate-800/50 rounded text-xs">
+                      <div className="font-semibold mb-2 text-emerald-400">Cosa significa:</div>
+                      <div className="text-slate-300 leading-relaxed">{metric.explanation}</div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="text-right">
-                <p className="text-sm font-mono font-bold">{metric.value}</p>
-                <div className={`text-xs ${metric.isGood ? 'text-green-600' : 'text-yellow-600'}`}>
-                  {metric.isGood ? '✓ OK' : '⚠ Watch'}
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Alert se necessario */}

@@ -1,14 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, TrendingUp, TrendingDown, Minus, Info } from "lucide-react";
+import { Building2, TrendingUp, TrendingDown, Minus, Info, ChevronDown, ChevronRight } from "lucide-react";
 import { FedData } from "@/services/fedData";
-import { ExplanationTooltip } from "@/components/ui/ExplanationTooltip";
+import { useState } from "react";
 
 interface FedPolicyTrackerProps {
   currentData: FedData | null;
 }
 
 export function FedPolicyTracker({ currentData }: FedPolicyTrackerProps) {
+  const [expandedTool, setExpandedTool] = useState<string | null>(null);
+  const [expandedStance, setExpandedStance] = useState(false);
+
   if (!currentData) {
     return (
       <Card>
@@ -163,46 +166,70 @@ export function FedPolicyTracker({ currentData }: FedPolicyTrackerProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Direzione Politica */}
-        <div className={`p-4 rounded-lg border ${policy.color}`}>
-          <div className="flex items-center gap-2 mb-2">
-            <PolicyIcon className="h-5 w-5" />
-            <h3 className="font-semibold flex items-center gap-2">
-              Stance: {policy.direction}
-              <div className="relative">
-                <Info className="h-4 w-4 text-slate-400 hover:text-emerald-400 cursor-help" />
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-slate-200 text-xs rounded-lg border border-slate-600 w-80 opacity-0 hover:opacity-100 transition-opacity pointer-events-none z-10">
-                  <div className="font-semibold mb-1">Perché "{policy.direction}"?</div>
-                  <div className="text-slate-300">{policy.explanation}</div>
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
-                </div>
+        <div className={`rounded-lg border ${policy.color}`}>
+          <button 
+            onClick={() => setExpandedStance(!expandedStance)}
+            className="w-full p-4 text-left hover:bg-black/10 transition-colors"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <PolicyIcon className="h-5 w-5" />
+              <h3 className="font-semibold flex items-center gap-2">
+                Stance: {policy.direction}
+                {expandedStance ? 
+                  <ChevronDown className="h-4 w-4 text-slate-400" /> : 
+                  <ChevronRight className="h-4 w-4 text-slate-400" />
+                }
+              </h3>
+            </div>
+            <p className="text-sm opacity-80">{policy.description}</p>
+          </button>
+          
+          {expandedStance && (
+            <div className="px-4 pb-4 border-t border-current/20">
+              <div className="mt-3 p-3 bg-black/10 rounded text-sm">
+                <div className="font-semibold mb-2 text-emerald-400">Perché "{policy.direction}"?</div>
+                <div className="text-slate-300 leading-relaxed">{policy.explanation}</div>
               </div>
-            </h3>
-          </div>
-          <p className="text-sm opacity-80">{policy.description}</p>
+            </div>
+          )}
         </div>
 
         {/* Strumenti Fed */}
         <div>
           <h4 className="font-medium text-sm mb-3">Strumenti Attivi:</h4>
           <div className="space-y-2">
-            {fedTools.map((tool, index) => (
-              <div key={index} className="p-3 rounded bg-muted/50 hover:bg-muted/70 transition-colors group">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium">{tool.tool}</p>
-                    <div className="relative">
-                      <Info className="h-3.5 w-3.5 text-slate-400 hover:text-emerald-400 cursor-help" />
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-slate-200 text-xs rounded-lg border border-slate-600 w-72 opacity-0 hover:opacity-100 transition-opacity pointer-events-none z-10">
-                        <div className="text-slate-300">{tool.explanation}</div>
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+            {fedTools.map((tool, index) => {
+              const isExpanded = expandedTool === tool.tool;
+              return (
+                <div key={index} className="rounded bg-muted/50 hover:bg-muted/70 transition-colors">
+                  <button 
+                    onClick={() => setExpandedTool(isExpanded ? null : tool.tool)}
+                    className="w-full p-3 text-left"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">{tool.tool}</p>
+                        {isExpanded ? 
+                          <ChevronDown className="h-3.5 w-3.5 text-slate-400" /> : 
+                          <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                        }
+                      </div>
+                      <p className="text-sm font-mono font-bold">{tool.value}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{tool.status}</p>
+                  </button>
+                  
+                  {isExpanded && (
+                    <div className="px-3 pb-3 border-t border-muted">
+                      <div className="mt-3 p-3 bg-slate-800/50 rounded text-xs">
+                        <div className="font-semibold mb-2 text-emerald-400">Come funziona:</div>
+                        <div className="text-slate-300 leading-relaxed">{tool.explanation}</div>
                       </div>
                     </div>
-                  </div>
-                  <p className="text-sm font-mono font-bold">{tool.value}</p>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground">{tool.status}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
