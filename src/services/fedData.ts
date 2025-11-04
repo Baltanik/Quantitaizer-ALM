@@ -11,7 +11,10 @@ export interface FedData {
   date: string;
   sofr: number | null;
   iorb: number | null;
+  effr: number | null;                    // HOTFIX 2025-11-04: Effective Federal Funds Rate
   sofr_iorb_spread: number | null;
+  sofr_effr_spread: number | null;        // HOTFIX 2025-11-04: Money market stress indicator
+  effr_iorb_spread: number | null;        // HOTFIX 2025-11-04: Fed floor effectiveness
   walcl: number | null;
   wresbal: number | null;
   rrpontsyd: number | null;

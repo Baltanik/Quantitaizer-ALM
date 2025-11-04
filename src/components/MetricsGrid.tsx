@@ -57,6 +57,21 @@ export function MetricsGrid({ currentData, previousData, historicalData }: Metri
         historicalData={createHistoricalArray('sofr_iorb_spread')}
         format="bps"
       />
+      {/* HOTFIX 2025-11-04: Add EFFR and money market spreads */}
+      <MetricCard
+        title="EFFR"
+        value={currentData.effr}
+        previousValue={previousData?.effr}
+        historicalData={createHistoricalArray('effr')}
+        format="bps"
+      />
+      <MetricCard
+        title="SOFR-EFFR Spread"
+        value={currentData.sofr_effr_spread}
+        previousValue={previousData?.sofr_effr_spread}
+        historicalData={createHistoricalArray('sofr_effr_spread')}
+        format="bps"
+      />
       <MetricCard
         title="Bilancio Fed"
         value={currentData.walcl}

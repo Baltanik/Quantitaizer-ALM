@@ -77,6 +77,7 @@ Deno.serve(async (req) => {
     const series = [
       'SOFR',
       'IORB', 
+      'DFF',        // HOTFIX 2025-11-04: Effective Federal Funds Rate (EFFR)
       'WALCL',
       'WRESBAL',
       'RRPONTSYD',
@@ -210,6 +211,24 @@ Deno.serve(async (req) => {
         data.sofr_iorb_spread = null;
       }
 
+      // HOTFIX 2025-11-04: Calculate money market spreads
+      // SOFR-EFFR spread (secured vs unsecured - MONEY MARKET STRESS INDICATOR)
+      if (data.sofr !== null && data.dff !== null) {
+        data.sofr_effr_spread = Number((data.sofr - data.dff).toFixed(4));
+      } else {
+        data.sofr_effr_spread = null;
+      }
+
+      // EFFR-IORB spread (fed funds vs Fed floor - FED CONTROL EFFECTIVENESS)
+      if (data.dff !== null && data.iorb !== null) {
+        data.effr_iorb_spread = Number((data.dff - data.iorb).toFixed(4));
+      } else {
+        data.effr_iorb_spread = null;
+      }
+
+      // Map DFF to effr for consistency with frontend
+      data.effr = data.dff;
+
       // Calculate DXY using official weights
       const fxValues = [data.dexuseu, data.dexjpus, data.dexusuk, data.dexcaus, data.dexszus, data.dexchus];
       const allFxValid = fxValues.every(val => val !== null && val !== undefined && !isNaN(val) && val > 0);
@@ -326,7 +345,10 @@ Deno.serve(async (req) => {
         console.log('\n📈 HUMAN READABLE:');
         console.log(`   SOFR: ${data.sofr}%`);
         console.log(`   IORB: ${data.iorb}%`);
-        console.log(`   Spread: ${data.sofr_iorb_spread ? (data.sofr_iorb_spread * 100).toFixed(2) : 'NULL'}bps`);
+        console.log(`   EFFR: ${data.effr}%`);  // HOTFIX 2025-11-04
+        console.log(`   SOFR-IORB Spread: ${data.sofr_iorb_spread ? (data.sofr_iorb_spread * 100).toFixed(2) : 'NULL'}bps`);
+        console.log(`   SOFR-EFFR Spread: ${data.sofr_effr_spread ? (data.sofr_effr_spread * 100).toFixed(2) : 'NULL'}bps`);  // HOTFIX 2025-11-04
+        console.log(`   EFFR-IORB Spread: ${data.effr_iorb_spread ? (data.effr_iorb_spread * 100).toFixed(2) : 'NULL'}bps`);  // HOTFIX 2025-11-04
         console.log(`   Balance Sheet: ${data.walcl ? `$${(data.walcl/1000000).toFixed(2)}T` : 'NULL'}`);
         console.log(`   Reserves: ${data.wresbal ? `$${(data.wresbal/1000).toFixed(2)}T` : 'NULL'}`);
         console.log(`   DXY Index: ${data.dxy_broad !== null && data.dxy_broad !== undefined ? data.dxy_broad.toFixed(2) : 'NULL'}`);
@@ -346,7 +368,23 @@ Deno.serve(async (req) => {
         console.log(`   SPREAD not null: ${data.sofr_iorb_spread !== null} ${data.sofr_iorb_spread !== null ? '✓' : '✗'}`);
         console.log(`   SOFR not null: ${data.sofr !== null} ${data.sofr !== null ? '✓' : '✗'}`);
         console.log(`   IORB not null: ${data.iorb !== null} ${data.iorb !== null ? '✓' : '✗'}`);
+        console.log(`   EFFR not null: ${data.effr !== null} ${data.effr !== null ? '✓' : '✗'}`);  // HOTFIX 2025-11-04
         
+        // HOTFIX 2025-11-04: Alert for elevated spreads
+        if (data.sofr_effr_spread !== null) {
+          const spreadBps = Math.abs(data.sofr_effr_spread * 100);
+          if (spreadBps > 20) {
+            console.warn(`🚨 CRITICAL: SOFR-EFFR spread elevated at ${spreadBps.toFixed(2)}bps - Money market stress detected`);
+          } else if (spreadBps > 10) {
+            console.warn(`⚠️ WARNING: SOFR-EFFR spread elevated at ${spreadBps.toFixed(2)}bps - Elevated money market risk`);
+          }
+        }
+        
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('💰 MONEY MARKET RATES (HOTFIX V1):');  // HOTFIX 2025-11-04: Diagnostic signature
+        console.log(`   SOFR: ${data.sofr ? data.sofr.toFixed(2) + '%' : 'N/A'}`);
+        console.log(`   IORB: ${data.iorb ? data.iorb.toFixed(2) + '%' : 'N/A'}`);
+        console.log(`   EFFR: ${data.effr ? data.effr.toFixed(2) + '%' : 'N/A'}`);
         console.log('═══════════════════════════════════════════════════════════\n\n');
       }
       
