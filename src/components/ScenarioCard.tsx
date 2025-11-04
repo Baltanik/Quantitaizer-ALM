@@ -45,7 +45,7 @@ SOFR-EFFR: ${sofr_effr}bps - Spread bassi = nessuna tensione.
 
 VIX: ${vix} ${parseFloat(vix.toString()) < 16 ? 'BULLISH - Mercato calmo' : 'Cauto'}.
 
-AZIONE: Long equity (+20%), long crypto, compra small-cap, evita USD strength.`;
+FOCUS: Monitorare liquidità sistema e spread, ambiente supporta asset rischiosi ma attento segnali cambio.`;
     },
     getIndicators: (data: FedData | null) => {
       if (!data) return [
@@ -94,7 +94,7 @@ Riserve flood: +${reserves_delta}B in 4w = liquidità massiccia.
 
 VIX: ${vix} ${parseFloat(vix.toString()) < 20 ? 'EUPHORIA MODE' : 'Cauto nonostante QE'}.
 
-AZIONE: MAX long equity (+40%), MAX long crypto, long oro/commodities, evita cash.`;
+FOCUS: Osservare sostenibilità espansione, liquidità massiccia storicamente precede euforia ma attento reversal.`;
     },
     getIndicators: (data: FedData | null) => {
       if (!data) return [
@@ -143,7 +143,7 @@ SOFR-EFFR spread: ${sofr_effr}bps ${parseFloat(sofr_effr) > 10 ? 'STRESS RILEVAT
 
 VIX: ${vix} ${parseFloat(vix.toString()) > 22 ? 'Mercato nervoso' : 'Situazione gestibile'}.
 
-AZIONE: Riduci equity (-20%), aumenta Treasury short-term (+15%), evita leverage.`;
+FOCUS: Monitorare velocità drenaggio liquidità, soglie Riserve critiche per banche, attento spike spread.`;
     },
     getIndicators: (data: FedData | null) => {
       if (!data) return [
@@ -195,7 +195,7 @@ SOFR-EFFR: ${sofr_effr}bps - Range normale (5-15bps).
 
 VIX: ${vix} ${parseFloat(vix.toString()) < 18 ? 'CALM - Mercato stabile' : 'Cautela'}.
 
-AZIONE: Focus stock picking, diversificazione bilanciata, segui dati macro.`;
+FOCUS: Seguire comunicazioni Fed per segnali cambio policy, monitorare dati macro per direzionalità futura.`;
     },
     getIndicators: (data: FedData | null) => {
       if (!data) return [
@@ -244,7 +244,7 @@ SOFR-EFFR: ${sofr_effr}bps ${parseFloat(sofr_effr) > 20 ? 'STRESS ELEVATO' : 'Te
 
 VIX: ${vix} ${parseFloat(vix.toString()) > 25 ? 'PANIC MODE' : 'Nervosismo'}.
 
-AZIONE: Massima cautela, cash+Treasury, short risk assets, long USD.`;
+FOCUS: Priorità assoluta monitoraggio spread e HY OAS, rischio contagio sistemico, attento interventi Fed emergenza.`;
     },
     getIndicators: (data: FedData | null) => {
       if (!data) return [
@@ -621,8 +621,8 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                       );
                     }
                     
-                    // Action lines (start with "AZIONE:") - OVERRIDE with data-driven logic
-                    if (trimmed.startsWith('AZIONE:')) {
+                    // Focus lines (start with "FOCUS:") - OVERRIDE with data-driven logic
+                    if (trimmed.startsWith('FOCUS:')) {
                       // Calculate actions based on ACTUAL metrics
                       const vix = currentData?.vix || 20;
                       const sofrEffr = currentData?.sofr_effr_spread || 0;
@@ -631,41 +631,41 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                       let actions: string[] = [];
                       let actionColor = 'border-emerald-500';
                       
-                      // Action Matrix Logic - GENERIC, NO PERCENTAGES (COMPLIANCE)
+                      // Action Matrix Logic - EDUCATIONAL: Cosa monitorare e perché
                       if (vix < 16 && sofrEffr < 5 && bsDelta >= 0) {
-                        // CALM + EXPANDING = BULLISH
+                        // CALM + EXPANDING = BULLISH ENVIRONMENT
                         actions = [
-                          "Ambiente favorevole per asset rischiosi",
-                          "Valuta incremento esposizione equity growth/quality",
-                          "Liquidità abbondante supporta risk-on",
-                          "Monitora dati macro per conferma trend"
+                          "Monitorare Balance Sheet Fed: espansione in corso indica iniezione liquidità nel sistema",
+                          "Osservare spread SOFR-EFFR sotto 5bps: segnala mercato monetario fluido senza tensioni",
+                          "Controllare VIX sotto 16: indica bassa percezione rischio e volatilità contenuta",
+                          "Seguire RRP e Riserve: variazioni rapide possono precedere cambi regime liquidità"
                         ];
                         actionColor = 'border-green-500';
                       } else if (vix < 16 && sofrEffr < 5 && bsDelta < 0) {
-                        // CALM + CONTRACTING = NEUTRAL
+                        // CALM + CONTRACTING = NEUTRAL ENVIRONMENT
                         actions = [
-                          "Mantieni allocazione bilanciata diversificata",
-                          "Focus su stock picking basato su fondamentali",
-                          "Monitora evoluzione bilancio Fed per segnali",
-                          "Risk management standard appropriato"
+                          "Monitorare ritmo contrazione Balance Sheet: velocità determina impatto su liquidità",
+                          "Osservare stabilità spread SOFR-EFFR: allargamento indicherebbe stress nascente",
+                          "Controllare Riserve bancarie: soglia critica varia per istituto e può causare tensioni",
+                          "Seguire HY OAS: spike sopra 4.5% segnalerebbe nervosismo credito corporate"
                         ];
                         actionColor = 'border-blue-500';
                       } else if ((vix >= 16 && vix <= 22) || (sofrEffr >= 5 && sofrEffr <= 10)) {
-                        // MODERATE STRESS = CAUTIOUS
+                        // MODERATE STRESS = CAUTIOUS ENVIRONMENT
                         actions = [
-                          "Cautela moderata: considera allocation più bilanciata",
-                          "Valuta incremento componente difensiva (Treasury/cash)",
-                          "Evita asset ad alta volatilità in questo contesto",
-                          "Monitora segnali escalation stress mercato"
+                          "Monitorare VIX 16-22: range indica nervosismo mercato, sopra 18 segnala stress crescente",
+                          "Osservare spread SOFR-EFFR 5-10bps: allargamento progressivo indica tensione liquidità interbancaria",
+                          "Controllare correlazioni asset: aumento indica flight-to-quality e risk-off sistemico",
+                          "Seguire volumi RRP: spike improvvisi possono segnalare ricerca sicurezza da parte banche"
                         ];
                         actionColor = 'border-yellow-500';
                       } else if (vix > 22 || sofrEffr > 10) {
-                        // HIGH STRESS = DEFENSIVE
+                        // HIGH STRESS = DEFENSIVE ENVIRONMENT
                         actions = [
-                          "Stress rilevato: posizionamento difensivo appropriato",
-                          "Considera aumento significativo allocation cash e Treasury",
-                          "Riduzione esposizione asset rischiosi raccomandata",
-                          "Risk management diventa priorità critica"
+                          "Monitorare VIX sopra 22: indica stress elevato, sopra 25 territorio panico storico",
+                          "Osservare spread SOFR-EFFR sopra 10bps: segnala disfunzioni mercato monetario e carenza liquidità",
+                          "Controllare HY OAS: esplosione sopra 5.5% indica credit crunch e fuga da rischio corporate",
+                          "Seguire interventi Fed: facility emergenza (BTFP-like) segnalerebbero crisi sistemica"
                         ];
                         actionColor = 'border-red-500';
                       }
@@ -674,7 +674,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                         <div key={index} className="mt-4">
                           <div className="text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wide flex items-center gap-2">
                             <Target className="h-3 w-3" />
-                            Azioni Consigliate (VIX: {vix.toFixed(1)}, SOFR-EFFR: {sofrEffr.toFixed(1)}bps)
+                            Metriche da Monitorare (VIX: {vix.toFixed(1)}, SOFR-EFFR: {sofrEffr.toFixed(1)}bps)
                           </div>
                           <div className="grid gap-2">
                             {actions.map((action, aIndex) => (
