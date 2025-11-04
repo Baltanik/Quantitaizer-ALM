@@ -298,6 +298,74 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
           </div>
         </div>
 
+        {/* Hero Metrics - Top 3 Critical Data Points */}
+        {currentData && (
+          <div className="grid grid-cols-3 gap-4">
+            {/* Balance Sheet */}
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all">
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">Balance Sheet</div>
+              <div className="text-2xl font-bold text-white">
+                ${currentData.walcl ? (currentData.walcl / 1000000).toFixed(2) : 'N/A'}T
+              </div>
+              <div className={`text-sm mt-1 font-semibold ${
+                (currentData.d_walcl_4w || 0) > 0 ? 'text-green-400' : 'text-red-400'
+              }`}>
+                {(currentData.d_walcl_4w || 0) > 0 ? '↗' : '↘'} {currentData.d_walcl_4w ? Math.abs(currentData.d_walcl_4w/1000).toFixed(1) : '0'}B (4w)
+              </div>
+            </div>
+
+            {/* SOFR-EFFR Spread */}
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all">
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">SOFR-EFFR Spread</div>
+              <div className="text-2xl font-bold text-white">
+                {currentData.sofr_effr_spread?.toFixed(1) ?? 'N/A'} bps
+              </div>
+              <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all ${
+                    (currentData.sofr_effr_spread || 0) > 15 ? 'bg-red-500' : 
+                    (currentData.sofr_effr_spread || 0) > 10 ? 'bg-yellow-500' : 
+                    'bg-green-500'
+                  }`}
+                  style={{
+                    width: `${Math.min(((currentData.sofr_effr_spread || 0) / 20) * 100, 100)}%`
+                  }}
+                ></div>
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                {(currentData.sofr_effr_spread || 0) > 15 ? 'Stress' : 
+                 (currentData.sofr_effr_spread || 0) > 10 ? 'Elevated' : 
+                 'Normal'}
+              </div>
+            </div>
+
+            {/* VIX */}
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all">
+              <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">VIX (Fear Index)</div>
+              <div className="text-2xl font-bold text-white">
+                {currentData.vix ?? 'N/A'}
+              </div>
+              <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all ${
+                    (currentData.vix || 0) > 25 ? 'bg-red-500' : 
+                    (currentData.vix || 0) > 20 ? 'bg-yellow-500' : 
+                    'bg-green-500'
+                  }`}
+                  style={{
+                    width: `${Math.min(((currentData.vix || 0) / 40) * 100, 100)}%`
+                  }}
+                ></div>
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                {(currentData.vix || 0) > 25 ? 'Panic' : 
+                 (currentData.vix || 0) > 20 ? 'Elevated' : 
+                 (currentData.vix || 0) < 16 ? 'Calm' : 'Normal'}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Scenario Qualifiers */}
         {scenarioState && (
           <>
@@ -356,7 +424,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
 
         <Separator />
 
-        {/* Analysis Section */}
+        {/* Analysis Section - Parsed & Visual */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-md bg-primary/10">
@@ -364,49 +432,125 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             </div>
             <h4 className="font-semibold text-sm">Analisi Situazione</h4>
           </div>
-          <div className="text-sm text-slate-200 leading-relaxed pl-8 space-y-3">
-            {config.getAnalysis ? 
-              config.getAnalysis(currentData).split('\n\n').map((paragraph, index) => (
-                <p key={index} className="leading-relaxed">
-                  {paragraph.trim()}
-                </p>
-              )) : 
-              <p>Analisi non disponibile</p>
-            }
+          <div className="space-y-3 pl-2">
+            {config.getAnalysis && (() => {
+              const analysis = config.getAnalysis(currentData);
+              const lines = analysis.split('\n').filter(l => l.trim());
+              
+              return (
+                <div className="space-y-2">
+                  {lines.map((line, index) => {
+                    const trimmed = line.trim();
+                    
+                    // Header lines (ALL CAPS or contains scenario keywords)
+                    if (trimmed.includes('STEALTH QE') || trimmed.includes('QE COMPLETO') || 
+                        trimmed.includes('CONTRAZIONE') || trimmed.includes('NEUTRALE') ||
+                        trimmed === trimmed.toUpperCase()) {
+                      return (
+                        <div key={index} className="text-sm font-bold text-emerald-400 mt-3">
+                          {trimmed}
+                        </div>
+                      );
+                    }
+                    
+                    // Action lines (start with "AZIONE:")
+                    if (trimmed.startsWith('AZIONE:')) {
+                      const actions = trimmed.replace('AZIONE:', '').split(',').map(a => a.trim()).filter(Boolean);
+                      return (
+                        <div key={index} className="mt-4">
+                          <div className="text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wide">
+                            🎯 Azioni Consigliate
+                          </div>
+                          <div className="grid gap-2">
+                            {actions.map((action, aIndex) => (
+                              <div 
+                                key={aIndex} 
+                                className="bg-gradient-to-r from-emerald-900/30 to-transparent border-l-2 border-emerald-500 p-2 rounded text-sm text-slate-200"
+                              >
+                                {action}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    // Data lines (contain numbers, $, B, T, bps, etc)
+                    const hasData = /[\d$TBbps%]/.test(trimmed);
+                    if (hasData) {
+                      return (
+                        <div key={index} className="flex items-start gap-2 text-sm text-slate-300 bg-slate-900/30 p-2 rounded">
+                          <div className="w-1 h-1 bg-slate-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <span>{trimmed}</span>
+                        </div>
+                      );
+                    }
+                    
+                    // Regular text
+                    return (
+                      <div key={index} className="text-sm text-slate-400 pl-3">
+                        {trimmed}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         </div>
 
         <Separator />
 
-        {/* Indicators Grid */}
+        {/* Indicators Grid - Enhanced Visual */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-md bg-primary/10">
               <Info className="h-4 w-4 text-primary" />
             </div>
-            <h4 className="font-semibold text-sm">Indicatori Chiave</h4>
+            <h4 className="font-semibold text-sm">Indicatori Tecnici</h4>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 pl-8">
+          <div className="grid gap-3 sm:grid-cols-2 pl-2">
             {(config.getIndicators ? config.getIndicators(currentData) : []).map((indicator, index) => {
               const IndicatorIcon = indicator.icon;
+              const status = indicator.status.toLowerCase();
+              
+              // Determine badge color based on content
+              let badgeColor = 'bg-slate-700 text-slate-300';
+              if (status.includes('espansione') || status.includes('flood') || status.includes('crescita')) {
+                badgeColor = 'bg-green-900/40 text-green-300 border border-green-500/30';
+              } else if (status.includes('stress') || status.includes('calo') || status.includes('drenaggio')) {
+                badgeColor = 'bg-red-900/40 text-red-300 border border-red-500/30';
+              } else if (status.includes('spike') || status.includes('elevat')) {
+                badgeColor = 'bg-yellow-900/40 text-yellow-300 border border-yellow-500/30';
+              } else if (status.includes('normal') || status.includes('stabil')) {
+                badgeColor = 'bg-blue-900/40 text-blue-300 border border-blue-500/30';
+              }
+              
               return (
                 <div
                   key={index}
-                  className="flex items-start gap-3 p-3 rounded-lg bg-card/50 border border-border/50 hover:bg-card/70 transition-all duration-300 relative"
+                  className="group relative overflow-hidden rounded-lg bg-slate-900/60 border border-slate-700 hover:border-emerald-500/40 transition-all duration-300"
                 >
-                  {/* Data processing indicator */}
-                  <div className="absolute top-1 right-1 w-1 h-1 bg-emerald-400/40 rounded-full animate-ping" style={{animationDelay: `${index * 200}ms`}}></div>
+                  {/* Animated gradient background on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/5 to-emerald-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   
-                  <div className="p-1.5 rounded-md bg-muted">
-                    <IndicatorIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-white">
-                      {indicator.label}
-                    </p>
-                    <p className="text-xs text-slate-300 mt-0.5">
-                      {indicator.status}
-                    </p>
+                  <div className="relative p-3 flex items-start gap-3">
+                    {/* Icon with background */}
+                    <div className="p-2 rounded-md bg-slate-800 group-hover:bg-emerald-900/30 transition-colors">
+                      <IndicatorIcon className="h-4 w-4 text-slate-400 group-hover:text-emerald-400 transition-colors" />
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+                        {indicator.label}
+                      </p>
+                      <div className={`text-sm font-medium px-2 py-1 rounded ${badgeColor} inline-block`}>
+                        {indicator.status}
+                      </div>
+                    </div>
+                    
+                    {/* Live data indicator */}
+                    <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" style={{animationDelay: `${index * 200}ms`}}></div>
                   </div>
                 </div>
               );
