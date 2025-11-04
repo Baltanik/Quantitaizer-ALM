@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"],
+    "strict": true
+  },
+  "imports": {
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2",
+    "pdfmake": "npm:pdfmake@0.2.7"
+  },
+  "tasks": {
+    "test": "deno test --allow-all"
+  }
+}
+

@@ -13,6 +13,16 @@ interface MetricsGridProps {
 export function MetricsGrid({ currentData, previousData, historicalData }: MetricsGridProps) {
   const [globalExpanded, setGlobalExpanded] = useState(false);
 
+  // DEBUG: Log dei dati ricevuti
+  console.log('🔍 MetricsGrid received data:');
+  console.log('   currentData date:', currentData?.date);
+  console.log('   previousData date:', previousData?.date);
+  console.log('   previousData SOFR:', previousData?.sofr);
+  console.log('   previousData IORB:', previousData?.iorb);
+  console.log('   previousData WALCL:', previousData?.walcl);
+  console.log('   previousData WRESBAL:', previousData?.wresbal);
+  console.log('   historicalData length:', historicalData?.length);
+
   if (!currentData) {
     return (
       <div className="space-y-4">
@@ -37,16 +47,17 @@ export function MetricsGrid({ currentData, previousData, historicalData }: Metri
   // Create historical arrays for each metric (reverse to show oldest to newest)
   const createHistoricalArray = (key: keyof FedData) => {
     const array = [...historicalData].reverse().map(d => ({ value: d[key] as number | null }));
-    
-    // Debug logging per il primo metric (SOFR) per vedere i dati
-    if (key === 'sofr') {
-      console.log('🔍 HISTORICAL DATA DEBUG for', key);
-      console.log('   Total historical records:', historicalData.length);
-      console.log('   Current value:', currentData?.[key]);
-      console.log('   Historical array length:', array.length);
-      console.log('   Last 3 values:', array.slice(-3));
+
+    // Debug logging per vedere cosa viene passato
+    if (['sofr', 'iorb', 'walcl', 'rrpontsyd'].includes(key)) {
+      console.log(`🔍 createHistoricalArray for ${key}:`, {
+        currentValue: currentData?.[key],
+        previousValue: previousData?.[key],
+        arrayLength: array.length,
+        last3Values: array.slice(-3).map(d => d.value)
+      });
     }
-    
+
     return array;
   };
 

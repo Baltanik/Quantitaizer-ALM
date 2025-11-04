@@ -1,7 +1,8 @@
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useScrollDirection } from "@/hooks/use-scroll-direction";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { triggerFedDataFetch } from "@/services/fedData";
+import { useState } from "react";
 
 interface HeaderProps {
   lastUpdate?: string;
@@ -9,20 +10,35 @@ interface HeaderProps {
 }
 
 export function Header({ lastUpdate, onRefresh }: HeaderProps) {
-  const isMobile = useIsMobile();
-  const scrollDirection = useScrollDirection();
-  
-  // Su mobile: nasconde l'header quando si scrolla verso il basso
-  const isHidden = isMobile && scrollDirection === 'down';
-  
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
+    toast.info("🔄 Recupero ultimi dati Fed...", { duration: 2000 });
+    
+    try {
+      const result = await triggerFedDataFetch();
+      
+      if (result.success) {
+        toast.success("✅ Dati Fed aggiornati con successo");
+        // Trigger refresh nel componente padre
+        if (onRefresh) {
+          setTimeout(() => onRefresh(), 2000);
+        }
+      } else {
+        toast.error(`❌ ${result.error}`, { duration: 5000 });
+      }
+    } catch (error) {
+      toast.error("❌ Errore di rete durante l'aggiornamento");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
-    <header 
-      className={`
-        relative border-b border-slate-800 bg-gradient-to-b from-slate-950 to-slate-900 
-        sticky top-0 z-50 overflow-hidden transition-transform duration-300 ease-in-out
-        ${isHidden ? '-translate-y-full' : 'translate-y-0'}
-      `}
-    >
+    <header className="relative border-b border-slate-800 bg-gradient-to-b from-slate-950 to-slate-900 sticky top-0 z-50 overflow-hidden">
       {/* Floating Financial Orbs - Neural Network Style */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Central Hub */}
@@ -76,35 +92,19 @@ export function Header({ lastUpdate, onRefresh }: HeaderProps) {
           </div>
         </div>
         
-        {/* Last Update - Clean and Simple */}
+        {/* Last Update - Always Bottom */}
         {lastUpdate && (
           <div className="absolute bottom-4 left-4 text-left">
             <p className="text-xs text-slate-500">Ultimo Aggiornamento</p>
             <p className="text-xs font-mono text-slate-400">
               {new Date(lastUpdate).toLocaleString('it-IT', {
                 day: '2-digit',
-                month: '2-digit',
+                month: '2-digit', 
                 year: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
               })}
             </p>
-          </div>
-        )}
-
-        {/* Refresh Button - Top Right */}
-        {onRefresh && (
-          <div className="absolute top-4 right-4">
-            <Button
-              onClick={onRefresh}
-              variant="ghost"
-              size="sm"
-              className="text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 transition-all duration-200 group"
-              title="Aggiorna dati"
-            >
-              <RefreshCw className="h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
-              <span className="ml-2 hidden sm:inline">Aggiorna</span>
-            </Button>
           </div>
         )}
       </div>

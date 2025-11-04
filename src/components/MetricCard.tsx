@@ -55,89 +55,80 @@ export function MetricCard({
 
   const getTrend = () => {
     if (!value || value === null || value === undefined || isNaN(value)) return null;
-    
-    // Debug logging per tutti i principali indicatori
-    if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie'].includes(title)) {
-      console.log('🔍 TREND CALCULATION DEBUG for', title);
-      console.log('   Current value:', value);
-      console.log('   Previous value:', previousValue);
-      console.log('   Historical data length:', historicalData.length);
-    }
-    
+
     // Prima prova a usare previousValue se disponibile
-    if (previousValue !== null && previousValue !== undefined && !isNaN(previousValue) && Math.abs(previousValue) > 0.001) {
-      const change = ((value - previousValue) / Math.abs(previousValue)) * 100;
-      
-      // Controllo di sanità: soglie diverse per strumenti diversi
-      let maxChange = 100; // Default per tassi e bilanci
-      
-      // Strumenti di emergenza Fed possono avere variazioni più ampie
-      if (['Repo ON', 'Repo Term', 'Reverse Repo'].includes(title)) {
-        maxChange = 2000; // Fino a 2000% per strumenti di emergenza
-      }
-      
-      // Spread possono avere variazioni molto ampie (es. da 0.18 a 0.36 = +100%)
-      if (title.includes('Spread') || title.includes('spread')) {
-        maxChange = 500; // Fino a 500% per spread
-      }
-      
-      if (Math.abs(change) > maxChange) {
-        if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie', 'Repo ON', 'Repo Term'].includes(title)) {
-          console.log('   🚨 CHANGE TOO HIGH for', title);
-          console.log('   Current:', value, 'Previous:', previousValue);
-          console.log('   Change:', change.toFixed(4) + '% (EXCEEDS', maxChange + '% - RETURNING NULL)');
+    // FIX: Accetta anche previousValue === 0 (spread può essere 0), solo non undefined/null/NaN
+    if (previousValue !== null && previousValue !== undefined && !isNaN(previousValue)) {
+      // NUOVO FIX: Se previousValue è identico a value, salta al fallback storico
+      if (previousValue === value) {
+        // Continua al fallback storico sotto
+      } else {
+        // FIX: Per il calcolo, se previousValue è 0 (o molto vicino), usa un valore minimo per evitare divisione per 0
+        const prevForCalc = Math.abs(previousValue) < 0.001 ? 0.001 : Math.abs(previousValue);
+        const change = ((value - previousValue) / prevForCalc) * 100;
+
+        // Controllo di sanità: soglie diverse per strumenti diversi
+        let maxChange = 100; // Default per tassi e bilanci
+
+        // Strumenti di emergenza Fed possono avere variazioni più ampie
+        if (['Repo ON', 'Repo Term', 'Reverse Repo'].includes(title)) {
+          maxChange = 2000; // Fino a 2000% per strumenti di emergenza
         }
-        return null;
+
+        // Spread possono avere variazioni molto ampie (es. da 0.18 a 0.36 = +100%)
+        if (title.includes('Spread') || title.includes('spread')) {
+          maxChange = 500; // Fino a 500% per spread
+        }
+
+        if (Math.abs(change) > maxChange) {
+          console.warn(`⚠️ ${title}: Change ${change.toFixed(2)}% exceeds ${maxChange}% threshold. Current: ${value}, Previous: ${previousValue}`);
+          return null;
+        }
+
+        return change;
       }
-      
-      if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie', 'Repo ON', 'Repo Term'].includes(title)) {
-        console.log('   ✅ Using previousValue:', previousValue);
-        console.log('   ✅ Calculated change:', change.toFixed(4) + '%');
-      }
-      
-      return change;
-    } else if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie', 'Repo ON', 'Repo Term'].includes(title)) {
-      console.log('   ❌ previousValue not usable:', previousValue, typeof previousValue, 'abs:', Math.abs(previousValue || 0));
     }
-    
+
     // Altrimenti usa l'ultimo valore valido dall'array storico
     const validHistoricalValues = historicalData
       .filter(d => d.value !== null && d.value !== undefined && !isNaN(d.value))
       .map(d => d.value);
-    
+
     if (validHistoricalValues.length === 0) return null;
-    
-    // Prendi l'ultimo valore storico come precedente
-    const lastHistoricalValue = validHistoricalValues[validHistoricalValues.length - 1];
-    if (!lastHistoricalValue || Math.abs(lastHistoricalValue) <= 0.001) return null;
-    
-    const change = ((value - lastHistoricalValue) / Math.abs(lastHistoricalValue)) * 100;
-    
+
+    // NUOVO FIX: Trova il primo valore storico DIVERSO dal valore corrente
+    // (partendo dalla fine dell'array, che contiene i valori più vecchi)
+    let lastHistoricalValue = null;
+    for (let i = validHistoricalValues.length - 1; i >= 0; i--) {
+      if (validHistoricalValues[i] !== value) {
+        lastHistoricalValue = validHistoricalValues[i];
+        break;
+      }
+    }
+
+    // Se tutti i valori storici sono uguali al valore corrente, non c'è variazione
+    if (lastHistoricalValue === null) return null;
+
+    // FIX: Per il calcolo, se valore storico è 0 (o molto vicino), usa un minimo per evitare divisione per 0
+    const histForCalc = Math.abs(lastHistoricalValue) < 0.001 ? 0.001 : Math.abs(lastHistoricalValue);
+    const change = ((value - lastHistoricalValue) / histForCalc) * 100;
+
     // Controllo di sanità anche per dati storici
     let maxChange = 100; // Default per tassi e bilanci
     if (['Repo ON', 'Repo Term', 'Reverse Repo'].includes(title)) {
       maxChange = 2000; // Fino a 2000% per strumenti di emergenza
     }
-    
+
     // Spread possono avere variazioni molto ampie
     if (title.includes('Spread') || title.includes('spread')) {
       maxChange = 500; // Fino a 500% per spread
     }
-    
+
     if (Math.abs(change) > maxChange) {
-      if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie', 'Repo ON', 'Repo Term'].includes(title)) {
-        console.log('   🚨 HISTORICAL CHANGE TOO HIGH for', title);
-        console.log('   Current:', value, 'Historical:', lastHistoricalValue);
-        console.log('   Change:', change.toFixed(4) + '% (EXCEEDS', maxChange + '% - RETURNING NULL)');
-      }
+      console.warn(`⚠️ ${title}: Historical change ${change.toFixed(2)}% exceeds ${maxChange}% threshold. Current: ${value}, Historical: ${lastHistoricalValue}`);
       return null;
     }
-    
-    if (['SOFR', 'IORB', 'Bilancio Fed', 'Riserve Bancarie', 'Repo ON', 'Repo Term'].includes(title)) {
-      console.log('   Using historical value:', lastHistoricalValue);
-      console.log('   Calculated change:', change.toFixed(4) + '%');
-    }
-    
+
     return change;
   };
 

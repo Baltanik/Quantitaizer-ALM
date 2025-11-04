@@ -2,20 +2,42 @@ import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { ScenarioCard } from "@/components/ScenarioCard";
 import { MetricsGrid } from "@/components/MetricsGrid";
+import { ScenarioAnalysis } from "@/components/ScenarioAnalysis";
 import { LiquidityMonitor } from "@/components/LiquidityMonitor";
 import { FedPolicyTracker } from "@/components/FedPolicyTracker";
 import { MarketImpact } from "@/components/MarketImpact";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
+import { LiquidityScoreMeter } from "@/components/LiquidityScoreMeter";
+import { LeadingIndicatorsPanel } from "@/components/LeadingIndicatorsPanel";
+import { MLForecastPanel } from "@/components/MLForecastPanel";
 import { 
   fetchLatestFedData, 
+  fetchLatestFedDataV2,
   fetchHistoricalFedData, 
   fetchRecentSignals,
   subscribeToFedData,
   triggerFedDataFetch,
+  triggerFedDataFetchV2,
   FedData,
   Signal
 } from "@/services/fedData";
+import { 
+  Signal as SignalIcon, 
+  TrendingUp, 
+  TrendingDown, 
+  Minus, 
+  AlertTriangle, 
+  CheckCircle, 
+  AlertCircle, 
+  XCircle, 
+  Target, 
+  Shield, 
+  Zap, 
+  Activity, 
+  BarChart3, 
+  Building2, 
+  ArrowUp, 
+  ArrowDown 
+} from "lucide-react";
 
 const Index = () => {
   const [latestData, setLatestData] = useState<FedData | null>(null);
@@ -25,6 +47,13 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [v2Available, setV2Available] = useState<boolean | null>(null);
+
+  // V2 is always available since we use a separate Edge Function
+  const checkV2Status = async () => {
+    setV2Available(true);
+    console.log('🔍 V2 availability: always true (separate Edge Function)');
+  };
 
   const loadData = async (forceRefresh: boolean = false) => {
     if (isLoadingData) {
@@ -40,15 +69,18 @@ const Index = () => {
     try {
       // Timeout per l'intero processo
       const loadPromise = (async () => {
-        const [latest, historical, recentSignals] = await Promise.all([
-          fetchLatestFedData(),
+        // Always use V2 since columns exist
+        const latest = await fetchLatestFedDataV2();
+        
+        const [historical, recentSignals] = await Promise.all([
           fetchHistoricalFedData(90),
           fetchRecentSignals(10)
         ]);
 
         // Se non ci sono dati E non stiamo già facendo refresh, trigghera il fetch UNA SOLA VOLTA
-        if ((!latest || historical.length === 0) && !forceRefresh) {
-          console.log('📥 No data found, triggering ONE-TIME automatic fetch...');
+        // OPPURE se forceRefresh è true (per calcolare V2 data)
+        if ((!latest || historical.length === 0) && !forceRefresh || forceRefresh) {
+          console.log('📥 Triggering Fed data fetch...', { forceRefresh, hasData: !!latest });
           
           const result = await triggerFedDataFetch();
           
@@ -56,12 +88,21 @@ const Index = () => {
             throw new Error(result.error || 'Errore nel recupero dati dalla Fed');
           }
           
-          // Attendi completamento e ricarica UNA SOLA VOLTA
+          // Attendi completamento e ricarica - più tempo per V2 calculations
           console.log('⏱️ Waiting for data processing...');
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          await new Promise(resolve => setTimeout(resolve, forceRefresh ? 8000 : 3000));
           
-          const [newLatest, newHistorical, newSignals] = await Promise.all([
-            fetchLatestFedData(),
+          // Prova a caricare V2 data se disponibile
+          let newLatest;
+          try {
+            newLatest = await fetchLatestFedDataV2();
+            console.log('✅ V2 data loaded after fetch');
+          } catch (error) {
+            console.warn('⚠️ V2 data not ready yet, using V1:', error);
+            newLatest = await fetchLatestFedData();
+          }
+          
+          const [newHistorical, newSignals] = await Promise.all([
             fetchHistoricalFedData(90),
             fetchRecentSignals(10)
           ]);
@@ -113,37 +154,36 @@ const Index = () => {
       
       if (result.historical && result.historical.length > 0) {
         setHistoricalData(result.historical);
-
+        
         // DEBUG: Mostra la struttura dei dati storici
         console.log('📊 HISTORICAL DATA STRUCTURE:');
         console.log('   Total records:', result.historical.length);
         console.log('   First 3 dates:', result.historical.slice(0, 3).map(d => d.date));
-        console.log('   Latest data date:', result.latest?.date);
-        console.log('   First historical date:', result.historical[0]?.date);
-
-        if (result.historical.length > 1 && result.latest) {
-          // FIX: Trova il primo record con data DIVERSA da quella corrente
-          // (l'array storico include il giorno corrente come primo elemento)
-          let previousIndex = 0;
-
-          // Salta tutti i record con la stessa data del valore corrente
-          while (previousIndex < result.historical.length &&
-                 result.historical[previousIndex]?.date === result.latest.date) {
+        console.log('   Latest historical SOFR:', result.historical[0]?.sofr);
+        console.log('   Current data SOFR:', result.latest?.sofr);
+        console.log('   Are they the same?', result.historical[0]?.sofr === result.latest?.sofr);
+        
+        if (result.historical.length > 1) {
+          // Se il valore del giorno precedente è uguale a quello corrente, cerca un valore diverso
+          let previousIndex = 1;
+          while (previousIndex < result.historical.length && 
+                 result.historical[previousIndex]?.sofr === result.latest?.sofr) {
             previousIndex++;
           }
-
-          // Se abbiamo trovato un record con data diversa, usalo come previousData
+          
           if (previousIndex < result.historical.length) {
             setPreviousData(result.historical[previousIndex]);
-            console.log('   ✅ Previous data found at index', previousIndex);
-            console.log('      Date:', result.historical[previousIndex]?.date);
-            console.log('      SOFR:', result.historical[previousIndex]?.sofr);
-            console.log('      Spread:', result.historical[previousIndex]?.sofr_iorb_spread);
+            console.log('   Previous data (index', previousIndex + ') SOFR:', result.historical[previousIndex]?.sofr);
+            console.log('   Previous data date:', result.historical[previousIndex]?.date);
           } else {
-            console.warn('   ⚠️ No previous data with different date found');
+            // Se tutti i valori sono uguali, usa comunque l'index 1
+            setPreviousData(result.historical[1]);
+            console.log('   All values are the same, using index 1');
+            console.log('   Previous data (index 1) SOFR:', result.historical[1]?.sofr);
+            console.log('   Previous data date:', result.historical[1]?.date);
           }
         }
-
+        
         console.log(`✅ Historical data loaded: ${result.historical.length} records`);
       }
       
@@ -168,8 +208,47 @@ const Index = () => {
     }
   };
 
+  const calculateV2Data = async () => {
+    if (isLoadingData) {
+      console.log('⏳ Data loading already in progress, skipping...');
+      return; 
+    }
+    
+    console.log('🔄 Starting V2 data calculation...');
+    setIsLoadingData(true);
+    
+    try {
+      const result = await triggerFedDataFetchV2();
+      
+      if (result.success) {
+        console.log('✅ V2 data calculation successful');
+        // Wait a bit for the data to be saved, then reload
+        setTimeout(async () => {
+          try {
+            const latest = await fetchLatestFedDataV2();
+            setLatestData(latest);
+            console.log('✅ V2 data reloaded successfully');
+          } catch (error) {
+            console.error('❌ Error reloading V2 data:', error);
+          }
+        }, 3000);
+      } else {
+        console.error('❌ V2 data calculation failed:', result.error);
+        setError(result.error || 'V2 calculation failed');
+      }
+    } catch (error) {
+      console.error('❌ Error calculating V2 data:', error);
+      setError(error instanceof Error ? error.message : 'V2 calculation error');
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
   useEffect(() => {
-    loadData();
+    // Check V2 availability first, then load data
+    checkV2Status().then(() => {
+      loadData();
+    });
     // Real-time subscription rimossa - i dati vengono aggiornati solo una volta al giorno
   }, []);
 
@@ -189,6 +268,25 @@ const Index = () => {
           onRefresh={() => loadData(true)}
         />
         
+        {/* 🚨 HOTFIX DEBUG PANEL */}
+        <div className="container mx-auto px-4 py-2">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <strong>🚨 DEBUG MODE ACTIVE</strong> - Check browser console for detailed logs
+            <button 
+              onClick={() => {
+                console.log('🔄 [MANUAL REFRESH] Force refreshing data...');
+                loadData(true);
+              }}
+              className="ml-4 px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
+            >
+              Force Refresh Data
+            </button>
+            <div className="mt-2 text-sm">
+              Latest Data: {latestData?.date} | EFFR: {latestData?.effr || 'NULL'} | Scenario: {latestData?.scenario}
+            </div>
+          </div>
+        </div>
+        
         <main className="container mx-auto px-4 py-8 space-y-12">
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -207,6 +305,71 @@ const Index = () => {
           </div>
         ) : (
           <>
+            {/* V2 Migration Banner */}
+            {v2Available === false && (
+              <section className="mb-6">
+                <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0">
+                      <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                        <span className="text-2xl">🚀</span>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-white mb-2">
+                        Upgrade to Quantitaizer V2 Available!
+                      </h3>
+                      <p className="text-slate-300 mb-4">
+                        Unlock advanced features: Liquidity Score (0-100), Leading Indicators, Early Warning System, and Predictive Analytics.
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={calculateV2Data}
+                          disabled={isLoadingData}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                        >
+                          {isLoadingData ? 'Calculating...' : 'Calculate V2 Data'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* V2 Success Banner */}
+            {v2Available === true && (
+              <section className="mb-6">
+                <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 border border-green-500/30 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">✅</span>
+                      <div>
+                        <h3 className="text-lg font-bold text-green-300">
+                          Quantitaizer V2 Active!
+                        </h3>
+                        <p className="text-green-200 text-sm">
+                          {latestData?.liquidity_score 
+                            ? 'Advanced analytics and predictive features are now enabled.'
+                            : 'V2 database ready. Click "Calculate V2 Data" to populate indicators.'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    {!latestData?.liquidity_score && (
+                      <button
+                        onClick={calculateV2Data}
+                        disabled={isLoadingData}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                      >
+                        {isLoadingData ? 'Calculating...' : 'Calculate V2 Data'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
+
             {/* Scenario Attuale */}
             <section className="space-y-6">
               <ScenarioCard 
@@ -214,49 +377,6 @@ const Index = () => {
                 currentData={latestData}
               />
             </section>
-
-            {/* RRP Alert - Spike Detection */}
-            {latestData && latestData.d_rrpontsyd_4w !== null && 
-             Math.abs(latestData.d_rrpontsyd_4w) > 20 && (
-              <Alert 
-                variant={latestData.d_rrpontsyd_4w > 0 ? "default" : "destructive"}
-                className="bg-slate-900/80 border-slate-700 hover:border-emerald-500/30 transition-all duration-300"
-              >
-                <div className="flex items-center gap-2">
-                  {latestData.d_rrpontsyd_4w > 0 ? (
-                    <TrendingUp className="h-5 w-5 text-blue-400" />
-                  ) : (
-                    <TrendingDown className="h-5 w-5 text-red-400" />
-                  )}
-                  <AlertCircle className="h-4 w-4" />
-                </div>
-                <AlertTitle className="text-white font-semibold">
-                  🚨 RRP Spike Rilevato - Movimento Significativo
-                </AlertTitle>
-                <AlertDescription className="text-slate-200">
-                  <div className="space-y-2">
-                    <p>
-                      <strong>Reverse Repo {latestData.d_rrpontsyd_4w > 0 ? "aumentato" : "diminuito"}</strong> di{" "}
-                      <span className={`font-mono font-bold ${latestData.d_rrpontsyd_4w > 0 ? 'text-blue-400' : 'text-red-400'}`}>
-                        ${Math.abs(latestData.d_rrpontsyd_4w).toFixed(1)}B
-                      </span>{" "}
-                      nelle ultime 4 settimane.
-                    </p>
-                    <p className="text-sm text-slate-300">
-                      {latestData.d_rrpontsyd_4w > 20 && 
-                        "⚠️ Liquidità in eccesso torna alla Fed. Possibile stress bancario o mancanza investimenti alternativi."
-                      }
-                      {latestData.d_rrpontsyd_4w < -20 && 
-                        "📈 Drenaggio liquidità in corso. Fed sta riducendo RRP - liquidità fluisce verso mercati."
-                      }
-                    </p>
-                    <div className="text-xs text-slate-400 mt-2">
-                      <strong>Soglia Alert:</strong> Movimenti &gt;$20B in 4 settimane indicano cambiamenti significativi nella liquidità Fed.
-                    </div>
-                  </div>
-                </AlertDescription>
-              </Alert>
-            )}
 
             {/* Metriche Rapide */}
             <section className="space-y-4">
@@ -268,11 +388,55 @@ const Index = () => {
               />
             </section>
             
-            {/* Analisi Real-Time */}
-            <section className="space-y-4">
-              <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Liquidità Sistema</h2>
-              <LiquidityMonitor currentData={latestData} />
-            </section>
+                    {/* V2 Advanced Analytics */}
+                    {latestData?.liquidity_score && (
+                      <section className="space-y-4">
+                        <h2 className="text-2xl font-bold border-l-4 border-emerald-500 pl-4">🚀 Quantitaizer V2 Analytics</h2>
+                        <div className="grid gap-6 lg:grid-cols-2">
+                          <LiquidityScoreMeter
+                            score={latestData.liquidity_score}
+                            grade={latestData.liquidity_grade || 'C'}
+                            trend={latestData.liquidity_trend || 'neutral'}
+                            confidence={latestData.liquidity_confidence || 50}
+                            components={{
+                              balanceSheet: 50,
+                              reserves: 50,
+                              stress: 50,
+                              momentum: 50
+                            }}
+                          />
+                          {latestData.leading_indicators && (
+                            <LeadingIndicatorsPanel data={{
+                              tga_trend: typeof latestData.leading_indicators.tga_trend === 'string' ? 
+                                parseFloat(latestData.leading_indicators.tga_trend) : 
+                                (latestData.leading_indicators.tga_trend || 0),
+                              rrp_velocity: typeof latestData.leading_indicators.rrp_velocity === 'string' ? 
+                                parseFloat(latestData.leading_indicators.rrp_velocity) : 
+                                (latestData.leading_indicators.rrp_velocity || 0),
+                              credit_stress_index: latestData.leading_indicators.credit_stress_index || 30,
+                              repo_spike_risk: latestData.leading_indicators.repo_spike_risk || 0,
+                              qt_pivot_probability: latestData.leading_indicators.qt_pivot_probability || 40,
+                              overall_signal: latestData.leading_indicators.overall_signal || 'neutral'
+                            }} />
+                          )}
+                        </div>
+                        
+                        {/* ML Forecast Panel - Phase 2 */}
+                        <div className="mt-6">
+                          <MLForecastPanel />
+                        </div>
+                      </section>
+                    )}
+
+                    {/* Analisi Real-Time */}
+                    <section className="space-y-4">
+                      <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Analisi Real-Time</h2>
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <ScenarioAnalysis currentData={latestData} />
+                        <LiquidityMonitor currentData={latestData} />
+                      </div>
+                    </section>
+
             
             {/* Market Intelligence */}
             <section className="space-y-4">
