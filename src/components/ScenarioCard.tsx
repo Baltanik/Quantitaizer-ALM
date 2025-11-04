@@ -462,69 +462,116 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
         {/* Hero Metrics - Top 3 Critical Data Points - MOBILE OPTIMIZED */}
         {currentData && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Balance Sheet - LARGER VALUES */}
-            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-6 hover:border-emerald-500/30 transition-all text-center">
-              <div className="text-sm text-slate-400 uppercase tracking-wide mb-3 flex items-center justify-center gap-2">
-                Balance Sheet
-                <ExplanationTooltip metricKey="balance_sheet" mode="full" size="sm" />
-              </div>
-              <div className="text-3xl sm:text-4xl font-bold text-white mb-2">
-                ${currentData.walcl ? (currentData.walcl / 1000000).toFixed(2) : 'N/A'}T
-              </div>
-              <div className={`text-base font-semibold ${
-                (currentData.d_walcl_4w || 0) > 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {(currentData.d_walcl_4w || 0) > 0 ? '↗' : '↘'} {currentData.d_walcl_4w ? Math.abs(currentData.d_walcl_4w/1000).toFixed(1) : '0'}B (4w)
-              </div>
-            </div>
-
-            {/* SOFR-EFFR Spread - LARGER VALUES */}
-            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-6 hover:border-emerald-500/30 transition-all text-center">
-              <div className="text-sm text-slate-400 uppercase tracking-wide mb-3 flex items-center justify-center gap-2">
-                SOFR-EFFR Spread
-                <ExplanationTooltip metricKey="sofr_effr_spread" mode="full" size="sm" />
-              </div>
-              <div className="text-3xl sm:text-4xl font-bold text-white mb-3">
-                {currentData.sofr_effr_spread?.toFixed(1) ?? 'N/A'} bps
-              </div>
-              <div className="mt-3 h-2 bg-slate-800 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full transition-all ${
-                    (currentData.sofr_effr_spread || 0) > 15 ? 'bg-red-500' : 
-                    (currentData.sofr_effr_spread || 0) > 10 ? 'bg-yellow-500' : 
-                    'bg-green-500'
-                  }`}
-                  style={{
-                    width: `${Math.min(((currentData.sofr_effr_spread || 0) / 20) * 100, 100)}%`
-                  }}
-                ></div>
-              </div>
-              <div className="text-sm text-slate-400 mt-2">
-                {(currentData.sofr_effr_spread || 0) > 15 ? 'Stress' : 
-                 (currentData.sofr_effr_spread || 0) > 10 ? 'Elevated' : 
-                 'Normal'}
+            {/* Balance Sheet - CLEAN ORGANIZED LAYOUT */}
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-5 hover:border-emerald-500/30 transition-all">
+              <div className="space-y-4">
+                {/* Header */}
+                <div className="text-center">
+                  <div className="text-xs text-slate-400 uppercase tracking-wide flex items-center justify-center gap-2 mb-2">
+                    Balance Sheet
+                    <ExplanationTooltip metricKey="balance_sheet" mode="full" size="sm" />
+                  </div>
+                </div>
+                
+                {/* Main Value */}
+                <div className="text-center">
+                  <div className="text-2xl sm:text-3xl font-bold text-white">
+                    ${currentData.walcl ? (currentData.walcl / 1000000).toFixed(2) : 'N/A'}T
+                  </div>
+                </div>
+                
+                {/* Change Indicator */}
+                <div className="text-center">
+                  <div className={`text-sm font-semibold ${
+                    (currentData.d_walcl_4w || 0) > 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {(currentData.d_walcl_4w || 0) > 0 ? '↗' : '↘'} {currentData.d_walcl_4w ? Math.abs(currentData.d_walcl_4w/1000).toFixed(1) : '0'}B (4w)
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* VIX - LARGER VALUES */}
-            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-6 hover:border-emerald-500/30 transition-all text-center">
-              <div className="text-sm text-slate-400 uppercase tracking-wide mb-3 flex items-center justify-center gap-2">
-                VIX (Fear Index)
-                <ExplanationTooltip metricKey="vix" mode="full" size="sm" />
+            {/* SOFR-EFFR Spread - CLEAN ORGANIZED LAYOUT */}
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-5 hover:border-emerald-500/30 transition-all">
+              <div className="space-y-4">
+                {/* Header */}
+                <div className="text-center">
+                  <div className="text-xs text-slate-400 uppercase tracking-wide flex items-center justify-center gap-2 mb-2">
+                    SOFR-EFFR Spread
+                    <ExplanationTooltip metricKey="sofr_effr_spread" mode="full" size="sm" />
+                  </div>
+                </div>
+                
+                {/* Main Value */}
+                <div className="text-center">
+                  <div className="text-2xl sm:text-3xl font-bold text-white">
+                    {currentData.sofr_effr_spread?.toFixed(1) ?? 'N/A'} bps
+                  </div>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="px-2">
+                  <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all ${
+                        (currentData.sofr_effr_spread || 0) > 15 ? 'bg-red-500' : 
+                        (currentData.sofr_effr_spread || 0) > 10 ? 'bg-yellow-500' : 
+                        'bg-green-500'
+                      }`}
+                      style={{
+                        width: `${Math.min(((currentData.sofr_effr_spread || 0) / 20) * 100, 100)}%`
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                
+                {/* Status */}
+                <div className="text-center">
+                  <div className="text-xs text-slate-400">
+                    {(currentData.sofr_effr_spread || 0) > 15 ? 'Stress' : 
+                     (currentData.sofr_effr_spread || 0) > 10 ? 'Elevated' : 
+                     'Normal'}
+                  </div>
+                </div>
               </div>
-              <div className="text-3xl sm:text-4xl font-bold text-white mb-3">
-                {currentData.vix ?? 'N/A'}
-              </div>
-              <div className="mt-3 h-2 bg-slate-800 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full transition-all ${getVixRiskLevel(currentData.vix || 0).color}`}
-                  style={{
-                    width: `${Math.min(((currentData.vix || 0) / 40) * 100, 100)}%`
-                  }}
-                ></div>
-              </div>
-              <div className="text-sm text-slate-400 mt-2">
-                {getVixRiskLevel(currentData.vix || 0).label}
+            </div>
+
+            {/* VIX - CLEAN ORGANIZED LAYOUT */}
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-5 hover:border-emerald-500/30 transition-all">
+              <div className="space-y-4">
+                {/* Header */}
+                <div className="text-center">
+                  <div className="text-xs text-slate-400 uppercase tracking-wide flex items-center justify-center gap-2 mb-2">
+                    VIX (Fear Index)
+                    <ExplanationTooltip metricKey="vix" mode="full" size="sm" />
+                  </div>
+                </div>
+                
+                {/* Main Value */}
+                <div className="text-center">
+                  <div className="text-2xl sm:text-3xl font-bold text-white">
+                    {currentData.vix ?? 'N/A'}
+                  </div>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="px-2">
+                  <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all ${getVixRiskLevel(currentData.vix || 0).color}`}
+                      style={{
+                        width: `${Math.min(((currentData.vix || 0) / 40) * 100, 100)}%`
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                
+                {/* Status */}
+                <div className="text-center">
+                  <div className="text-xs text-slate-400">
+                    {getVixRiskLevel(currentData.vix || 0).label}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

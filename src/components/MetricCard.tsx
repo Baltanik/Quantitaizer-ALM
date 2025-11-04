@@ -173,41 +173,45 @@ export function MetricCard({
     <Card className={`hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 relative overflow-hidden bg-slate-900/80 border-slate-800 ${
       isExpanded ? 'row-span-2' : ''
     }`}>
-      {/* COINMARKETCAP STYLE FIXED: Layout uniforme e allineato */}
+      {/* COINMARKETCAP STYLE PERFECTED: Spacing e allineamento preciso */}
       {!isExpanded ? (
-        <div className="p-4 flex items-center gap-4 min-h-[60px]">
-          {/* Left: Title - Fixed width per allineamento */}
-          <div className="w-32 flex-shrink-0">
-            <p className="text-sm font-medium text-muted-foreground uppercase">
+        <div className="px-4 py-3 flex items-center min-h-[56px]">
+          {/* Left: Title - Larghezza fissa per allineamento perfetto */}
+          <div className="w-36 flex-shrink-0 pr-3">
+            <p className="text-sm font-medium text-muted-foreground uppercase truncate leading-tight">
               {title}
             </p>
           </div>
           
-          {/* Center: Value - Fixed width per allineamento verticale */}
-          <div className="flex-1 text-right">
-            <p className="font-mono font-bold text-lg text-white">
+          {/* Center: Value - Allineato a destra con spazio controllato */}
+          <div className="flex-1 text-right pr-4">
+            <p className="font-mono font-bold text-base text-white leading-tight">
               {format === 'billion' && <span className="text-sm">$</span>}
               <span>{formatValue(value)}</span>
               <span className="text-muted-foreground text-sm ml-1">{getUnit()}</span>
             </p>
           </div>
           
-          {/* Right: Trend + Expand - Fixed width per allineamento */}
-          <div className="w-20 flex items-center justify-end gap-2">
+          {/* Right: Trend - Larghezza fissa per evitare sovrapposizioni */}
+          <div className="w-16 flex items-center justify-center">
             {trend !== null && (
               <div className={`flex items-center gap-1 ${trendColor}`}>
-                <TrendIcon className="h-4 w-4" />
-                <span className="font-mono text-sm font-semibold">
+                <TrendIcon className="h-3 w-3 flex-shrink-0" />
+                <span className="font-mono text-xs font-semibold">
                   {Math.abs(trend).toFixed(1)}%
                 </span>
               </div>
             )}
+          </div>
+          
+          {/* Far Right: Expand button - Separato per evitare sovrapposizioni */}
+          <div className="w-8 flex items-center justify-center">
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1 hover:bg-muted/20 rounded transition-colors ml-2"
+              className="p-1 hover:bg-muted/20 rounded transition-colors"
               aria-label="Espandi"
             >
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-3 w-3" />
             </button>
           </div>
         </div>
