@@ -459,16 +459,16 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
           </div>
         </div>
 
-        {/* Hero Metrics - Top 3 Critical Data Points */}
+        {/* Hero Metrics - Top 3 Critical Data Points - MOBILE OPTIMIZED */}
         {currentData && (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Balance Sheet */}
             <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-emerald-500/30 transition-all">
               <div className="text-xs text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-2">
                 Balance Sheet
                 <ExplanationTooltip metricKey="balance_sheet" mode="full" size="sm" />
               </div>
-              <div className="text-2xl font-bold text-white">
+              <div className="text-xl sm:text-2xl font-bold text-white">
                 ${currentData.walcl ? (currentData.walcl / 1000000).toFixed(2) : 'N/A'}T
               </div>
               <div className={`text-sm mt-1 font-semibold ${
@@ -484,7 +484,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 SOFR-EFFR Spread
                 <ExplanationTooltip metricKey="sofr_effr_spread" mode="full" size="sm" />
               </div>
-              <div className="text-2xl font-bold text-white">
+              <div className="text-xl sm:text-2xl font-bold text-white">
                 {currentData.sofr_effr_spread?.toFixed(1) ?? 'N/A'} bps
               </div>
               <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -512,7 +512,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 VIX (Fear Index)
                 <ExplanationTooltip metricKey="vix" mode="full" size="sm" />
               </div>
-              <div className="text-2xl font-bold text-white">
+              <div className="text-xl sm:text-2xl font-bold text-white">
                 {currentData.vix ?? 'N/A'}
               </div>
               <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">

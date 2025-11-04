@@ -190,13 +190,13 @@ export function MetricCard({
         </CardTitle>
       </CardHeader>
       <CardContent className={isExpanded ? "space-y-3" : "pb-3"}>
-        {/* Contenuto sempre visibile - compatto */}
-        <div className="flex items-end justify-between">
-          <div>
-            <p className={`font-mono font-bold flex items-baseline gap-1 whitespace-nowrap ${
-              isExpanded ? "text-3xl" : "text-2xl"
-            }`}>
-              {format === 'billion' && <span className={isExpanded ? "text-lg" : "text-base"}>$</span>}
+        {/* Contenuto sempre visibile - MOBILE OPTIMIZED: layout orizzontale su mobile quando compresso */}
+        <div className={`flex items-center ${isExpanded ? 'flex-col items-start space-y-2' : 'justify-between'}`}>
+          <div className={isExpanded ? 'w-full' : 'flex-1 min-w-0'}>
+            <p className={`font-mono font-bold flex items-baseline gap-1 ${
+              isExpanded ? "text-3xl" : "text-lg sm:text-xl"
+            } ${isExpanded ? '' : 'truncate'}`}>
+              {format === 'billion' && <span className={isExpanded ? "text-lg" : "text-sm"}>$</span>}
               <span className="flex items-baseline gap-0">
                 {formatValue(value)}
                 <span className={`text-muted-foreground ml-0.5 ${
@@ -204,15 +204,25 @@ export function MetricCard({
                 }`}>{getUnit()}</span>
               </span>
             </p>
-            {trend !== null && (
-              <p className={`font-mono mt-1 flex items-center gap-1 ${trendColor} ${
-                isExpanded ? "text-xs" : "text-[10px]"
-              }`}>
-                <TrendIcon className={isExpanded ? "h-3 w-3" : "h-2.5 w-2.5"} />
-                {Math.abs(trend).toFixed(2)}%
-              </p>
-            )}
           </div>
+          
+          {/* Trend indicator - posizionato a destra su mobile quando compresso */}
+          {trend !== null && (
+            <div className={`flex items-center ${isExpanded ? 'w-full justify-start' : 'flex-shrink-0'}`}>
+              <p className={`font-mono flex items-center gap-1 ${trendColor} ${
+                isExpanded ? "text-xs" : "text-xs"
+              }`}>
+                <TrendIcon className={isExpanded ? "h-3 w-3" : "h-3 w-3"} />
+                <span className={isExpanded ? '' : 'hidden sm:inline'}>
+                  {Math.abs(trend).toFixed(2)}%
+                </span>
+                {/* Solo icona su mobile quando compresso */}
+                <span className={isExpanded ? 'hidden' : 'sm:hidden'}>
+                  {trend > 0 ? '+' : ''}
+                </span>
+              </p>
+            </div>
+          )}
         </div>
         
         {/* Contenuto espandibile */}

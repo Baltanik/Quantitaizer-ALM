@@ -76,8 +76,8 @@ export function MetricsGrid({ currentData, previousData, historicalData }: Metri
         </div>
       </div>
 
-      {/* Griglia compatta ottimizzata - responsive breakpoints con auto-rows per espansione */}
-      <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 auto-rows-min">
+      {/* Griglia compatta ottimizzata - MOBILE FIRST: 1 card per riga su mobile, stile CoinMarketCap */}
+      <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 auto-rows-min">
         <MetricCard
           title="SOFR"
           value={currentData.sofr}
