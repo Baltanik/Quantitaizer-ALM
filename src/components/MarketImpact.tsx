@@ -132,11 +132,23 @@ export function MarketImpact({ currentData }: MarketImpactProps) {
     
     // FIXED: Soglie realistiche coerenti con ScenarioCard
     if ((scenario === 'stealth_qe' || scenario === 'qe') && spread < 0.05 && vix < 18) {
-      return { sentiment: 'Risk-On', color: 'text-green-600', description: 'Liquidità abbondante e volatilità bassa favoriscono risk assets' };
+      return { 
+        sentiment: 'Risk-On', 
+        badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30',
+        description: 'Liquidità abbondante e volatilità bassa favoriscono risk assets' 
+      };
     } else if ((scenario === 'qt' || scenario === 'contraction') || spread > 0.10 || vix > 22) {
-      return { sentiment: 'Risk-Off', color: 'text-red-600', description: 'Liquidità scarsa o volatilità alta favoriscono safe haven' };
+      return { 
+        sentiment: 'Risk-Off', 
+        badgeClass: 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30',
+        description: 'Liquidità scarsa o volatilità alta favoriscono safe haven' 
+      };
     } else {
-      return { sentiment: 'Neutrale', color: 'text-blue-600', description: 'Sentiment bilanciato - condizioni miste' };
+      return { 
+        sentiment: 'Neutrale', 
+        badgeClass: 'bg-slate-500/20 text-slate-300 border-slate-500/30 hover:bg-slate-500/30',
+        description: 'Sentiment bilanciato - condizioni miste' 
+      };
     }
   };
 
@@ -151,50 +163,64 @@ export function MarketImpact({ currentData }: MarketImpactProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Risk Sentiment */}
-        <div className="p-3 rounded-lg bg-muted/50">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="font-medium text-sm">Risk Sentiment</h4>
-            <Badge className={riskSentiment.color}>{riskSentiment.sentiment}</Badge>
+        {/* Risk Sentiment - Migliorato esteticamente */}
+        <div className="p-4 rounded-lg bg-gradient-to-r from-slate-800/50 to-slate-700/30 border border-slate-700/50">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-medium text-sm flex items-center gap-2">
+              <Target className="h-4 w-4 text-slate-400" />
+              Risk Sentiment
+            </h4>
+            <div className={`px-3 py-1 rounded-full text-sm font-medium border transition-all duration-200 ${riskSentiment.badgeClass}`}>
+              {riskSentiment.sentiment}
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">{riskSentiment.description}</p>
+          <p className="text-xs text-slate-300 leading-relaxed">{riskSentiment.description}</p>
         </div>
 
-        {/* Asset Classes */}
+        {/* Asset Classes - Migliorato esteticamente */}
         <div>
-          <h4 className="font-medium text-sm mb-3">Impatto Asset Classes:</h4>
+          <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-slate-400" />
+            Impatto Asset Classes:
+          </h4>
           <div className="grid grid-cols-2 gap-3">
             {Object.entries(impact).map(([asset, data]) => {
               const Icon = data.icon;
               return (
-                <div key={asset} className="p-2 rounded bg-muted/30">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Icon className={`h-3 w-3 ${data.color}`} />
-                    <span className="text-sm font-medium capitalize">{asset}</span>
+                <div key={asset} className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/30 hover:border-slate-600/50 transition-all duration-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Icon className={`h-4 w-4 ${data.color}`} />
+                    <span className="text-sm font-medium capitalize text-slate-200">{asset}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">{data.impact}</p>
-                  <p className="text-xs text-muted-foreground">Forza: {data.strength}</p>
+                  <p className="text-xs text-slate-300 font-medium">{data.impact}</p>
+                  <p className="text-xs text-slate-400">Forza: {data.strength}</p>
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Settori */}
+        {/* Settori - Migliorato esteticamente */}
         <div>
-          <h4 className="font-medium text-sm mb-3">Impatto Settoriale:</h4>
+          <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+            <Target className="h-4 w-4 text-slate-400" />
+            Impatto Settoriale:
+          </h4>
           <div className="space-y-2">
             {sectorImpact.map((sector, index) => (
-              <div key={index} className="flex items-center justify-between p-2 rounded bg-muted/30">
-                <span className="text-sm">{sector.sector}</span>
-                <div className="flex items-center gap-2">
-                  <span className={`text-sm font-bold ${
-                    sector.impact === '+' ? 'text-green-600' : 
-                    sector.impact === '-' ? 'text-red-600' : 'text-blue-600'
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/40 border border-slate-700/30 hover:border-slate-600/50 transition-all duration-200">
+                <span className="text-sm font-medium text-slate-200">{sector.sector}</span>
+                <div className="flex items-center gap-3">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
+                    sector.impact === '+' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 
+                    sector.impact === '-' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 
+                    'bg-slate-500/20 text-slate-300 border border-slate-500/30'
                   }`}>
                     {sector.impact}
-                  </span>
-                  <Badge variant="outline" className="text-xs">{sector.strength}</Badge>
+                  </div>
+                  <div className="px-2 py-1 rounded text-xs font-medium bg-slate-700/50 text-slate-300 border border-slate-600/30">
+                    {sector.strength}
+                  </div>
                 </div>
               </div>
             ))}
