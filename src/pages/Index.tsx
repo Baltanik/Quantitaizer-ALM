@@ -207,6 +207,19 @@ const Index = () => {
           </div>
         ) : (
           <>
+            {/* Avviso Dati */}
+            <div className="mb-6">
+              <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800">
+                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <AlertTitle className="text-amber-800 dark:text-amber-200">
+                  ⚠️ Avviso Dati
+                </AlertTitle>
+                <AlertDescription className="text-amber-700 dark:text-amber-300">
+                  I dati mostrati sono di ieri ma comunque validi. Per i dati aggiornati, attendere le ore 21:00 circa quando il problema verrà risolto.
+                </AlertDescription>
+              </Alert>
+            </div>
+
             {/* Scenario Attuale */}
             <section className="space-y-6">
               <ScenarioCard 
