@@ -498,3 +498,4 @@ Sistema completo implementato secondo le tue rules:
 **Data**: 04 Nov 2025  
 **Version**: 1.0.0
 
+

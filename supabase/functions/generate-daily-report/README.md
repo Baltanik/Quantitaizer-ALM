@@ -249,3 +249,4 @@ ORDER BY timestamp DESC;
 **Status**: ✅ Ready for local testing  
 **Next**: Deploy dopo validazione locale
 
+

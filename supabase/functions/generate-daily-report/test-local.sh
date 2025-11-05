@@ -114,3 +114,4 @@ echo "  1. If test passed → Deploy: supabase functions deploy generate-daily-r
 echo "  2. Setup cron trigger in Supabase Dashboard"
 echo "  3. Create 'reports' Storage bucket if not exists"
 
+
