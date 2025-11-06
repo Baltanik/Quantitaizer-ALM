@@ -686,7 +686,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 const sofrEffr = currentData.sofr_effr_spread || 0;
                 const bsDelta = currentData.d_walcl_4w || 0;
                 
-                // Risk Level Logic - USA STESSA LOGICA DI getVixRiskLevel
+                // Risk Level Logic - FIXED: VIX 16+ è almeno MEDIO
                 const vixRisk = getVixRiskLevel(vix);
                 let riskLevel = vixRisk.risk;
                 let riskColor = 'bg-green-500/10 text-green-600 border-green-500/20';
@@ -695,34 +695,34 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 if (vix > 22 || sofrEffr > 10) {
                   riskLevel = 'ELEVATO';
                   riskColor = 'bg-red-500/10 text-red-600 border-red-500/20';
-                } else if (vixRisk.risk === 'MEDIO' || sofrEffr > 5) {
+                } else if (vix >= 16 || sofrEffr > 5) {  // FIXED: VIX 16+ = almeno MEDIO
                   riskLevel = 'MEDIO';
                   riskColor = 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
-                } else if (vixRisk.risk === 'NORMALE' && sofrEffr <= 5) {
+                } else if (vix >= 14 || sofrEffr > 3) {  // FIXED: VIX 14-16 = NORMALE
                   riskLevel = 'NORMALE';
                   riskColor = 'bg-blue-500/10 text-blue-600 border-blue-500/20';
-                } else if (vixRisk.risk === 'BASSO') {
+                } else {
                   riskLevel = 'BASSO';
                   riskColor = 'bg-green-500/10 text-green-600 border-green-500/20';
                 }
                 
-                // Sustainability Logic - se BS cala è BASSA non ALTA!
+                // Sustainability Logic - FIXED: VIX elevated + BS stabile = BASSA
                 let sustainability = 'MEDIA';
                 let sustainColor = 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
                 
-                if (Math.abs(bsDelta) < 5000 && sofrEffr < 3 && vix < 16) {
+                if (Math.abs(bsDelta) < 5000 && sofrEffr < 3 && vix < 14) {  // FIXED: VIX < 14 (non 16)
                   sustainability = 'ALTA';
                   sustainColor = 'bg-green-500/10 text-green-600 border-green-500/20';
-                } else if (bsDelta < 0 || sofrEffr > 5 || vix > 20) {  // BS che cala = BASSA
+                } else if (bsDelta < 0 || sofrEffr > 5 || vix >= 18) {  // FIXED: VIX >= 18 = BASSA
                   sustainability = 'BASSA';
                   sustainColor = 'bg-red-500/10 text-red-600 border-red-500/20';
                 }
                 
-                // Confidence Logic - più rigorosa
+                // Confidence Logic - FIXED: VIX elevated riduce confidence
                 const calmSignals = [
-                  vix < 15,  // Più rigoroso
-                  sofrEffr < 3,  // Più rigoroso
-                  Math.abs(bsDelta) < 10000  // Più rigoroso
+                  vix < 14,  // FIXED: Davvero calmo
+                  sofrEffr < 3,  // Spread ottimi
+                  Math.abs(bsDelta) < 10000  // BS stabile
                 ].filter(Boolean).length;
                 
                 let confidence = 'BASSA';
@@ -781,16 +781,18 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 );
               }
 
-              // GIALLO: Cautela moderata (metriche in range intermedio)
-              if ((vix >= 16 && vix <= 22) || (sofrEffr >= 5 && sofrEffr <= 10)) {
+              // GIALLO: Cautela moderata (metriche in range intermedio) - VIX 16-22 SEMPRE cautela
+              if (vix >= 16 || (sofrEffr >= 5 && sofrEffr <= 10)) {
                 return (
                   <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
                     <div className="space-y-1">
-                      <h5 className="font-semibold text-yellow-400 text-sm">Cautela Moderata</h5>
+                      <h5 className="font-semibold text-yellow-400 text-sm">Cautela {vix >= 18 ? 'Elevata' : 'Moderata'}</h5>
                       <p className="text-sm text-yellow-300">
-                        Spread in allargamento, monitora segnali di stress. VIX {vix.toFixed(1)} (elevato),
-                        SOFR-EFFR {sofrEffr.toFixed(1)}bps. Mantieni posizionamento bilanciato.
+                        {vix >= 18 
+                          ? `VIX ${vix.toFixed(1)} (Elevated) indica nervosismo mercato. SOFR-EFFR ${sofrEffr.toFixed(1)}bps. Approccio prudente raccomandato.`
+                          : `Volatilità in aumento (VIX ${vix.toFixed(1)}) o spread ${sofrEffr.toFixed(1)}bps. Mantieni posizionamento bilanciato.`
+                        }
                       </p>
                     </div>
                   </div>
@@ -824,35 +826,139 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
               const sofrEffr = (currentData.sofr_effr_spread || 0) * 100; // Converti da decimale a bps
               const bsDelta = currentData.d_walcl_4w || 0;
               const rrpDelta = currentData.d_rrpontsyd_4w || 0;
+              const hyOAS = currentData.hy_oas || 4.5;
+              const dxy = currentData.dxy_broad ?? null;
+              const dxyDelta = currentData.d_dxy_4w ?? null;
 
-              const drivers: string[] = [];
+              const drivers: { text: string; icon: any; color: string }[] = [];
 
+              // FIXED: Priorità ai segnali di stress/cautela
+              if (vix > 22) {
+                drivers.push({ 
+                  text: `VIX alto stress: ${vix.toFixed(1)} (mercato nervoso)`,
+                  icon: AlertTriangle,
+                  color: 'text-red-400'
+                });
+              } else if (vix >= 18) {
+                drivers.push({ 
+                  text: `VIX elevated: ${vix.toFixed(1)} (cautela richiesta)`,
+                  icon: AlertTriangle,
+                  color: 'text-yellow-400'
+                });
+              } else if (vix >= 16) {
+                drivers.push({ 
+                  text: `VIX leggermente elevato: ${vix.toFixed(1)}`,
+                  icon: TrendingUp,
+                  color: 'text-yellow-400'
+                });
+              }
+              
+              if (sofrEffr > 10) {
+                drivers.push({ 
+                  text: `SOFR-EFFR stress: ${sofrEffr.toFixed(1)}bps (tensione liquidità)`,
+                  icon: AlertTriangle,
+                  color: 'text-red-400'
+                });
+              } else if (sofrEffr > 5) {
+                drivers.push({ 
+                  text: `SOFR-EFFR elevato: ${sofrEffr.toFixed(1)}bps`,
+                  icon: TrendingUp,
+                  color: 'text-yellow-400'
+                });
+              } else if (sofrEffr < 3) {
+                drivers.push({ 
+                  text: `SOFR-EFFR ottimo: ${sofrEffr.toFixed(1)}bps (liquidità fluida)`,
+                  icon: TrendingDown,
+                  color: 'text-green-400'
+                });
+              }
+              
+              // DXY - Dollar strength/weakness (AGGIUNGI PRIMA DI BS/RRP per priorità)
+              if (dxy !== null && dxyDelta !== null) {
+                if (dxyDelta > 1.0) {
+                  drivers.push({ 
+                    text: `USD rafforzamento forte: +${dxyDelta.toFixed(2)} (DXY ${dxy.toFixed(2)}) - stress mercati EM/commodities`,
+                    icon: TrendingUp,
+                    color: 'text-red-400'
+                  });
+                } else if (dxyDelta > 0.5) {
+                  drivers.push({ 
+                    text: `USD in rafforzamento: +${dxyDelta.toFixed(2)} (DXY ${dxy.toFixed(2)}) - headwind per risk assets`,
+                    icon: TrendingUp,
+                    color: 'text-yellow-400'
+                  });
+                } else if (dxyDelta > 0.2) {
+                  drivers.push({ 
+                    text: `USD leggermente più forte: +${dxyDelta.toFixed(2)} (DXY ${dxy.toFixed(2)})`,
+                    icon: TrendingUp,
+                    color: 'text-slate-400'
+                  });
+                } else if (dxyDelta < -1.0) {
+                  drivers.push({ 
+                    text: `USD indebolimento forte: ${dxyDelta.toFixed(2)} (DXY ${dxy.toFixed(2)}) - supporto risk-on`,
+                    icon: TrendingDown,
+                    color: 'text-green-400'
+                  });
+                } else if (dxyDelta < -0.5) {
+                  drivers.push({ 
+                    text: `USD in indebolimento: ${dxyDelta.toFixed(2)} (DXY ${dxy.toFixed(2)}) - favorevole EM/commodities`,
+                    icon: TrendingDown,
+                    color: 'text-green-400'
+                  });
+                }
+              }
+              
               if (Math.abs(bsDelta) > 10000) {
-                drivers.push(`Balance Sheet ${bsDelta > 0 ? 'espansione' : 'contrazione'}: ${(bsDelta/1000).toFixed(1)}B`);
+                drivers.push({ 
+                  text: `Balance Sheet ${bsDelta > 0 ? 'espansione' : 'contrazione'}: ${(bsDelta/1000).toFixed(1)}B`,
+                  icon: bsDelta > 0 ? TrendingUp : TrendingDown,
+                  color: bsDelta > 0 ? 'text-green-400' : 'text-red-400'
+                });
               }
+              
               if (Math.abs(rrpDelta) > 5000) {
-                drivers.push(`RRP ${rrpDelta > 0 ? 'accumulo' : 'drenaggio'}: ${(rrpDelta/1000).toFixed(1)}B`);
+                drivers.push({ 
+                  text: `RRP ${rrpDelta > 0 ? 'accumulo' : 'drenaggio'}: ${(rrpDelta/1000).toFixed(1)}B`,
+                  icon: rrpDelta > 0 ? TrendingUp : TrendingDown,
+                  color: rrpDelta > 0 ? 'text-blue-400' : 'text-yellow-400'
+                });
               }
-              if (vix > 18) {
-                drivers.push(`VIX elevato: ${vix.toFixed(1)} (stress market)`);
+              
+              if (hyOAS < 3.0) {
+                drivers.push({ 
+                  text: `HY OAS tight: ${hyOAS.toFixed(1)}% (ricerca yield aggressiva)`,
+                  icon: TrendingDown,
+                  color: 'text-orange-400'
+                });
+              } else if (hyOAS > 6.0) {
+                drivers.push({ 
+                  text: `HY OAS wide: ${hyOAS.toFixed(1)}% (stress credito)`,
+                  icon: TrendingUp,
+                  color: 'text-red-400'
+                });
               }
-              if (sofrEffr > 5) {
-                drivers.push(`SOFR-EFFR spread: ${sofrEffr.toFixed(1)}bps (tensione)`);
-              }
-              if (vix < 16 && sofrEffr < 5) {
-                drivers.push(`Condizioni calme: VIX ${vix.toFixed(1)}, spread ${sofrEffr.toFixed(1)}bps`);
+              
+              if (vix < 14 && sofrEffr < 3) {
+                drivers.push({ 
+                  text: `Condizioni calme: VIX ${vix.toFixed(1)}, spread ${sofrEffr.toFixed(1)}bps`,
+                  icon: Activity,
+                  color: 'text-green-400'
+                });
               }
               
               return drivers.length > 0 ? (
                 <div className="space-y-2">
                   <h5 className="font-semibold text-sm text-slate-300">Drivers Attuali:</h5>
                   <div className="grid gap-1">
-                    {drivers.map((driver, index) => (
-                      <div key={index} className="flex items-center gap-2 text-sm text-slate-400">
-                        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
-                        {driver}
-                      </div>
-                    ))}
+                    {drivers.map((driver, index) => {
+                      const DriverIcon = driver.icon;
+                      return (
+                        <div key={index} className="flex items-center gap-2 text-sm text-slate-400">
+                          <DriverIcon className={`h-3.5 w-3.5 ${driver.color}`} />
+                          {driver.text}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ) : null;
@@ -1086,10 +1192,14 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
               } else if (vix > 20 || sofrEffr > 8) {
                 outlookSimpleDesc = 'Momento di cautela negli investimenti';
                 outlookDetailDesc = `Segnali di stress (VIX ${vix.toFixed(1)}) - meglio essere prudenti e monitorare sviluppi`;
+              } else if (vix >= 18 && vix <= 22) {
+                // VIX Elevated (18-22) = cautela anche con spread normali
+                outlookSimpleDesc = 'Cautela per volatilità elevata';
+                outlookDetailDesc = `VIX ${vix.toFixed(1)} in zona Elevated - mercato nervoso nonostante spread ${sofrEffr.toFixed(1)}bps ${sofrEffr < 5 ? 'normali' : 'elevati'}. ${hyOasNum < 3.5 ? 'Credit tight (HY ' + hyOasNum.toFixed(1) + '%) suggerisce ricerca yield, ma VIX elevated richiede prudenza.' : 'Monitorare sviluppi prima di aumentare esposizione.'}`;
               } else if (vix < 16 && sofrEffr < 5 && bsDelta >= 0) {
                 outlookSimpleDesc = 'Ambiente generalmente supportivo';
                 outlookDetailDesc = `Liquidità ${Math.abs(bsDelta) < 5 ? 'stabile' : 'in espansione'} (${(bsDelta/1000).toFixed(1)}B), spread ${sofrEffr.toFixed(1)}bps ottimo. ${hyOasNum < 3 ? 'ATTENZIONE: HY OAS ' + hyOasNum.toFixed(1) + '% troppo tight (possibile complacency)' : 'Condizioni favorevoli per risk assets'}`;
-              } else if (vix > 16 && vix < 19 && sofrEffr < 3 && hyOasNum < 3.5) {
+              } else if (vix > 16 && vix < 18 && sofrEffr < 3 && hyOasNum < 3.5) {
                 outlookSimpleDesc = 'Segnali contrastanti - prudenza';
                 outlookDetailDesc = `VIX ${vix.toFixed(1)} (cautela) MA liquidità ottima (spread ${sofrEffr.toFixed(1)}bps) e credit tight (HY ${hyOasNum.toFixed(1)}%). Investitori cercano yield nonostante nervosismo. Seguire attentamente.`;
               } else {
@@ -1185,6 +1295,11 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                         <>
                           <TrendingDown className="h-3.5 w-3.5 text-red-400" />
                           <span>Ambiente Risk-Off (difensivo)</span>
+                        </>
+                      ) : vix >= 18 ? (
+                        <>
+                          <TrendingUpDown className="h-3.5 w-3.5 text-yellow-400" />
+                          <span>Cautela (VIX elevated)</span>
                         </>
                       ) : (
                         <>
