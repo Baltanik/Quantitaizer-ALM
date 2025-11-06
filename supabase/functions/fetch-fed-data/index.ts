@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { fetchRealtimeHybrid, validateRealtimeData } from './realtime-integrations.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -65,9 +66,17 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const fredApiKey = Deno.env.get('FRED_API_KEY')!;
+    // Try environment variables first, fallback to hardcoded values
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://tolaojeqjcoskegelule.supabase.co';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvbGFvamVxamNvc2tlZ2VsdWxlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjAxMjUzOSwiZXhwIjoyMDc3NTg4NTM5fQ.Y0xWNiSR3mTDxhN566I-cgloiQazBwg0HoFpDJT0_HE';
+    const fredApiKey = Deno.env.get('FRED_API_KEY') || 'fae844cfb2f3f5bbaf82549a5656910d';
+    const marketdataKey = Deno.env.get('MARKETDATA_API_KEY') || '';
+
+    console.log('🔧 Using credentials:', {
+      supabaseUrl: supabaseUrl.substring(0, 30) + '...',
+      hasServiceKey: !!supabaseKey,
+      hasFredKey: !!fredApiKey
+    });
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -98,12 +107,22 @@ Deno.serve(async (req) => {
       'DEXCHUS'  // CHF/USD
     ];
 
-    // Fetch data from 2021 to today
+    // Fetch data from last 35 days to ensure we have data for 4-week delta calculations
+    // This handles: forward-fill (14d) + delta 4w (28d) + buffer (7d)
     const today = new Date();
-    const startDate = '2021-01-01';
+    const startDateObj = new Date(today);
+    startDateObj.setDate(startDateObj.getDate() - 35); // Changed from -14 to -35 for delta 4w
+    const startDate = startDateObj.toISOString().split('T')[0];
     const endDate = today.toISOString().split('T')[0];
     
     console.log(`📅 Date range: ${startDate} to ${endDate}`);
+
+    // === FETCH REAL-TIME MARKET DATA ===
+    console.log('\n🌐 Fetching real-time market data (VIX, DXY)...');
+    const realtimeMarket = await fetchRealtimeHybrid(marketdataKey);
+    console.log(`   Source: ${realtimeMarket.source}`);
+    console.log(`   VIX: ${realtimeMarket.vix !== null ? realtimeMarket.vix.toFixed(2) : 'N/A'}`);
+    console.log(`   DXY: ${realtimeMarket.dxy !== null ? realtimeMarket.dxy.toFixed(2) : 'N/A'}`);
 
     console.log(`Fetching data from ${startDate} to ${endDate}`);
 
@@ -114,27 +133,28 @@ Deno.serve(async (req) => {
       try {
         const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${fredApiKey}&file_type=json&observation_start=${startDate}&observation_end=${endDate}`;
         console.log(`\n🔄 Fetching ${seriesId}...`);
-        
+
+        // Map FRED series names to database field names (do this first for error handling)
+        let key = seriesId.toLowerCase();
+        if (seriesId === 'DGS10') key = 'us10y';
+        if (seriesId === 'VIXCLS') key = 'vix';
+        if (seriesId === 'BAMLH0A0HYM2') key = 'hy_oas';
+        if (seriesId === 'T10Y3M') key = 't10y3m';
+        if (seriesId === 'DFF') key = 'dff';
+
         const response = await fetch(url);
-        
+
         if (!response.ok) {
           console.error(`❌ HTTP Error ${response.status} for ${seriesId}`);
-          seriesData[seriesId.toLowerCase()] = [];
+          seriesData[key] = [];
           continue;
         }
-        
+
         const json: SeriesResponse = await response.json();
-        
+
         if (json.observations && json.observations.length > 0) {
-          // Map FRED series names to database field names
-          let key = seriesId.toLowerCase();
-          if (seriesId === 'DGS10') key = 'us10y';
-          if (seriesId === 'VIXCLS') key = 'vix';
-          if (seriesId === 'BAMLH0A0HYM2') key = 'hy_oas';
-          if (seriesId === 'T10Y3M') key = 't10y3m';
-          
           seriesData[key] = json.observations;
-          
+
           // Get last 5 values for debugging
           const last5 = json.observations.slice(-5);
           console.log(`✅ ${seriesId}: ${json.observations.length} observations fetched`);
@@ -145,11 +165,18 @@ Deno.serve(async (req) => {
         } else {
           console.error(`❌ ${seriesId}: No observations in response`);
           console.error(`   Response:`, JSON.stringify(json).substring(0, 200));
-          seriesData[seriesId.toLowerCase()] = [];
+          seriesData[key] = [];
         }
       } catch (error) {
         console.error(`❌ Exception fetching ${seriesId}:`, error);
-        seriesData[seriesId.toLowerCase()] = [];
+        // Apply same mapping logic for error case
+        let key = seriesId.toLowerCase();
+        if (seriesId === 'DGS10') key = 'us10y';
+        if (seriesId === 'VIXCLS') key = 'vix';
+        if (seriesId === 'BAMLH0A0HYM2') key = 'hy_oas';
+        if (seriesId === 'T10Y3M') key = 't10y3m';
+        if (seriesId === 'DFF') key = 'dff';
+        seriesData[key] = [];
       }
     }
     
@@ -169,10 +196,27 @@ Deno.serve(async (req) => {
     // Forward fill helper - keeps track of last valid value for each series
     const lastValues: { [key: string]: number | null } = {};
     
-    // Initialize with first available values
-    Object.keys(seriesData).forEach(key => {
-      lastValues[key] = null;
-    });
+    // Initialize with last known values from database (for better forward-fill)
+    console.log('📊 Fetching last known values from database for forward-fill...');
+    const { data: lastDbRecord, error: lastRecordError } = await supabase
+      .from('fed_data')
+      .select('*')
+      .order('date', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (lastDbRecord && !lastRecordError) {
+      console.log(`✅ Last DB record from: ${lastDbRecord.date}`);
+      // Initialize lastValues with database values
+      Object.keys(seriesData).forEach(key => {
+        lastValues[key] = lastDbRecord[key] ?? null;
+      });
+    } else {
+      console.warn('⚠️ Could not fetch last DB record, initializing with null');
+      Object.keys(seriesData).forEach(key => {
+        lastValues[key] = null;
+      });
+    }
 
     // Process each date with forward fill
     const recordsToInsert: any[] = [];
@@ -198,6 +242,11 @@ Deno.serve(async (req) => {
           const value = parseFloat(obs.value);
           if (!isNaN(value)) {
             lastValues[key] = value;
+          }
+        } else if (lastValues[key] !== null) {
+          // Using forward-fill for this series on this date
+          if (date === allDates[allDates.length - 1]) {
+            console.log(`🔄 Forward-fill: ${key} = ${lastValues[key]} (FRED data not available for ${date})`);
           }
         }
         data[key] = lastValues[key];
@@ -262,6 +311,36 @@ Deno.serve(async (req) => {
           console.log(`   DEXCHUS: ${data.dexchus}`);
         }
         data.dxy_broad = null;
+      }
+
+      // === REAL-TIME DATA OVERRIDE (solo per ultimo giorno) ===
+      if (date === endDate) {
+        // Verifica freshness (dati <30 min)
+        const isRealtimeFresh = (Date.now() - realtimeMarket.timestamp) < 30 * 60 * 1000;
+        
+        // Override VIX se disponibile e fresco
+        if (realtimeMarket.vix !== null && isRealtimeFresh) {
+          const fredVix = data.vix;
+          data.vix = realtimeMarket.vix;
+          console.log(`🔥 VIX OVERRIDE: ${realtimeMarket.vix.toFixed(2)} (real-time) vs ${fredVix !== null ? fredVix.toFixed(2) : 'null'} (FRED)`);
+          
+          // Validation: alert se delta >5%
+          validateRealtimeData(realtimeMarket.vix, fredVix, 'VIX', 5);
+        }
+        
+        // Override DXY se disponibile e fresco
+        if (realtimeMarket.dxy !== null && isRealtimeFresh) {
+          const fredDxy = data.dxy_broad;
+          data.dxy_broad = realtimeMarket.dxy;
+          console.log(`🔥 DXY OVERRIDE: ${realtimeMarket.dxy.toFixed(2)} (real-time) vs ${fredDxy !== null ? fredDxy.toFixed(2) : 'null'} (FRED)`);
+          
+          // Validation: alert se delta >2%
+          validateRealtimeData(realtimeMarket.dxy, fredDxy, 'DXY', 2);
+        }
+        
+        if (!isRealtimeFresh) {
+          console.warn(`⚠️ Real-time data stale (age: ${Math.floor((Date.now() - realtimeMarket.timestamp) / 60000)} min), using FRED fallback`);
+        }
       }
 
       // === CALCOLO DELTA A 4 SETTIMANE (28 giorni) ===
@@ -401,6 +480,9 @@ Deno.serve(async (req) => {
 
     console.log(`Inserting ${recordsToInsert.length} records into database in batches`);
 
+    // Note: Forward fill is already handled above (lines 194-203)
+    // Missing values are automatically filled with the last known value
+
     // Insert records in smaller batches to avoid timeout
     const batchSize = 100;
     for (let i = 0; i < recordsToInsert.length; i += batchSize) {
@@ -520,14 +602,14 @@ function determineScenario(data: any): string {
   // Opzione 3: Bilancio cresce >$30B con contrazione RRP
   // Razionale: Liquidità netta in aumento attraverso meccanismi "nascosti"
   const rrpDrainageSignificant = d_rrpontsyd_4w < -30 && d_wresbal_4w >= -20; // RRP drena, riserve non collassano
-  const reservesGrowthModerate = d_wresbal_4w > 20 && d_walcl_4w > -20000; // Riserve crescono, BS non crolla
+  const reservesGrowthModerate = d_wresbal_4w > 30 && d_walcl_4w > -20000; // Riserve crescono significativamente, BS non crolla (raised from 20 to 30)
   const balanceSheetGrowthWithRrpDrain = d_walcl_4w > 30000 && d_rrpontsyd_4w < -20; // BS cresce con RRP in drenaggio
   
   const stealthQeCondition = rrpDrainageSignificant || reservesGrowthModerate || balanceSheetGrowthWithRrpDrain;
   
   console.log(`   STEALTH_QE conditions:`);
   console.log(`     → RRP drainage >$30B + Reserves stable: ${rrpDrainageSignificant} (ΔRRP: ${d_rrpontsyd_4w.toFixed(1)}B, ΔRes: ${d_wresbal_4w.toFixed(1)}B)`);
-  console.log(`     → Reserves growth >$20B + BS stable: ${reservesGrowthModerate} (ΔRes: ${d_wresbal_4w.toFixed(1)}B, ΔBS: ${(d_walcl_4w/1000).toFixed(1)}B)`);
+  console.log(`     → Reserves growth >$30B + BS stable: ${reservesGrowthModerate} (ΔRes: ${d_wresbal_4w.toFixed(1)}B, ΔBS: ${(d_walcl_4w/1000).toFixed(1)}B)`);
   console.log(`     → BS growth >$30B + RRP drain: ${balanceSheetGrowthWithRrpDrain} (ΔBS: ${(d_walcl_4w/1000).toFixed(1)}B, ΔRRP: ${d_rrpontsyd_4w.toFixed(1)}B)`);
   console.log(`     = FINAL: ${stealthQeCondition}`);
   
@@ -537,11 +619,11 @@ function determineScenario(data: any): string {
   }
 
   // === QT (QUANTITATIVE TIGHTENING) ===
-  // Soglia: Bilancio -$50B O Riserve -$80B (4 settimane)
+  // Soglia: Bilancio -$25B O Riserve -$50B (4 settimane)
   // Fonte: Contrazione Fed significativa che impatta liquidità
-  // Razionale: Drenaggio abbastanza forte da creare stress
-  const qtCondition = d_walcl_4w < -50000 || d_wresbal_4w < -80;
-  console.log(`   QT: ΔBS < -$50B (${d_walcl_4w < -50000 ? '✓' : '✗'} actual: ${(d_walcl_4w/1000).toFixed(1)}B) || ΔRiserve < -$80B (${d_wresbal_4w < -80 ? '✓' : '✗'} actual: ${d_wresbal_4w.toFixed(1)}B) = ${qtCondition}`);
+  // Razionale: Cattura QT normale Fed, non solo eventi estremi
+  const qtCondition = d_walcl_4w < -25000 || d_wresbal_4w < -50;
+  console.log(`   QT: ΔBS < -$25B (${d_walcl_4w < -25000 ? '✓' : '✗'} actual: ${(d_walcl_4w/1000).toFixed(1)}B) || ΔRiserve < -$50B (${d_wresbal_4w < -50 ? '✓' : '✗'} actual: ${d_wresbal_4w.toFixed(1)}B) = ${qtCondition}`);
   
   if (qtCondition) {
     console.log('✅ Scenario: QT - Contrazione liquidità significativa rilevata');
@@ -673,13 +755,31 @@ function deriveScenarioQualifiers(inputs: any): {
   // === 5) DRIVERS ===
   // Lista dei fattori chiave che influenzano lo scenario
   const drivers: string[] = [];
+  
+  // Positive drivers (show when things are good)
+  if ((inputs.sofr_iorb_spread || 0) < 0.05 && (inputs.sofr_iorb_spread || 0) >= 0 && inputs.wresbal > 2500) {
+    drivers.push('Liquidità Fed ottimale');
+  }
+  if ((inputs.vix || 100) < 16) {
+    drivers.push('Volatilità molto bassa');
+  }
+  if ((inputs.hy_oas || 100) < 3.5) {
+    drivers.push('Credit spread stretto');
+  }
+  if ((inputs.t10y3m || 0) > 0.3) {
+    drivers.push('Curva dei tassi normale');
+  }
+  
+  // Growth/positive changes
   if ((inputs.d_wresbal_4w || 0) > 0) drivers.push('Riserve in aumento');
   if ((inputs.d_rrpontsyd_4w || 0) < 0) drivers.push('RRP in drenaggio');
+  
+  // Stress/negative drivers
   if ((inputs.vix || 0) > 22) drivers.push('VIX elevato');
   if ((inputs.hy_oas || 0) > 5.5) drivers.push('HY OAS in widening');
   if ((inputs.d_dxy_4w || 0) > 0.5) drivers.push('USD in rafforzamento');
   if ((inputs.t10y3m || 0) < 0) drivers.push('Curva invertita');
-  if ((inputs.sofr_iorb_spread || 0) > 0) drivers.push('SOFR > IORB (tensione)');
+  if ((inputs.sofr_iorb_spread || 0) > 0.10) drivers.push('SOFR-IORB spread elevato'); // Changed from > 0 to > 0.10
   
   return { context, sustainability, risk_level, confidence, drivers };
 }
