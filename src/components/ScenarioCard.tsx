@@ -19,6 +19,23 @@ const getVixRiskLevel = (vix: number) => {
   return { label: 'Panic Mode', color: 'bg-red-600', risk: 'ELEVATO' };
 };
 
+// ============================================================================
+// SOFR-EFFR SPREAD - SINGLE SOURCE OF TRUTH
+// ============================================================================
+// Soglie basate su analisi Fed e dati storici:
+// < 3 bps: Liquidità perfetta, zero stress
+// 3-5 bps: Normale ma monitorare
+// 5-10 bps: Tensione iniziale, primi segnali stress
+// 10-15 bps: Stress moderato, allerta risk management
+// >= 15 bps: Stress elevato/crisi liquidità
+const getSofrEffrStatus = (spreadBps: number) => {
+  if (spreadBps < 3) return { label: 'Normal', color: 'bg-green-500', severity: 'low', description: 'Mercato calmo' };
+  if (spreadBps < 5) return { label: 'Normal', color: 'bg-green-500', severity: 'normal', description: 'Range normale' };
+  if (spreadBps < 10) return { label: 'Elevated', color: 'bg-yellow-500', severity: 'elevated', description: 'Tensione iniziale' };
+  if (spreadBps < 15) return { label: 'Stress', color: 'bg-orange-500', severity: 'stress', description: 'Stress moderato' };
+  return { label: 'Crisis', color: 'bg-red-600', severity: 'crisis', description: 'Stress elevato' };
+};
+
 interface ScenarioCardProps {
   scenario: string | null;
   currentData?: FedData | null;
@@ -209,25 +226,12 @@ FOCUS: Monitorare velocità drenaggio liquidità, soglie Riserve critiche per ba
         resStatus = `${resDeltaNum > 0 ? '+' : ''}${res_delta}B Quasi stabili`;
       }
       
-      // SOFR-EFFR status - FIXED LOGIC
-      let sofrStatus = '';
-      let sofrIcon = LineChart;
-      if (sofrNum < 3) {
-        sofrStatus = `${sofr_effr}bps Ottimo`;
-        sofrIcon = TrendingDown;
-      } else if (sofrNum < 5) {
-        sofrStatus = `${sofr_effr}bps Normale`;
-        sofrIcon = LineChart;
-      } else if (sofrNum < 10) {
-        sofrStatus = `${sofr_effr}bps Tensione iniziale`;
-        sofrIcon = TrendingUp;
-      } else if (sofrNum < 20) {
-        sofrStatus = `${sofr_effr}bps Stress rilevato`;
-        sofrIcon = AlertTriangle;
-      } else {
-        sofrStatus = `${sofr_effr}bps CRISI liquidità`;
-        sofrIcon = AlertTriangle;
-      }
+              // SOFR-EFFR status - UNIFIED LOGIC
+              const sofrStatusInfo = getSofrEffrStatus(sofrNum);
+              const sofrStatus = `${sofr_effr}bps ${sofrStatusInfo.description}`;
+              const sofrIcon = sofrStatusInfo.severity === 'crisis' || sofrStatusInfo.severity === 'stress' ? AlertTriangle :
+                               sofrStatusInfo.severity === 'elevated' ? TrendingUp :
+                               sofrStatusInfo.severity === 'low' ? TrendingDown : LineChart;
       
       return [
         { icon: bsIcon, label: "Balance Sheet", status: bsStatus },
@@ -299,22 +303,12 @@ FOCUS: Seguire comunicazioni Fed per segnali cambio policy, monitorare dati macr
         bsIcon = Minus;
       }
       
-      // SOFR status - ACCURATE
-      let sofrStatus = '';
-      let sofrIcon = LineChart;
-      if (sofrNum < 3) {
-        sofrStatus = `${sofr_effr}bps Ottimo`;
-        sofrIcon = TrendingDown;
-      } else if (sofrNum < 8) {
-        sofrStatus = `${sofr_effr}bps Normale`;
-        sofrIcon = LineChart;
-      } else if (sofrNum < 15) {
-        sofrStatus = `${sofr_effr}bps Tensione`;
-        sofrIcon = TrendingUp;
-      } else {
-        sofrStatus = `${sofr_effr}bps Stress`;
-        sofrIcon = AlertTriangle;
-      }
+              // SOFR status - UNIFIED LOGIC
+              const sofrStatusInfo = getSofrEffrStatus(sofrNum);
+              const sofrStatus = `${sofr_effr}bps ${sofrStatusInfo.description}`;
+              const sofrIcon = sofrStatusInfo.severity === 'crisis' || sofrStatusInfo.severity === 'stress' ? AlertTriangle :
+                               sofrStatusInfo.severity === 'elevated' ? TrendingUp :
+                               sofrStatusInfo.severity === 'low' ? TrendingDown : LineChart;
       
       return [
         { icon: bsIcon, label: "Balance Sheet", status: bsStatus },
@@ -492,20 +486,14 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 </div>
                 <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                   <div
-                    className={`h-full transition-all ${
-                      ((currentData.sofr_effr_spread || 0) * 100) > 15 ? 'bg-red-500' :
-                      ((currentData.sofr_effr_spread || 0) * 100) > 10 ? 'bg-yellow-500' :
-                      'bg-green-500'
-                    }`}
+                    className={`h-full transition-all ${getSofrEffrStatus((currentData.sofr_effr_spread || 0) * 100).color}`}
                     style={{
                       width: `${Math.min((((currentData.sofr_effr_spread || 0) * 100) / 20) * 100, 100)}%`
                     }}
                   ></div>
                 </div>
                 <div className="text-xs text-slate-400 mt-1">
-                  {((currentData.sofr_effr_spread || 0) * 100) > 15 ? 'Stress' :
-                   ((currentData.sofr_effr_spread || 0) * 100) > 10 ? 'Elevated' :
-                   'Normal'}
+                  {getSofrEffrStatus((currentData.sofr_effr_spread || 0) * 100).description}
                 </div>
                 <div className="flex justify-center mt-3">
                   <ExplanationTooltip metricKey="sofr_effr_spread" mode="preview" size="sm" />
@@ -593,22 +581,19 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                       <div className="text-base font-bold text-white">
                         {currentData.sofr_effr_spread ? (currentData.sofr_effr_spread * 100).toFixed(1) : 'N/A'} bps
                       </div>
-                      <div className={`text-xs font-semibold flex items-center justify-end gap-1 ${
-                        ((currentData.sofr_effr_spread || 0) * 100) > 15 ? 'text-red-400' :
-                        ((currentData.sofr_effr_spread || 0) * 100) > 10 ? 'text-yellow-400' :
-                        'text-green-400'
-                      }`}>
-                        {((currentData.sofr_effr_spread || 0) * 100) > 15 ? (
-                          <AlertTriangle className="h-3 w-3" />
-                        ) : ((currentData.sofr_effr_spread || 0) * 100) > 10 ? (
-                          <TrendingUp className="h-3 w-3" />
-                        ) : (
-                          <TrendingDown className="h-3 w-3" />
-                        )}
-                        {((currentData.sofr_effr_spread || 0) * 100) > 15 ? 'Stress' :
-                         ((currentData.sofr_effr_spread || 0) * 100) > 10 ? 'Elevated' : 
-                         'Normal'}
-                      </div>
+                      {(() => {
+                        const sofrMobileStatus = getSofrEffrStatus((currentData.sofr_effr_spread || 0) * 100);
+                        const iconClass = sofrMobileStatus.severity === 'crisis' || sofrMobileStatus.severity === 'stress' ? 'text-red-400' :
+                                          sofrMobileStatus.severity === 'elevated' ? 'text-yellow-400' : 'text-green-400';
+                        const IconComponent = sofrMobileStatus.severity === 'crisis' || sofrMobileStatus.severity === 'stress' ? AlertTriangle :
+                                             sofrMobileStatus.severity === 'elevated' ? TrendingUp : TrendingDown;
+                        return (
+                          <div className={`text-xs font-semibold flex items-center justify-end gap-1 ${iconClass}`}>
+                            <IconComponent className="h-3 w-3" />
+                            {sofrMobileStatus.description}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -760,29 +745,27 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             {/* Data-Driven Market Alert */}
             {(() => {
               const vix = currentData.vix || 20;
-              const sofrEffr = (currentData.sofr_effr_spread || 0) * 100; // Converti da decimale a bps
+              const sofrEffr = (currentData.sofr_effr_spread || 0) * 100;
+              const sofrStatus = getSofrEffrStatus(sofrEffr);
 
-              // Determine alert level and message based on ACTUAL data
-              // ORDINE IMPORTANTE: Controlla prima stress (rosso), poi cautela (giallo), infine calmo (verde)
-
-              // ROSSO: Stress rilevato (almeno una metrica oltre la soglia critica)
-              if (vix > 22 || sofrEffr > 10) {
+              // ROSSO: Stress rilevato
+              if (vix > 22 || sofrStatus.severity === 'stress' || sofrStatus.severity === 'crisis') {
                 return (
                   <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
                     <div className="space-y-1">
                       <h5 className="font-semibold text-red-400 text-sm">STRESS RILEVATO</h5>
                       <p className="text-sm text-red-300">
-                        Inasprimento mercato monetario rilevato. VIX {vix.toFixed(1)} (stress),
-                        SOFR-EFFR {sofrEffr.toFixed(1)}bps (elevato). Risk management critico.
+                        {vix > 22 ? `VIX ${vix.toFixed(1)} (stress). ` : ''}
+                        SOFR-EFFR {sofrEffr.toFixed(1)}bps ({sofrStatus.description}). Risk management critico.
                       </p>
                     </div>
                   </div>
                 );
               }
 
-              // GIALLO: Cautela moderata (metriche in range intermedio) - VIX 16-22 SEMPRE cautela
-              if (vix >= 16 || (sofrEffr >= 5 && sofrEffr <= 10)) {
+              // GIALLO: Cautela moderata
+              if (vix >= 16 || sofrStatus.severity === 'elevated') {
                 return (
                   <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
@@ -790,17 +773,18 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                       <h5 className="font-semibold text-yellow-400 text-sm">Cautela {vix >= 18 ? 'Elevata' : 'Moderata'}</h5>
                       <p className="text-sm text-yellow-300">
                         {vix >= 18 
-                          ? `VIX ${vix.toFixed(1)} (Elevated) indica nervosismo mercato. SOFR-EFFR ${sofrEffr.toFixed(1)}bps. Approccio prudente raccomandato.`
-                          : `Volatilità in aumento (VIX ${vix.toFixed(1)}) o spread ${sofrEffr.toFixed(1)}bps. Mantieni posizionamento bilanciato.`
+                          ? `VIX ${vix.toFixed(1)} (Elevated) indica nervosismo. `
+                          : `Volatilità in aumento (VIX ${vix.toFixed(1)}). `
                         }
+                        SOFR-EFFR {sofrEffr.toFixed(1)}bps ({sofrStatus.description}). Approccio prudente raccomandato.
                       </p>
                     </div>
                   </div>
                 );
               }
 
-              // VERDE: Mercato calmo (tutte le metriche sotto soglie di stress)
-              if (vix < 16 && sofrEffr < 5) {
+              // VERDE: Mercato calmo
+              if (vix < 16 && sofrStatus.severity === 'low') {
                 return (
                   <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 flex items-start gap-3">
                     <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -810,7 +794,7 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                       <h5 className="font-semibold text-green-400 text-sm">Mercato Monetario Calmo</h5>
                       <p className="text-sm text-green-300">
                         Liquidità abbondante, spread ristretti. Ambiente a basso stress supporta asset rischiosi.
-                        VIX {vix.toFixed(1)} (calmo), SOFR-EFFR {sofrEffr.toFixed(1)}bps (normale).
+                        VIX {vix.toFixed(1)} (calmo), SOFR-EFFR {sofrEffr.toFixed(1)}bps ({sofrStatus.description}).
                       </p>
                     </div>
                   </div>
@@ -853,21 +837,22 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 });
               }
               
-              if (sofrEffr > 10) {
+              const sofrStatusDriver = getSofrEffrStatus(sofrEffr);
+              if (sofrStatusDriver.severity === 'crisis' || sofrStatusDriver.severity === 'stress') {
                 drivers.push({ 
-                  text: `SOFR-EFFR stress: ${sofrEffr.toFixed(1)}bps (tensione liquidità)`,
+                  text: `SOFR-EFFR ${sofrEffr.toFixed(1)}bps (${sofrStatusDriver.description})`,
                   icon: AlertTriangle,
                   color: 'text-red-400'
                 });
-              } else if (sofrEffr > 5) {
+              } else if (sofrStatusDriver.severity === 'elevated') {
                 drivers.push({ 
-                  text: `SOFR-EFFR elevato: ${sofrEffr.toFixed(1)}bps`,
+                  text: `SOFR-EFFR ${sofrEffr.toFixed(1)}bps (${sofrStatusDriver.description})`,
                   icon: TrendingUp,
                   color: 'text-yellow-400'
                 });
-              } else if (sofrEffr < 3) {
+              } else if (sofrStatusDriver.severity === 'low') {
                 drivers.push({ 
-                  text: `SOFR-EFFR ottimo: ${sofrEffr.toFixed(1)}bps (liquidità fluida)`,
+                  text: `SOFR-EFFR ${sofrEffr.toFixed(1)}bps (${sofrStatusDriver.description})`,
                   icon: TrendingDown,
                   color: 'text-green-400'
                 });
