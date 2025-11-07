@@ -661,148 +661,197 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
           </>
         )}
 
-        {/* Data-Driven Badges */}
+        {/* Data-Driven Assessment Cards - ENHANCED */}
         {currentData && (
           <>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
               {(() => {
                 // Calculate ACTUAL risk from metrics
                 const vix = currentData.vix || 20;
-                const sofrEffr = currentData.sofr_effr_spread || 0;
+                const sofrEffr = (currentData.sofr_effr_spread || 0) * 100;
                 const bsDelta = currentData.d_walcl_4w || 0;
                 
-                // Risk Level Logic - FIXED: VIX 16+ è almeno MEDIO
+                // Risk Level Logic
                 const vixRisk = getVixRiskLevel(vix);
                 let riskLevel = vixRisk.risk;
                 let riskColor = 'bg-green-500/10 text-green-600 border-green-500/20';
+                let riskIcon = TrendingDown;
+                let riskExplanation = '';
                 
-                // Override con SOFR-EFFR se più grave
                 if (vix > 22 || sofrEffr > 10) {
                   riskLevel = 'ELEVATO';
                   riskColor = 'bg-red-500/10 text-red-600 border-red-500/20';
-                } else if (vix >= 16 || sofrEffr > 5) {  // FIXED: VIX 16+ = almeno MEDIO
+                  riskIcon = AlertTriangle;
+                  riskExplanation = 'Alta volatilità o stress liquidità. Proteggere capitale';
+                } else if (vix >= 16 || sofrEffr > 5) {
                   riskLevel = 'MEDIO';
                   riskColor = 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
-                } else if (vix >= 14 || sofrEffr > 3) {  // FIXED: VIX 14-16 = NORMALE
+                  riskIcon = Eye;
+                  riskExplanation = 'Tensioni presenti. Monitorare attentamente';
+                } else if (vix >= 14 || sofrEffr > 3) {
                   riskLevel = 'NORMALE';
                   riskColor = 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+                  riskIcon = Activity;
+                  riskExplanation = 'Condizioni standard di mercato';
                 } else {
                   riskLevel = 'BASSO';
                   riskColor = 'bg-green-500/10 text-green-600 border-green-500/20';
+                  riskIcon = TrendingDown;
+                  riskExplanation = 'Mercato calmo, volatilità minima';
                 }
                 
-                // Sustainability Logic - FIXED: VIX elevated + BS stabile = BASSA
+                // Sustainability Logic
                 let sustainability = 'MEDIA';
                 let sustainColor = 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
+                let sustainIcon = Minus;
+                let sustainExplanation = '';
                 
-                if (Math.abs(bsDelta) < 5000 && sofrEffr < 3 && vix < 14) {  // FIXED: VIX < 14 (non 16)
+                if (Math.abs(bsDelta) < 5000 && sofrEffr < 3 && vix < 14) {
                   sustainability = 'ALTA';
                   sustainColor = 'bg-green-500/10 text-green-600 border-green-500/20';
-                } else if (bsDelta < 0 || sofrEffr > 5 || vix >= 18) {  // FIXED: VIX >= 18 = BASSA
+                  sustainIcon = TrendingUp;
+                  sustainExplanation = 'Condizioni stabili e durature nel tempo';
+                } else if (bsDelta < 0 || sofrEffr > 5 || vix >= 18) {
                   sustainability = 'BASSA';
                   sustainColor = 'bg-red-500/10 text-red-600 border-red-500/20';
+                  sustainIcon = TrendingDown;
+                  sustainExplanation = 'Scenario fragile, possibili cambiamenti rapidi';
+                } else {
+                  sustainIcon = Minus;
+                  sustainExplanation = 'Stabilità moderata dello scenario attuale';
                 }
                 
-                // Confidence Logic - FIXED: VIX elevated riduce confidence
-                const calmSignals = [
-                  vix < 14,  // FIXED: Davvero calmo
-                  sofrEffr < 3,  // Spread ottimi
-                  Math.abs(bsDelta) < 10000  // BS stabile
+                // Confidence Logic - FIXED: Rileva segnali CHIARI (sia stress che calmo), non solo bullish
+                // Un segnale è "chiaro" se è definito (non ambiguo):
+                // - VIX molto basso (<14) o molto alto (>22) = chiaro
+                // - SOFR-EFFR molto basso (<3) o molto alto (>12) = chiaro  
+                // - BS molto stabile (<5k) o molto volatile (>20k) = chiaro
+                const clearSignals = [
+                  vix < 14 || vix > 22,  // Molto calmo O molto stressato = chiaro
+                  sofrEffr < 3 || sofrEffr > 12,  // Spread molto stretto O molto largo = chiaro
+                  Math.abs(bsDelta) < 5000 || Math.abs(bsDelta) > 20000  // BS molto stabile O molto volatile = chiaro
                 ].filter(Boolean).length;
                 
                 let confidence = 'BASSA';
                 let confColor = 'bg-red-500/10 text-red-600 border-red-500/20';
+                let confIcon = AlertTriangle;
+                let confExplanation = '';
                 
-                if (calmSignals >= 3) {  // Tutti e 3 devono essere OK
+                if (clearSignals >= 3) {
                   confidence = 'ALTA';
                   confColor = 'bg-green-500/10 text-green-600 border-green-500/20';
-                } else if (calmSignals >= 2) {
+                  confIcon = Sparkles;
+                  confExplanation = 'Segnali molto chiari e affidabili';
+                } else if (clearSignals >= 2) {
                   confidence = 'MEDIA';
                   confColor = 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
+                  confIcon = Eye;
+                  confExplanation = 'Segnali discretamente affidabili';
+                } else {
+                  confIcon = AlertTriangle;
+                  confExplanation = 'Segnali contrastanti, serve cautela';
                 }
+                
+                const RiskIcon = riskIcon;
+                const SustainIcon = sustainIcon;
+                const ConfIcon = confIcon;
                 
                 return (
                   <>
-                    <Badge className={`${riskColor} border flex items-center gap-1.5`}>
-                      Rischio: {riskLevel}
-                      <ExplanationTooltip metricKey="risk_level" mode="minimal" size="sm" />
-                    </Badge>
+                    {/* Risk Card */}
+                    <div className={`${riskColor} border rounded-lg p-2.5 sm:p-3 hover:shadow-md transition-all`}>
+                      {/* Desktop: Layout originale */}
+                      <div className="hidden sm:block">
+                        <div className="flex items-center gap-2 mb-2">
+                          <RiskIcon className="h-4 w-4" />
+                          <span className="text-xs font-semibold uppercase tracking-wide">Livello Rischio</span>
+                        </div>
+                        <div className="text-lg font-bold mb-1">{riskLevel}</div>
+                        <p className="text-xs opacity-80 leading-relaxed">{riskExplanation}</p>
+                        <div className="mt-2 pt-2 border-t border-current/10 flex items-center gap-1.5 text-xs opacity-60">
+                          <Brain className="h-3 w-3" />
+                          <span>VIX {vix.toFixed(1)} • SOFR-EFFR {sofrEffr.toFixed(1)}bps</span>
+                        </div>
+                      </div>
+                      {/* Mobile: Layout compatto */}
+                      <div className="sm:hidden">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <RiskIcon className="h-3 w-3" />
+                          <span className="text-[9px] font-semibold uppercase tracking-wide opacity-70">Livello Rischio:</span>
+                          <span className="text-xs font-bold">{riskLevel}</span>
+                        </div>
+                        <p className="text-[10px] opacity-75 leading-tight mb-1.5">{riskExplanation}</p>
+                        <div className="flex items-center gap-2 text-[9px] opacity-60">
+                          <span className="flex items-center gap-0.5"><Brain className="h-2.5 w-2.5" />VIX {vix.toFixed(1)}</span>
+                          <span>SOFR-EFFR {sofrEffr.toFixed(1)}bps</span>
+                        </div>
+                      </div>
+                    </div>
                     
-                    <Badge className={`${sustainColor} border flex items-center gap-1.5`}>
-                      Sostenibilità: {sustainability}
-                      <ExplanationTooltip metricKey="sustainability" mode="minimal" size="sm" />
-                    </Badge>
+                    {/* Sustainability Card */}
+                    <div className={`${sustainColor} border rounded-lg p-2.5 sm:p-3 hover:shadow-md transition-all`}>
+                      {/* Desktop: Layout originale */}
+                      <div className="hidden sm:block">
+                        <div className="flex items-center gap-2 mb-2">
+                          <SustainIcon className="h-4 w-4" />
+                          <span className="text-xs font-semibold uppercase tracking-wide">Sostenibilità</span>
+                        </div>
+                        <div className="text-lg font-bold mb-1">{sustainability}</div>
+                        <p className="text-xs opacity-80 leading-relaxed">{sustainExplanation}</p>
+                        <div className="mt-2 pt-2 border-t border-current/10 flex items-center gap-1.5 text-xs opacity-60">
+                          <Wallet className="h-3 w-3" />
+                          <span>BS Δ {(bsDelta/1000).toFixed(1)}B</span>
+                        </div>
+                      </div>
+                      {/* Mobile: Layout compatto */}
+                      <div className="sm:hidden">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <SustainIcon className="h-3 w-3" />
+                          <span className="text-[9px] font-semibold uppercase tracking-wide opacity-70">Sostenibilità:</span>
+                          <span className="text-xs font-bold">{sustainability}</span>
+                        </div>
+                        <p className="text-[10px] opacity-75 leading-tight mb-1.5">{sustainExplanation}</p>
+                        <div className="flex items-center gap-0.5 text-[9px] opacity-60">
+                          <Wallet className="h-2.5 w-2.5" />
+                          <span>Balance Sheet Δ {(bsDelta/1000).toFixed(1)}B</span>
+                        </div>
+                      </div>
+                    </div>
                     
-                    <Badge className={`${confColor} border flex items-center gap-1.5`}>
-                      Confidenza: {confidence}
-                      <ExplanationTooltip metricKey="confidence" mode="minimal" size="sm" />
-                    </Badge>
+                    {/* Confidence Card */}
+                    <div className={`${confColor} border rounded-lg p-2.5 sm:p-3 hover:shadow-md transition-all`}>
+                      {/* Desktop: Layout originale */}
+                      <div className="hidden sm:block">
+                        <div className="flex items-center gap-2 mb-2">
+                          <ConfIcon className="h-4 w-4" />
+                          <span className="text-xs font-semibold uppercase tracking-wide">Confidenza Analisi</span>
+                        </div>
+                        <div className="text-lg font-bold mb-1">{confidence}</div>
+                        <p className="text-xs opacity-80 leading-relaxed">{confExplanation}</p>
+                        <div className="mt-2 pt-2 border-t border-current/10 flex items-center gap-1.5 text-xs opacity-60">
+                          <Target className="h-3 w-3" />
+                          <span>{clearSignals}/3 segnali chiari</span>
+                        </div>
+                      </div>
+                      {/* Mobile: Layout compatto */}
+                      <div className="sm:hidden">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <ConfIcon className="h-3 w-3" />
+                          <span className="text-[9px] font-semibold uppercase tracking-wide opacity-70">Confidenza:</span>
+                          <span className="text-xs font-bold">{confidence}</span>
+                        </div>
+                        <p className="text-[10px] opacity-75 leading-tight mb-1.5">{confExplanation}</p>
+                        <div className="flex items-center gap-0.5 text-[9px] opacity-60">
+                          <Target className="h-2.5 w-2.5" />
+                          <span>Segnali chiari: {clearSignals}/3</span>
+                        </div>
+                      </div>
+                    </div>
                   </>
                 );
               })()}
             </div>
 
-            {/* Data-Driven Market Alert */}
-            {(() => {
-              const vix = currentData.vix || 20;
-              const sofrEffr = (currentData.sofr_effr_spread || 0) * 100;
-              const sofrStatus = getSofrEffrStatus(sofrEffr);
-
-              // ROSSO: Stress rilevato
-              if (vix > 22 || sofrStatus.severity === 'stress' || sofrStatus.severity === 'crisis') {
-                return (
-                  <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <h5 className="font-semibold text-red-400 text-sm">STRESS RILEVATO</h5>
-                      <p className="text-sm text-red-300">
-                        {vix > 22 ? `VIX ${vix.toFixed(1)} (stress). ` : ''}
-                        SOFR-EFFR {sofrEffr.toFixed(1)}bps ({sofrStatus.description}). Risk management critico.
-                      </p>
-                    </div>
-                  </div>
-                );
-              }
-
-              // GIALLO: Cautela moderata
-              if (vix >= 16 || sofrStatus.severity === 'elevated') {
-                return (
-                  <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <h5 className="font-semibold text-yellow-400 text-sm">Cautela {vix >= 18 ? 'Elevata' : 'Moderata'}</h5>
-                      <p className="text-sm text-yellow-300">
-                        {vix >= 18 
-                          ? `VIX ${vix.toFixed(1)} (Elevated) indica nervosismo. `
-                          : `Volatilità in aumento (VIX ${vix.toFixed(1)}). `
-                        }
-                        SOFR-EFFR {sofrEffr.toFixed(1)}bps ({sofrStatus.description}). Approccio prudente raccomandato.
-                      </p>
-                    </div>
-                  </div>
-                );
-              }
-
-              // VERDE: Mercato calmo
-              if (vix < 16 && sofrStatus.severity === 'low') {
-                return (
-                  <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <div className="w-2 h-2 rounded-full bg-white"></div>
-                    </div>
-                    <div className="space-y-1">
-                      <h5 className="font-semibold text-green-400 text-sm">Mercato Monetario Calmo</h5>
-                      <p className="text-sm text-green-300">
-                        Liquidità abbondante, spread ristretti. Ambiente a basso stress supporta asset rischiosi.
-                        VIX {vix.toFixed(1)} (calmo), SOFR-EFFR {sofrEffr.toFixed(1)}bps ({sofrStatus.description}).
-                      </p>
-                    </div>
-                  </div>
-                );
-              }
-
-              return null;
-            })()}
 
             {/* Data-Driven Drivers */}
             {(() => {
