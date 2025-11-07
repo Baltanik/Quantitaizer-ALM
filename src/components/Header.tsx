@@ -12,8 +12,8 @@ export function Header({ lastUpdate, onRefresh }: HeaderProps) {
   const isMobile = useIsMobile();
   const scrollDirection = useScrollDirection();
   
-  // Su mobile: nasconde l'header quando si scrolla verso il basso
-  const isHidden = isMobile && scrollDirection === 'down';
+  // Auto-hide header quando si scrolla verso il basso (mobile + desktop)
+  const isHidden = scrollDirection === 'down';
   
   return (
     <header 
