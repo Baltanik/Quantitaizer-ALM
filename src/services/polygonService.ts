@@ -293,50 +293,23 @@ async function fetchPolygon(endpoint: string, retries = 3): Promise<any> {
   return null;
 }
 
-// Get SPX price - tries multiple sources
-export async function getSPXPrice(): Promise<{ price: number; change_pct: number } | null> {
-  // Try SPY first (SPX ≈ SPY × 10)
-  const spyData = await fetchPolygon('/v2/aggs/ticker/SPY/prev');
-  
-  if (spyData?.results?.[0]) {
-    const spy = spyData.results[0];
-    const spyPrice = spy.c; // close
-    const spxPrice = spyPrice * 10;
-    const changePct = ((spy.c - spy.o) / spy.o) * 100;
-    
-    console.log(`📈 SPX price from SPY: ${spxPrice.toFixed(2)}`);
-    
-    return {
-      price: spxPrice,
-      change_pct: changePct
-    };
-  }
-  
-  // Fallback: estimate from recent known values
-  console.warn('⚠️ Could not fetch SPY, using fallback SPX estimate');
-  return {
-    price: 6050, // Approximate current SPX level
-    change_pct: 0
-  };
-}
-
-// Get SPX price via Supabase Edge Function (bypasses CORS)
-const SUPABASE_URL = "https://tolaojeqjcoskegelule.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvbGFvamVxamNvc2tlZ2VsdWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwMTI1MzksImV4cCI6MjA3NzU4ODUzOX0.8iJ8SHDG5Ffdu5X8ZF6-QSiyIz9iTXKm8uaLXQt_2OI";
-
-// Extended return type for Yahoo proxy including VIX and VVIX
-interface YahooProxyResult {
+// Get SPX/ES price from Yahoo via Supabase Edge Function
+// ES futures trada quasi 24h - molto meglio di SPX che chiude alle 16:00 ET!
+export async function getSPXPriceRealtime(): Promise<{
   price: number;
   change_pct: number;
   vix: number | null;
-  vix_change_pct: number | null;
   vvix: number | null;
+  vix_change_pct: number | null;
   vvix_change_pct: number | null;
-}
-
-async function fetchSPXFromYahoo(): Promise<YahooProxyResult | null> {
+  source: string;
+  market_state: string;
+  es_price: number | null;
+  spx_price: number | null;
+} | null> {
+  
   try {
-    // Use Supabase Edge Function to bypass CORS
+    // Edge function ora fetcha ES=F come priorità (24h trading!)
     const response = await fetch(`${SUPABASE_URL}/functions/v1/spx-price`, {
       headers: {
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -345,45 +318,76 @@ async function fetchSPXFromYahoo(): Promise<YahooProxyResult | null> {
     });
     
     if (!response.ok) {
-      console.warn('SPX price proxy failed:', response.status);
+      console.warn('Edge function failed:', response.status);
       return null;
     }
     
     const data = await response.json();
     
-    if (data.price) {
-      console.log(`📈 SPX from proxy: ${data.price.toFixed(2)} (${data.change_pct >= 0 ? '+' : ''}${data.change_pct.toFixed(2)}%)`);
-      if (data.vvix) {
-        console.log(`📊 VVIX: ${data.vvix.toFixed(2)} (Vol of Vol)`);
+    if (data.price && data.price > 5000 && data.price < 10000) {
+      console.log(`✅ Price from ${data.source}: ${data.price.toFixed(2)} (${data.market_state})`);
+      if (data.es_price) {
+        console.log(`   ES: ${data.es_price.toFixed(2)}, SPX: ${data.spx_price?.toFixed(2) || 'N/A'}`);
       }
-      return { 
-        price: data.price, 
-        change_pct: data.change_pct,
+      
+      return {
+        price: data.price,
+        change_pct: data.change_pct || 0,
         vix: data.vix || null,
-        vix_change_pct: data.vix_change_pct || null,
         vvix: data.vvix || null,
-        vvix_change_pct: data.vvix_change_pct || null
+        vix_change_pct: data.vix_change_pct || null,
+        vvix_change_pct: data.vvix_change_pct || null,
+        source: data.source || 'yahoo',
+        market_state: data.market_state || 'unknown',
+        es_price: data.es_price || null,
+        spx_price: data.spx_price || null
       };
     }
     
-    // Use fallback from edge function if main price failed
+    // Fallback price from edge function
     if (data.fallback_price) {
-      console.warn('Using edge function fallback price:', data.fallback_price);
-      return { 
-        price: data.fallback_price, 
+      console.warn('Using fallback price:', data.fallback_price);
+      return {
+        price: data.fallback_price,
         change_pct: 0,
         vix: data.vix || null,
-        vix_change_pct: null,
         vvix: data.vvix || null,
-        vvix_change_pct: null
+        vix_change_pct: null,
+        vvix_change_pct: null,
+        source: 'fallback',
+        market_state: 'unknown',
+        es_price: null,
+        spx_price: null
       };
     }
     
     return null;
   } catch (error) {
-    console.warn('SPX price proxy error:', error);
+    console.warn('getSPXPriceRealtime error:', error);
     return null;
   }
+}
+
+// Legacy function for compatibility - now just calls getSPXPriceRealtime
+export async function getSPXPrice(): Promise<{ price: number; change_pct: number; source: string } | null> {
+  const data = await getSPXPriceRealtime();
+  if (data) {
+    return {
+      price: data.price,
+      change_pct: data.change_pct,
+      source: data.source
+    };
+  }
+  return null;
+}
+
+// Get SPX price via Supabase Edge Function (bypasses CORS)
+const SUPABASE_URL = "https://tolaojeqjcoskegelule.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvbGFvamVxamNvc2tlZ2VsdWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwMTI1MzksImV4cCI6MjA3NzU4ODUzOX0.8iJ8SHDG5Ffdu5X8ZF6-QSiyIz9iTXKm8uaLXQt_2OI";
+
+// Legacy alias - now uses getSPXPriceRealtime which fetches ES/SPX from edge function
+async function fetchSPXFromYahoo() {
+  return getSPXPriceRealtime();
 }
 
 // Extract SPX price from options underlying asset data
@@ -776,8 +780,8 @@ export async function fetchSPXOptionsChain(expirationDate?: string): Promise<Opt
   
   console.log(`📊 Fetching SPX options chain for expiry: ${expiry}`);
   
-  // First get approximate SPX price for strike filtering
-  const priceEstimate = await fetchSPXFromYahoo();
+  // First get approximate SPX price for strike filtering - USE POLYGON!
+  const priceEstimate = await getSPXPriceRealtime();
   const approxPrice = priceEstimate?.price || 6000;
   
   // Filter to ±300 points from ATM to get the LIQUID contracts with high OI
@@ -834,30 +838,21 @@ export async function fetchSPXOptionsChain(expirationDate?: string): Promise<Opt
     priceSource = 'polygon_underlying';
   }
   
-  // 2. Fallback to Yahoo Finance (free, accurate)
+  // 2. Use Polygon real-time price (BEST SOURCE)
   if (!underlyingPrice) {
-    const yahooData = await fetchSPXFromYahoo();
-    if (yahooData) {
-      underlyingPrice = yahooData.price;
-      priceChangePct = yahooData.change_pct;
-      priceSource = 'yahoo_finance';
+    const polygonPrice = await getSPXPriceRealtime();
+    if (polygonPrice) {
+      underlyingPrice = polygonPrice.price;
+      priceChangePct = polygonPrice.change_pct;
+      priceSource = polygonPrice.source;
     }
   }
   
-  // 3. Last resort: use SPY × 10 from Polygon  
+  // 3. Last resort: emergency fallback
   if (!underlyingPrice) {
-    const spyFallback = await getSPXPrice();
-    if (spyFallback) {
-      underlyingPrice = spyFallback.price;
-      priceChangePct = spyFallback.change_pct;
-      priceSource = 'spy_fallback';
-      console.warn('⚠️ Using SPY×10 fallback for SPX price');
-    } else {
-      // Absolute last resort - this should NEVER happen in production
-      underlyingPrice = 6000; // Conservative estimate
-      priceSource = 'emergency_fallback';
-      console.error('🚨 CRITICAL: All price sources failed! Using emergency fallback');
-    }
+    underlyingPrice = 6000; // Conservative estimate
+    priceSource = 'emergency_fallback';
+    console.error('🚨 CRITICAL: All price sources failed! Using emergency fallback');
   }
   
   console.log(`📈 Using SPX price: ${underlyingPrice.toFixed(2)} (source: ${priceSource})`);
@@ -1260,13 +1255,13 @@ export async function analyzeSPXOptions(expirationDate?: string): Promise<SPXAna
   // GEX (now returns detailed levels)
   const gex = calculateGEX(calls, puts, spotPrice);
   
-  // Get real-time price from Yahoo (more accurate than Polygon EOD)
-  // Now also includes VIX and VVIX for confidence assessment
-  const realtimeData = await fetchSPXFromYahoo();
+  // Get real-time price from POLYGON (più affidabile di Yahoo!)
+  // VIX/VVIX vengono da Yahoo come supplemento
+  const realtimeData = await getSPXPriceRealtime();
   const realtimePrice = realtimeData?.price || spotPrice;
   const realtimeChangePct = realtimeData?.change_pct || changePct;
   const previousClose = realtimeData ? (realtimePrice / (1 + realtimeChangePct / 100)) : spotPrice;
-  const priceSource = realtimeData ? 'yahoo_realtime' : 'polygon_eod';
+  const priceSource = realtimeData?.source || 'polygon_eod';
   
   // VIX and VVIX for confidence assessment
   const vix = realtimeData?.vix || null;

@@ -1,6 +1,12 @@
-// Supabase Edge Function: SPX Price + VVIX Proxy
+// Supabase Edge Function: ES/SPX Price + VIX/VVIX Proxy
 // Bypasses CORS by fetching Yahoo Finance server-side
-// Returns: SPX price, VIX, VVIX (volatility of volatility)
+// 
+// PRIORITÀ FONTI PREZZO:
+// 1. ES=F (E-mini S&P 500 futures) - trada quasi 24h!
+// 2. ^GSPC (SPX index) - solo durante market hours
+// 3. SPY × 10 - fallback
+//
+// Returns: price (ES or SPX), VIX, VVIX
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -14,6 +20,7 @@ async function fetchYahooTicker(symbol: string): Promise<{
   price: number | null;
   previousClose: number | null;
   changePct: number | null;
+  marketState: string | null;
 }> {
   try {
     const response = await fetch(
@@ -27,25 +34,26 @@ async function fetchYahooTicker(symbol: string): Promise<{
 
     if (!response.ok) {
       console.warn(`Yahoo API error for ${symbol}: ${response.status}`);
-      return { price: null, previousClose: null, changePct: null };
+      return { price: null, previousClose: null, changePct: null, marketState: null };
     }
 
     const data = await response.json();
     const result = data?.chart?.result?.[0];
     
     if (!result) {
-      return { price: null, previousClose: null, changePct: null };
+      return { price: null, previousClose: null, changePct: null, marketState: null };
     }
 
     const meta = result.meta;
     const price = meta?.regularMarketPrice;
     const previousClose = meta?.chartPreviousClose || meta?.previousClose;
     const changePct = previousClose ? ((price - previousClose) / previousClose) * 100 : 0;
+    const marketState = meta?.marketState || null; // "REGULAR", "PRE", "POST", "CLOSED"
 
-    return { price, previousClose, changePct };
+    return { price, previousClose, changePct, marketState };
   } catch (error) {
     console.warn(`Error fetching ${symbol}:`, error);
-    return { price: null, previousClose: null, changePct: null };
+    return { price: null, previousClose: null, changePct: null, marketState: null };
   }
 }
 
@@ -56,24 +64,72 @@ serve(async (req) => {
   }
 
   try {
-    console.log('📊 Fetching SPX, VIX, VVIX from Yahoo Finance...');
+    console.log('📊 Fetching ES, SPX, VIX, VVIX from Yahoo Finance...');
     
-    // Fetch all three in parallel for speed
-    const [spxData, vixData, vvixData] = await Promise.all([
-      fetchYahooTicker('^GSPC'),  // S&P 500
+    // Fetch all in parallel for speed
+    // ES=F is PRIMARY because it trades almost 24h!
+    const [esData, spxData, vixData, vvixData] = await Promise.all([
+      fetchYahooTicker('ES=F'),   // E-mini S&P 500 Futures (trades ~24h!)
+      fetchYahooTicker('^GSPC'),  // S&P 500 Index (closes 4pm ET)
       fetchYahooTicker('^VIX'),   // VIX
       fetchYahooTicker('^VVIX'),  // VVIX (Volatility of VIX)
     ]);
 
-    console.log(`✅ SPX: ${spxData.price}, VIX: ${vixData.price}, VVIX: ${vvixData.price}`);
+    console.log(`📈 ES: ${esData.price} (${esData.marketState}), SPX: ${spxData.price}, VIX: ${vixData.price}, VVIX: ${vvixData.price}`);
 
-    // Build response with all data
+    // Determine best price source
+    // Priority: ES (24h) > SPX (market hours) > SPY×10 (fallback)
+    let bestPrice: number | null = null;
+    let bestChangePct: number | null = null;
+    let priceSource = 'unknown';
+    let marketState = 'unknown';
+
+    // 1. Try ES futures first (trades almost 24h)
+    if (esData.price && esData.price > 5000 && esData.price < 10000) {
+      bestPrice = esData.price;
+      bestChangePct = esData.changePct;
+      priceSource = 'es_futures';
+      marketState = esData.marketState || 'unknown';
+      console.log(`✅ Using ES futures: ${bestPrice} (${marketState})`);
+    }
+    // 2. Fallback to SPX index
+    else if (spxData.price && spxData.price > 5000 && spxData.price < 10000) {
+      bestPrice = spxData.price;
+      bestChangePct = spxData.changePct;
+      priceSource = 'spx_index';
+      marketState = spxData.marketState || 'unknown';
+      console.log(`✅ Using SPX index: ${bestPrice} (${marketState})`);
+    }
+    // 3. Last resort: SPY × 10
+    else {
+      console.warn('⚠️ ES and SPX failed, trying SPY fallback...');
+      const spyData = await fetchYahooTicker('SPY');
+      if (spyData.price) {
+        bestPrice = spyData.price * 10;
+        bestChangePct = spyData.changePct;
+        priceSource = 'spy_fallback';
+        marketState = spyData.marketState || 'unknown';
+        console.log(`✅ SPY fallback: ${spyData.price} × 10 = ${bestPrice}`);
+      }
+    }
+
+    // Build response
     const responseData: Record<string, any> = {
-      // SPX (primary)
-      symbol: '^GSPC',
-      price: spxData.price,
-      previous_close: spxData.previousClose,
-      change_pct: spxData.changePct,
+      // Best price (ES or SPX)
+      price: bestPrice,
+      change_pct: bestChangePct,
+      source: priceSource,
+      market_state: marketState,
+      
+      // ES futures data (separate for reference)
+      es_price: esData.price,
+      es_change_pct: esData.changePct,
+      es_market_state: esData.marketState,
+      
+      // SPX index data (separate for reference)  
+      spx_price: spxData.price,
+      spx_change_pct: spxData.changePct,
+      spx_market_state: spxData.marketState,
       
       // VIX
       vix: vixData.price,
@@ -87,23 +143,12 @@ serve(async (req) => {
       
       // Metadata
       timestamp: new Date().toISOString(),
-      source: 'yahoo_finance',
     };
 
-    // Fallback price if SPX failed - try SPY × 10
-    if (!spxData.price) {
-      console.warn('⚠️ SPX fetch failed, trying SPY fallback...');
-      const spyData = await fetchYahooTicker('SPY');
-      if (spyData.price) {
-        responseData.price = spyData.price * 10;
-        responseData.change_pct = spyData.changePct;
-        responseData.source = 'spy_fallback';
-        console.log(`✅ SPY fallback: ${spyData.price} × 10 = ${responseData.price}`);
-      } else {
-        responseData.error = 'All price sources failed';
-        responseData.source = 'no_data';
-        console.error('🚨 CRITICAL: Both SPX and SPY fetch failed!');
-      }
+    if (!bestPrice) {
+      responseData.error = 'All price sources failed';
+      responseData.fallback_price = 6000;
+      console.error('🚨 CRITICAL: All price sources failed!');
     }
 
     return new Response(
@@ -121,7 +166,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         error: error.message,
-        fallback_price: 6050,
+        fallback_price: 6000,
         vix: null,
         vvix: null,
         timestamp: new Date().toISOString(),

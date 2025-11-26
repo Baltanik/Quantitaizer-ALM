@@ -35,7 +35,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { analyzeSPXOptions, SPXAnalysis } from '@/services/polygonService';
+import { analyzeSPXOptions, SPXAnalysis, getSPXPriceRealtime } from '@/services/polygonService';
 
 // ============================================================
 // TYPES
@@ -100,22 +100,19 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
     return () => clearInterval(interval);
   }, []);
   
-  // Real-time price refresh
+  // Real-time price refresh - USA POLYGON!
   useEffect(() => {
     const priceInterval = setInterval(async () => {
       try {
-        const response = await fetch('https://tolaojeqjcoskegelule.supabase.co/functions/v1/spx-price', {
-          headers: {
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvbGFvamVxamNvc2tlZ2VsdWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwMTI1MzksImV4cCI6MjA3NzU4ODUzOX0.8iJ8SHDG5Ffdu5X8ZF6-QSiyIz9iTXKm8uaLXQt_2OI'
-          }
-        });
-        const data = await response.json();
-        if (data.price && analysis) {
+        const data = await getSPXPriceRealtime();
+        if (data?.price && analysis) {
+          console.log(`🔄 Price refresh: ${data.price.toFixed(2)} (${data.source})`);
           setAnalysis(prev => prev ? {
             ...prev,
             realtime_price: data.price,
             realtime_change_pct: data.change_pct || 0,
             spx_price: data.price,
+            price_source: data.source,
             vix: data.vix || prev.vix,
             vvix: data.vvix || prev.vvix
           } : null);
