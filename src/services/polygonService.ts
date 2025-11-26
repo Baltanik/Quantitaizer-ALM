@@ -763,11 +763,22 @@ export async function fetchSPXOptionsChain(expirationDate?: string): Promise<Opt
   
   console.log(`📊 Fetching SPX options chain for expiry: ${expiry}`);
   
-  // Fetch all options for this expiry (paginated)
-  let allOptions: any[] = [];
-  let nextUrl = `/v3/snapshot/options/SPX?expiration_date=${expiry}&limit=250`;
+  // First get approximate SPX price for strike filtering
+  const priceEstimate = await fetchSPXFromYahoo();
+  const approxPrice = priceEstimate?.price || 6000;
   
-  while (nextUrl && allOptions.length < 2000) {
+  // Filter to reasonable strike range (±500 points = ~8% from spot)
+  // This ensures we get ALL high-OI strikes without hitting API limits
+  const strikeMin = Math.floor(approxPrice / 5) * 5 - 500;
+  const strikeMax = Math.ceil(approxPrice / 5) * 5 + 500;
+  
+  console.log(`📊 Monthly: filtering strikes ${strikeMin}-${strikeMax} (spot ~${approxPrice.toFixed(0)})`);
+  
+  // Fetch options with strike filter (paginated)
+  let allOptions: any[] = [];
+  let nextUrl = `/v3/snapshot/options/SPX?expiration_date=${expiry}&strike_price.gte=${strikeMin}&strike_price.lte=${strikeMax}&limit=250`;
+  
+  while (nextUrl && allOptions.length < 5000) {
     const data = await fetchPolygon(nextUrl);
     if (!data?.results) break;
     
@@ -784,7 +795,7 @@ export async function fetchSPXOptionsChain(expirationDate?: string): Promise<Opt
     await new Promise(resolve => setTimeout(resolve, 200));
   }
   
-  console.log(`📊 Fetched ${allOptions.length} option contracts`);
+  console.log(`📊 Fetched ${allOptions.length} monthly option contracts (range ${strikeMin}-${strikeMax})`);
   
   if (allOptions.length === 0) return null;
   
