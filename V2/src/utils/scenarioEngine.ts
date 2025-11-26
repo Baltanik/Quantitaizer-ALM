@@ -101,7 +101,11 @@ export function deriveScenario(inputs: ScenarioInputs): ScenarioState {
     risk_level,
     confidence,
     drivers,
-    date: new Date().toISOString().split('T')[0]
+    // FIX: Use local date to avoid timezone issues
+    date: (() => {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    })()
   };
 }
 

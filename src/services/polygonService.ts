@@ -423,13 +423,24 @@ function getNextMonthlyExpiry(): string {
     expiryDate = new Date(year, month, thirdFriday);
   }
   
-  return expiryDate.toISOString().split('T')[0];
+  // FIX: Use local date components to avoid timezone issues with toISOString()
+  // toISOString() converts to UTC which can shift the date by -1 day in positive timezones
+  const y = expiryDate.getFullYear();
+  const m = String(expiryDate.getMonth() + 1).padStart(2, '0');
+  const d = String(expiryDate.getDate()).padStart(2, '0');
+  
+  console.log(`📅 Monthly expiry calculated: ${y}-${m}-${d} (3rd Friday)`);
+  return `${y}-${m}-${d}`;
 }
 
 // Get today's date for 0DTE
 function getTodayExpiry(): string {
   const now = new Date();
-  return now.toISOString().split('T')[0];
+  // FIX: Use local date to avoid timezone issues
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 // Daily levels result
@@ -471,7 +482,9 @@ async function fetchDailyLevels(currentPrice: number, previousClose: number): Pr
     const strikeMin = Math.floor(refPrice / 5) * 5 - 150;
     const strikeMax = Math.ceil(refPrice / 5) * 5 + 150;
     
-    const url = `/v3/snapshot/options/SPX?expiration_date=${expiry}&strike_price.gte=${strikeMin}&strike_price.lte=${strikeMax}&limit=250`;
+    // IMPORTANT: Use I:SPX for index options (not just SPX)
+    console.log(`🔑 0DTE: Using ticker format I:SPX for ${expiry}`);
+    const url = `/v3/snapshot/options/I:SPX?expiration_date=${expiry}&strike_price.gte=${strikeMin}&strike_price.lte=${strikeMax}&limit=250`;
     const data = await fetchPolygon(url);
     
     if (!data?.results || data.results.length === 0) {
@@ -767,27 +780,38 @@ export async function fetchSPXOptionsChain(expirationDate?: string): Promise<Opt
   const priceEstimate = await fetchSPXFromYahoo();
   const approxPrice = priceEstimate?.price || 6000;
   
-  // Filter to reasonable strike range (±500 points = ~8% from spot)
-  // This ensures we get ALL high-OI strikes without hitting API limits
-  const strikeMin = Math.floor(approxPrice / 5) * 5 - 500;
-  const strikeMax = Math.ceil(approxPrice / 5) * 5 + 500;
+  // Filter to ±300 points from ATM to get the LIQUID contracts with high OI
+  // Polygon Options Starter plan only returns ~250-300 contracts per query
+  // Without filter, it returns random illiquid strikes with low OI
+  const strikeMin = Math.floor(approxPrice / 5) * 5 - 300;
+  const strikeMax = Math.ceil(approxPrice / 5) * 5 + 300;
   
-  console.log(`📊 Monthly: filtering strikes ${strikeMin}-${strikeMax} (spot ~${approxPrice.toFixed(0)})`);
+  console.log(`📊 Monthly: fetching I:SPX strikes ${strikeMin}-${strikeMax} for ${expiry} (spot ~${approxPrice.toFixed(0)})`);
+  console.log(`🔑 Using ticker format: I:SPX (index options)`);
   
-  // Fetch options with strike filter (paginated)
+  // Fetch options with strike filter to get liquid contracts
+  // IMPORTANT: Use I:SPX for index options (not just SPX)
   let allOptions: any[] = [];
-  let nextUrl = `/v3/snapshot/options/SPX?expiration_date=${expiry}&strike_price.gte=${strikeMin}&strike_price.lte=${strikeMax}&limit=250`;
+  let nextUrl = `/v3/snapshot/options/I:SPX?expiration_date=${expiry}&strike_price.gte=${strikeMin}&strike_price.lte=${strikeMax}&limit=250`;
+  let pageCount = 0;
   
-  while (nextUrl && allOptions.length < 5000) {
+  while (nextUrl && allOptions.length < 10000) {
+    pageCount++;
     const data = await fetchPolygon(nextUrl);
-    if (!data?.results) break;
     
+    if (!data?.results) {
+      console.warn(`📊 Page ${pageCount}: No results returned`);
+      break;
+    }
+    
+    console.log(`📊 Page ${pageCount}: Got ${data.results.length} contracts (total: ${allOptions.length + data.results.length})`);
     allOptions = allOptions.concat(data.results);
     
     // Check for pagination
     if (data.next_url) {
       nextUrl = data.next_url.replace(BASE_URL, '');
     } else {
+      console.log(`📊 No more pages after page ${pageCount}`);
       break;
     }
     
@@ -795,7 +819,7 @@ export async function fetchSPXOptionsChain(expirationDate?: string): Promise<Opt
     await new Promise(resolve => setTimeout(resolve, 200));
   }
   
-  console.log(`📊 Fetched ${allOptions.length} monthly option contracts (range ${strikeMin}-${strikeMax})`);
+  console.log(`📊 TOTAL: Fetched ${allOptions.length} monthly option contracts in ${pageCount} pages`);
   
   if (allOptions.length === 0) return null;
   

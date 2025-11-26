@@ -118,6 +118,7 @@ export function deriveScenario(inputs: ScenarioInputs): ScenarioState {
     risk_level,
     confidence,
     drivers,
+    // Use UTC date (Edge Functions run in UTC)
     date: new Date().toISOString().split('T')[0]
   };
 }
