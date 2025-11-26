@@ -316,6 +316,26 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
       detailedExplanation: ''
     });
     
+    // ZERO GAMMA (PUNTO DI SVOLTA)
+    if (analysis.zero_gamma_level || analysis.gex_flip_point) {
+      const zeroGamma = analysis.zero_gamma_level || analysis.gex_flip_point;
+      const isAbove = spotPrice > zeroGamma;
+      levels.push({
+        id: 'm_flip',
+        price: zeroGamma,
+        label: 'PUNTO DI SVOLTA',
+        sublabel: 'Zero Gamma',
+        icon: <Zap className="h-5 w-5" />,
+        type: 'pivot',
+        color: 'text-yellow-400',
+        bgColor: 'bg-yellow-500/10 border-yellow-500/30',
+        explanation: isAbove 
+          ? 'Siamo SOPRA → mercato più stabile, i dealer frenano i movimenti.'
+          : 'Siamo SOTTO → mercato più volatile, i dealer amplificano i movimenti.',
+        detailedExplanation: 'Il "Zero Gamma" (o GEX Flip Point) è il livello dove il Gamma Exposure totale cambia segno. SOPRA questo livello: i dealer comprano sui cali e vendono sui rally (stabilizzano). SOTTO: fanno l\'opposto (amplificano). È il confine tra mercato "calmo" e mercato "nervoso".'
+      });
+    }
+    
     // MAX PAIN (MAGNETE)
     if (analysis.max_pain_strike) {
       levels.push({
@@ -879,6 +899,126 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
                   </div>
                 </div>
               </div>
+              
+              {/* TOP GEX STRIKES - Con Tabs 0DTE / Mensile */}
+              {(analysis.gex_levels?.length > 0 || analysis.daily_gex_levels?.length > 0) && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => setExpandedExplanation(expandedExplanation === 'gex_levels' ? null : 'gex_levels')}
+                    className="w-full flex items-center justify-between mb-2"
+                  >
+                    <span className="text-xs text-slate-400 uppercase">Strike Chiave GEX</span>
+                    <HelpCircle className={`h-3 w-3 ${expandedExplanation === 'gex_levels' ? 'text-purple-400' : 'text-slate-500'}`} />
+                  </button>
+                  
+                  {expandedExplanation === 'gex_levels' && (
+                    <div className="mb-3 p-3 rounded-lg bg-slate-900/50 border border-slate-700/30 text-xs text-slate-400 leading-relaxed">
+                      <p className="mb-2">
+                        <strong className="text-blue-400">Strike blu (GEX+)</strong>: Zone dove il prezzo tende a "bloccarsi". I dealer stabilizzano il prezzo qui.
+                      </p>
+                      <p>
+                        <strong className="text-orange-400">Strike arancio (GEX-)</strong>: Zone dove il prezzo può accelerare. I dealer amplificano i movimenti qui.
+                      </p>
+                    </div>
+                  )}
+                  
+                  <Tabs defaultValue="monthly_gex" className="w-full">
+                    <TabsList className="w-full h-auto p-1 bg-slate-800/50 rounded-lg mb-2">
+                      <TabsTrigger 
+                        value="daily_gex" 
+                        className="flex-1 text-xs py-1.5 data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
+                      >
+                        <Clock className="h-3 w-3 mr-1" />
+                        0DTE
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="monthly_gex"
+                        className="flex-1 text-xs py-1.5 data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400"
+                      >
+                        <Calendar className="h-3 w-3 mr-1" />
+                        Mensile
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    {/* 0DTE GEX Strikes */}
+                    <TabsContent value="daily_gex" className="mt-0">
+                      {analysis.daily_gex_levels && analysis.daily_gex_levels.length > 0 ? (
+                        <div className="space-y-1">
+                          {/* Prezzo corrente come riferimento */}
+                          <div className="flex items-center justify-center gap-2 py-1 text-xs text-slate-400">
+                            <div className="flex-1 h-px bg-slate-600"></div>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3 text-white" />
+                              <span className="font-mono text-white">{formatNumber(spotPrice, 2)}</span>
+                            </span>
+                            <div className="flex-1 h-px bg-slate-600"></div>
+                          </div>
+                          {analysis.daily_gex_levels.slice(0, 5).map((level, idx) => (
+                            <div 
+                              key={idx}
+                              className={`flex items-center justify-between py-2 px-3 rounded-lg text-sm ${
+                                level.type === 'positive' ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-orange-500/10 border border-orange-500/20'
+                              }`}
+                            >
+                              <span className={`flex items-center gap-2 ${level.type === 'positive' ? 'text-blue-300' : 'text-orange-300'}`}>
+                                {level.type === 'positive' ? <Shield className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
+                                <span className="font-mono font-bold">{formatNumber(level.strike)}</span>
+                                <span className="text-xs opacity-70">{level.type === 'positive' ? 'Stabilità' : 'Volatilità'}</span>
+                              </span>
+                              <span className={`font-mono text-sm ${level.type === 'positive' ? 'text-blue-400' : 'text-orange-400'}`}>
+                                {level.gex >= 0 ? '+' : ''}{formatCompact(level.gex)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4 text-slate-500 text-sm">
+                          <Clock className="h-5 w-5 mx-auto mb-1 opacity-50" />
+                          Nessun dato 0DTE disponibile
+                        </div>
+                      )}
+                    </TabsContent>
+                    
+                    {/* Monthly GEX Strikes */}
+                    <TabsContent value="monthly_gex" className="mt-0">
+                      {analysis.gex_levels && analysis.gex_levels.length > 0 ? (
+                        <div className="space-y-1">
+                          {/* Prezzo corrente come riferimento */}
+                          <div className="flex items-center justify-center gap-2 py-1 text-xs text-slate-400">
+                            <div className="flex-1 h-px bg-slate-600"></div>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3 text-white" />
+                              <span className="font-mono text-white">{formatNumber(spotPrice, 2)}</span>
+                            </span>
+                            <div className="flex-1 h-px bg-slate-600"></div>
+                          </div>
+                          {analysis.gex_levels.slice(0, 5).map((level, idx) => (
+                            <div 
+                              key={idx}
+                              className={`flex items-center justify-between py-2 px-3 rounded-lg text-sm ${
+                                level.type === 'positive' ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-orange-500/10 border border-orange-500/20'
+                              }`}
+                            >
+                              <span className={`flex items-center gap-2 ${level.type === 'positive' ? 'text-blue-300' : 'text-orange-300'}`}>
+                                {level.type === 'positive' ? <Shield className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
+                                <span className="font-mono font-bold">{formatNumber(level.strike)}</span>
+                                <span className="text-xs opacity-70">{level.type === 'positive' ? 'Stabilità' : 'Volatilità'}</span>
+                              </span>
+                              <span className={`font-mono text-sm ${level.type === 'positive' ? 'text-blue-400' : 'text-orange-400'}`}>
+                                {level.gex >= 0 ? '+' : ''}{formatCompact(level.gex)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4 text-slate-500 text-sm">
+                          Nessun dato mensile disponibile
+                        </div>
+                      )}
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              )}
             </div>
             
             {/* VOLUME & OI */}

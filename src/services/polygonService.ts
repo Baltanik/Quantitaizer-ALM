@@ -95,6 +95,7 @@ export interface SPXAnalysis {
   // 0DTE GEX (separate from monthly GEX)
   daily_gex: number | null;
   daily_gex_positioning: 'long_gamma' | 'short_gamma' | 'neutral' | null;
+  daily_gex_levels: GEXLevel[] | null; // Top GEX strikes for 0DTE
   
   // 0DTE Volume & OI totals
   daily_total_call_oi: number | null;
@@ -447,6 +448,7 @@ interface DailyLevels {
   // 0DTE GEX (separate from monthly)
   daily_gex: number | null;
   daily_gex_positioning: 'long_gamma' | 'short_gamma' | 'neutral' | null;
+  daily_gex_levels: GEXLevel[]; // Top GEX strikes for 0DTE
   // 0DTE Volume & OI totals
   daily_total_call_oi: number;
   daily_total_put_oi: number;
@@ -624,6 +626,8 @@ async function fetchDailyLevels(currentPrice: number, previousClose: number): Pr
     // 3. Scaling per evitare numeri assurdi
     // ═══════════════════════════════════════════════════════════════
     let dailyGex = 0;
+    const dailyGexByStrike: Map<number, { total: number; call: number; put: number }> = new Map();
+    
     // Risk-free rate (Fed Funds Target midpoint as of Nov 2025)
     const riskFreeRate = 0.04625; // (4.50% + 4.75%) / 2
     
@@ -662,6 +666,14 @@ async function fetchDailyLevels(currentPrice: number, previousClose: number): Pr
         // Dealer is SHORT calls → negative GEX contribution
         const callGex = -cappedGamma * oi * 100 * refPrice * refPrice / 1e9;
         dailyGex += callGex;
+        
+        // Track by strike
+        const existing = dailyGexByStrike.get(strike) || { total: 0, call: 0, put: 0 };
+        dailyGexByStrike.set(strike, {
+          total: existing.total + callGex,
+          call: existing.call + callGex,
+          put: existing.put
+        });
       }
     }
     
@@ -685,8 +697,28 @@ async function fetchDailyLevels(currentPrice: number, previousClose: number): Pr
         // Dealer is LONG puts → positive GEX contribution
         const putGex = cappedGamma * oi * 100 * refPrice * refPrice / 1e9;
         dailyGex += putGex;
+        
+        // Track by strike
+        const existing = dailyGexByStrike.get(strike) || { total: 0, call: 0, put: 0 };
+        dailyGexByStrike.set(strike, {
+          total: existing.total + putGex,
+          call: existing.call,
+          put: existing.put + putGex
+        });
       }
     }
+    
+    // Build 0DTE GEX levels array sorted by absolute magnitude
+    const dailyGexLevels: GEXLevel[] = Array.from(dailyGexByStrike.entries())
+      .map(([strike, data]) => ({
+        strike,
+        gex: data.total,
+        type: data.total >= 0 ? 'positive' as const : 'negative' as const,
+        callGex: data.call,
+        putGex: data.put
+      }))
+      .sort((a, b) => Math.abs(b.gex) - Math.abs(a.gex))
+      .slice(0, 10);  // Top 10 GEX strikes
     
     // Determine 0DTE positioning
     const dailyPositioning: 'long_gamma' | 'short_gamma' | 'neutral' = 
@@ -694,7 +726,7 @@ async function fetchDailyLevels(currentPrice: number, previousClose: number): Pr
       dailyGex < -0.5 ? 'short_gamma' : 
       'neutral';
     
-    console.log(`📊 0DTE GEX: ${dailyGex.toFixed(2)}B (${dailyPositioning})`);
+    console.log(`📊 0DTE GEX: ${dailyGex.toFixed(2)}B (${dailyPositioning}), ${dailyGexLevels.length} strike levels`);
     console.log(`✅ 0DTE Levels: Put Wall ${putWall}, Call Wall ${callWall}, Max Pain ${maxPain}, Straddle ${straddleStrike}`);
     
     return {
@@ -711,6 +743,7 @@ async function fetchDailyLevels(currentPrice: number, previousClose: number): Pr
       expiry,
       daily_gex: dailyGex,
       daily_gex_positioning: dailyPositioning,
+      daily_gex_levels: dailyGexLevels, // Top GEX strikes for 0DTE
       // 0DTE Volume & OI totals
       daily_total_call_oi: dailyTotalCallOI,
       daily_total_put_oi: dailyTotalPutOI,
@@ -1274,6 +1307,7 @@ export async function analyzeSPXOptions(expirationDate?: string): Promise<SPXAna
     // 0DTE GEX (separate from monthly)
     daily_gex: dailyLevels?.daily_gex || null,
     daily_gex_positioning: dailyLevels?.daily_gex_positioning || null,
+    daily_gex_levels: dailyLevels?.daily_gex_levels || null,
     
     // 0DTE Volume & OI totals
     daily_total_call_oi: dailyLevels?.daily_total_call_oi || null,
