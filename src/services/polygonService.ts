@@ -92,6 +92,17 @@ export interface SPXAnalysis {
   daily_max_pain: number | null;
   daily_zero_gamma: number | null;
   
+  // 0DTE GEX (separate from monthly GEX)
+  daily_gex: number | null;
+  daily_gex_positioning: 'long_gamma' | 'short_gamma' | 'neutral' | null;
+  
+  // 0DTE Volume & OI totals
+  daily_total_call_oi: number | null;
+  daily_total_put_oi: number | null;
+  daily_total_call_volume: number | null;
+  daily_total_put_volume: number | null;
+  daily_put_call_ratio: number | null;
+  
   // Real-time price (from Yahoo)
   realtime_price: number;
   realtime_change_pct: number;
@@ -433,6 +444,15 @@ interface DailyLevels {
   zero_gamma: number | null;
   reference_price: number; // Previous close used as reference
   expiry: string;
+  // 0DTE GEX (separate from monthly)
+  daily_gex: number | null;
+  daily_gex_positioning: 'long_gamma' | 'short_gamma' | 'neutral' | null;
+  // 0DTE Volume & OI totals
+  daily_total_call_oi: number;
+  daily_total_put_oi: number;
+  daily_total_call_volume: number;
+  daily_total_put_volume: number;
+  daily_put_call_ratio: number | null;
 }
 
 // Fetch 0DTE / Daily levels (full analysis)
@@ -467,6 +487,22 @@ async function fetchDailyLevels(currentPrice: number, previousClose: number): Pr
     }
     
     console.log(`📊 0DTE: Found ${calls.length} calls, ${puts.length} puts near ATM (${strikeMin}-${strikeMax})`);
+    
+    // Calculate 0DTE totals (Volume & OI)
+    let dailyTotalCallOI = 0, dailyTotalPutOI = 0;
+    let dailyTotalCallVol = 0, dailyTotalPutVol = 0;
+    
+    for (const c of calls) {
+      dailyTotalCallOI += c.open_interest || 0;
+      dailyTotalCallVol += c.day?.volume || 0;
+    }
+    for (const p of puts) {
+      dailyTotalPutOI += p.open_interest || 0;
+      dailyTotalPutVol += p.day?.volume || 0;
+    }
+    
+    const dailyPCRatio = dailyTotalCallOI > 0 ? dailyTotalPutOI / dailyTotalCallOI : null;
+    console.log(`📊 0DTE Totals: Call OI ${dailyTotalCallOI}, Put OI ${dailyTotalPutOI}, P/C ${dailyPCRatio?.toFixed(2) || 'N/A'}`);
     
     // ATM Strike = closest to previous close (reference)
     const atmStrike = Math.round(refPrice / 5) * 5;
@@ -578,6 +614,87 @@ async function fetchDailyLevels(currentPrice: number, previousClose: number): Pr
       }
     }
     
+    // ═══════════════════════════════════════════════════════════════
+    // CALCULATE 0DTE GEX (Gamma Exposure for intraday)
+    // 
+    // Per 0DTE, il gamma è MOLTO alto vicino ad ATM e decay rapidamente.
+    // Usiamo un approccio semplificato basato su:
+    // 1. IV implicita dallo straddle (se disponibile)
+    // 2. Gamma approssimato con formula standard
+    // 3. Scaling per evitare numeri assurdi
+    // ═══════════════════════════════════════════════════════════════
+    let dailyGex = 0;
+    // Risk-free rate (Fed Funds Target midpoint as of Nov 2025)
+    const riskFreeRate = 0.04625; // (4.50% + 4.75%) / 2
+    
+    // Calculate time to expiry in years (minimum 1 hour to avoid division issues)
+    const now = new Date();
+    const marketCloseToday = new Date(now);
+    marketCloseToday.setHours(16, 0, 0, 0);
+    const hoursToExpiry = Math.max(1, (marketCloseToday.getTime() - now.getTime()) / (1000 * 60 * 60));
+    const timeToExpiry = hoursToExpiry / (365 * 24); // In years, minimum ~0.0001
+    
+    // Use IV from straddle if available, otherwise estimate
+    // IV = straddle_price / spot / sqrt(T * 365) (annualized)
+    const straddleIV = straddlePrice && straddlePrice > 0 
+      ? Math.min(2, Math.max(0.1, straddlePrice / refPrice / Math.sqrt(timeToExpiry)))
+      : 0.25; // Default 25% IV
+    
+    console.log(`📊 0DTE IV estimate: ${(straddleIV * 100).toFixed(1)}%, T=${(timeToExpiry * 365 * 24).toFixed(1)}h`);
+    
+    for (const c of calls) {
+      const strike = c.details?.strike_price || 0;
+      const oi = c.open_interest || 0;
+      
+      if (strike > 0 && oi > 0) {
+        // Moneyness adjustment for IV skew
+        const moneyness = strike / refPrice;
+        const iv = straddleIV * (1 + 0.1 * Math.abs(1 - moneyness)); // Simple skew
+        
+        // Black-Scholes gamma
+        const sqrtT = Math.sqrt(timeToExpiry);
+        const d1 = (Math.log(refPrice / strike) + (riskFreeRate + iv * iv / 2) * timeToExpiry) / (iv * sqrtT);
+        const gamma = Math.exp(-0.5 * d1 * d1) / (Math.sqrt(2 * Math.PI) * refPrice * iv * sqrtT);
+        
+        // Cap gamma to avoid crazy values for very short expiry
+        const cappedGamma = Math.min(gamma, 0.01); // Max gamma = 0.01
+        
+        // Dealer is SHORT calls → negative GEX contribution
+        const callGex = -cappedGamma * oi * 100 * refPrice * refPrice / 1e9;
+        dailyGex += callGex;
+      }
+    }
+    
+    for (const p of puts) {
+      const strike = p.details?.strike_price || 0;
+      const oi = p.open_interest || 0;
+      
+      if (strike > 0 && oi > 0) {
+        // Moneyness adjustment for IV skew
+        const moneyness = strike / refPrice;
+        const iv = straddleIV * (1 + 0.1 * Math.abs(1 - moneyness)); // Simple skew
+        
+        // Black-Scholes gamma
+        const sqrtT = Math.sqrt(timeToExpiry);
+        const d1 = (Math.log(refPrice / strike) + (riskFreeRate + iv * iv / 2) * timeToExpiry) / (iv * sqrtT);
+        const gamma = Math.exp(-0.5 * d1 * d1) / (Math.sqrt(2 * Math.PI) * refPrice * iv * sqrtT);
+        
+        // Cap gamma to avoid crazy values
+        const cappedGamma = Math.min(gamma, 0.01);
+        
+        // Dealer is LONG puts → positive GEX contribution
+        const putGex = cappedGamma * oi * 100 * refPrice * refPrice / 1e9;
+        dailyGex += putGex;
+      }
+    }
+    
+    // Determine 0DTE positioning
+    const dailyPositioning: 'long_gamma' | 'short_gamma' | 'neutral' = 
+      dailyGex > 0.5 ? 'long_gamma' : 
+      dailyGex < -0.5 ? 'short_gamma' : 
+      'neutral';
+    
+    console.log(`📊 0DTE GEX: ${dailyGex.toFixed(2)}B (${dailyPositioning})`);
     console.log(`✅ 0DTE Levels: Put Wall ${putWall}, Call Wall ${callWall}, Max Pain ${maxPain}, Straddle ${straddleStrike}`);
     
     return {
@@ -591,7 +708,15 @@ async function fetchDailyLevels(currentPrice: number, previousClose: number): Pr
       max_pain: maxPain,
       zero_gamma: straddleStrike || refPrice,
       reference_price: refPrice,
-      expiry
+      expiry,
+      daily_gex: dailyGex,
+      daily_gex_positioning: dailyPositioning,
+      // 0DTE Volume & OI totals
+      daily_total_call_oi: dailyTotalCallOI,
+      daily_total_put_oi: dailyTotalPutOI,
+      daily_total_call_volume: dailyTotalCallVol,
+      daily_total_put_volume: dailyTotalPutVol,
+      daily_put_call_ratio: dailyPCRatio
     };
   } catch (error) {
     console.warn('Error fetching 0DTE levels:', error);
@@ -651,11 +776,20 @@ export async function fetchSPXOptionsChain(expirationDate?: string): Promise<Opt
     }
   }
   
-  // 3. Last resort: hardcoded current value  
+  // 3. Last resort: use SPY × 10 from Polygon  
   if (!underlyingPrice) {
-    underlyingPrice = 6765; // Updated Nov 26, 2025
-    priceSource = 'fallback';
-    console.warn('⚠️ Using fallback SPX price - update if incorrect!');
+    const spyFallback = await getSPXPrice();
+    if (spyFallback) {
+      underlyingPrice = spyFallback.price;
+      priceChangePct = spyFallback.change_pct;
+      priceSource = 'spy_fallback';
+      console.warn('⚠️ Using SPY×10 fallback for SPX price');
+    } else {
+      // Absolute last resort - this should NEVER happen in production
+      underlyingPrice = 6000; // Conservative estimate
+      priceSource = 'emergency_fallback';
+      console.error('🚨 CRITICAL: All price sources failed! Using emergency fallback');
+    }
   }
   
   console.log(`📈 Using SPX price: ${underlyingPrice.toFixed(2)} (source: ${priceSource})`);
@@ -664,7 +798,12 @@ export async function fetchSPXOptionsChain(expirationDate?: string): Promise<Opt
   const calls: OptionContract[] = [];
   const puts: OptionContract[] = [];
   
-  const riskFreeRate = 0.045; // ~4.5% current rate
+  // Risk-free rate approximation (Fed Funds Target Rate as of late 2025)
+  // TODO: In production, fetch from FRED API: https://fred.stlouisfed.org/series/DFF
+  // For now using current Fed target midpoint. Update if Fed changes rates significantly.
+  const CURRENT_FED_TARGET_UPPER = 0.0475; // 4.75% as of Nov 2025
+  const CURRENT_FED_TARGET_LOWER = 0.0450; // 4.50% as of Nov 2025
+  const riskFreeRate = (CURRENT_FED_TARGET_UPPER + CURRENT_FED_TARGET_LOWER) / 2;
   const now = new Date();
   const expiryDate = new Date(expiry);
   const timeToExpiry = Math.max(0.001, (expiryDate.getTime() - now.getTime()) / (365 * 24 * 60 * 60 * 1000));
@@ -1131,6 +1270,17 @@ export async function analyzeSPXOptions(expirationDate?: string): Promise<SPXAna
     daily_call_wall_oi: dailyLevels?.call_wall_oi || null,
     daily_max_pain: dailyLevels?.max_pain || null,
     daily_zero_gamma: dailyLevels?.zero_gamma || null,
+    
+    // 0DTE GEX (separate from monthly)
+    daily_gex: dailyLevels?.daily_gex || null,
+    daily_gex_positioning: dailyLevels?.daily_gex_positioning || null,
+    
+    // 0DTE Volume & OI totals
+    daily_total_call_oi: dailyLevels?.daily_total_call_oi || null,
+    daily_total_put_oi: dailyLevels?.daily_total_put_oi || null,
+    daily_total_call_volume: dailyLevels?.daily_total_call_volume || null,
+    daily_total_put_volume: dailyLevels?.daily_total_put_volume || null,
+    daily_put_call_ratio: dailyLevels?.daily_put_call_ratio || null,
     
     // Real-time price
     realtime_price: realtimePrice,

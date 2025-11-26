@@ -90,10 +90,20 @@ serve(async (req) => {
       source: 'yahoo_finance',
     };
 
-    // Fallback price if SPX failed
+    // Fallback price if SPX failed - try SPY × 10
     if (!spxData.price) {
-      responseData.fallback_price = 6050;
-      responseData.error = 'SPX fetch failed, using fallback';
+      console.warn('⚠️ SPX fetch failed, trying SPY fallback...');
+      const spyData = await fetchYahooTicker('SPY');
+      if (spyData.price) {
+        responseData.price = spyData.price * 10;
+        responseData.change_pct = spyData.changePct;
+        responseData.source = 'spy_fallback';
+        console.log(`✅ SPY fallback: ${spyData.price} × 10 = ${responseData.price}`);
+      } else {
+        responseData.error = 'All price sources failed';
+        responseData.source = 'no_data';
+        console.error('🚨 CRITICAL: Both SPX and SPY fetch failed!');
+      }
     }
 
     return new Response(
