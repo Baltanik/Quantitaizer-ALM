@@ -681,7 +681,8 @@ async function fetchDailyLevels(currentPrice: number, previousClose: number): Pr
         const cappedGamma = Math.min(gamma, 0.01); // Max gamma = 0.01
         
         // Dealer is SHORT calls → negative GEX contribution
-        const callGex = -cappedGamma * oi * 100 * refPrice * refPrice / 1e9;
+        // Formula: GEX = Γ × OI × 100 × Spot / 1e9 (in billions)
+        const callGex = -cappedGamma * oi * 100 * refPrice / 1e9;
         dailyGex += callGex;
         
         // Track by strike
@@ -712,7 +713,8 @@ async function fetchDailyLevels(currentPrice: number, previousClose: number): Pr
         const cappedGamma = Math.min(gamma, 0.01);
         
         // Dealer is LONG puts → positive GEX contribution
-        const putGex = cappedGamma * oi * 100 * refPrice * refPrice / 1e9;
+        // Formula: GEX = Γ × OI × 100 × Spot / 1e9 (in billions)
+        const putGex = cappedGamma * oi * 100 * refPrice / 1e9;
         dailyGex += putGex;
         
         // Track by strike
@@ -1000,13 +1002,13 @@ function calculateGEX(
   let totalGEX = 0;
   const gexByStrike: Map<number, { total: number; call: number; put: number }> = new Map();
   
-  // GEX = Gamma × OI × 100 × Spot²
+  // GEX = Gamma × OI × 100 × Spot / 1e9 (in billions)
   // Calls: dealers are short, so positive gamma = negative GEX for dealers
-  // Puts: dealers are long, so negative gamma = negative GEX for dealers
+  // Puts: dealers are long, so positive gamma = positive GEX for dealers
   
   for (const call of calls) {
     if (call.gamma && call.open_interest > 0) {
-      const gex = -call.gamma * call.open_interest * 100 * spotPrice * spotPrice / 1e9;
+      const gex = -call.gamma * call.open_interest * 100 * spotPrice / 1e9;
       totalGEX += gex;
       
       const existing = gexByStrike.get(call.strike_price) || { total: 0, call: 0, put: 0 };
@@ -1020,7 +1022,7 @@ function calculateGEX(
   
   for (const put of puts) {
     if (put.gamma && put.open_interest > 0) {
-      const gex = put.gamma * put.open_interest * 100 * spotPrice * spotPrice / 1e9;
+      const gex = put.gamma * put.open_interest * 100 * spotPrice / 1e9;
       totalGEX += gex;
       
       const existing = gexByStrike.get(put.strike_price) || { total: 0, call: 0, put: 0 };

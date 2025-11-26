@@ -142,6 +142,24 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
     return n.toFixed(0);
   };
 
+  // Format GEX values (già in miliardi, mostra in M per valori piccoli)
+  const formatGEX = (n: number | null | undefined) => {
+    if (n === null || n === undefined) return 'N/A';
+    const abs = Math.abs(n);
+    const sign = n >= 0 ? '+' : '';
+    
+    // Valori grandi (>= 0.1B = 100M) → mostra in B
+    if (abs >= 0.1) return `${sign}${n.toFixed(1)}B`;
+    
+    // Valori medi (>= 0.001B = 1M) → mostra in M
+    if (abs >= 0.001) return `${sign}${(n * 1000).toFixed(0)}M`;
+    
+    // Valori piccoli (< 1M) → mostra in K
+    if (abs >= 0.000001) return `${sign}${(n * 1000000).toFixed(0)}K`;
+    
+    return '0';
+  };
+
   const formatPercent = (n: number | null | undefined, decimals = 2) => {
     if (n === null || n === undefined) return 'N/A';
     const sign = n >= 0 ? '+' : '';
@@ -1024,16 +1042,16 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
                             <div 
                               key={idx}
                               className={`flex items-center justify-between py-2 px-3 rounded-lg text-sm ${
-                                level.type === 'positive' ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-orange-500/10 border border-orange-500/20'
+                                level.gex >= 0 ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-orange-500/10 border border-orange-500/20'
                               }`}
                             >
-                              <span className={`flex items-center gap-2 ${level.type === 'positive' ? 'text-blue-300' : 'text-orange-300'}`}>
-                                {level.type === 'positive' ? <Shield className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
+                              <span className={`flex items-center gap-2 ${level.gex >= 0 ? 'text-blue-300' : 'text-orange-300'}`}>
+                                {level.gex >= 0 ? <Shield className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
                                 <span className="font-mono font-bold">{formatNumber(level.strike)}</span>
-                                <span className="text-xs opacity-70">{level.type === 'positive' ? 'Stabilità' : 'Volatilità'}</span>
+                                <span className="text-xs opacity-70">{level.gex >= 0 ? 'Stabilità' : 'Volatilità'}</span>
                               </span>
-                              <span className={`font-mono text-sm ${level.type === 'positive' ? 'text-blue-400' : 'text-orange-400'}`}>
-                                {level.gex >= 0 ? '+' : ''}{formatCompact(level.gex)}
+                              <span className={`font-mono text-sm ${level.gex >= 0 ? 'text-blue-400' : 'text-orange-400'}`}>
+                                {formatGEX(level.gex)}
                               </span>
                             </div>
                           ))}
@@ -1063,16 +1081,16 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
                             <div 
                               key={idx}
                               className={`flex items-center justify-between py-2 px-3 rounded-lg text-sm ${
-                                level.type === 'positive' ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-orange-500/10 border border-orange-500/20'
+                                level.gex >= 0 ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-orange-500/10 border border-orange-500/20'
                               }`}
                             >
-                              <span className={`flex items-center gap-2 ${level.type === 'positive' ? 'text-blue-300' : 'text-orange-300'}`}>
-                                {level.type === 'positive' ? <Shield className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
+                              <span className={`flex items-center gap-2 ${level.gex >= 0 ? 'text-blue-300' : 'text-orange-300'}`}>
+                                {level.gex >= 0 ? <Shield className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
                                 <span className="font-mono font-bold">{formatNumber(level.strike)}</span>
-                                <span className="text-xs opacity-70">{level.type === 'positive' ? 'Stabilità' : 'Volatilità'}</span>
+                                <span className="text-xs opacity-70">{level.gex >= 0 ? 'Stabilità' : 'Volatilità'}</span>
                               </span>
-                              <span className={`font-mono text-sm ${level.type === 'positive' ? 'text-blue-400' : 'text-orange-400'}`}>
-                                {level.gex >= 0 ? '+' : ''}{formatCompact(level.gex)}
+                              <span className={`font-mono text-sm ${level.gex >= 0 ? 'text-blue-400' : 'text-orange-400'}`}>
+                                {formatGEX(level.gex)}
                               </span>
                             </div>
                           ))}
