@@ -1,4 +1,5 @@
-import { TrendingUp, TrendingDown, Minus, LineChart, AlertTriangle, Info, Target, DollarSign, Activity, Zap, Eye, Wallet, Sparkles, Brain, TrendingUpDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, LineChart, AlertTriangle, Info, Target, DollarSign, Activity, Zap, Eye, Wallet, Sparkles, Brain, TrendingUpDown, ChevronDown, ChevronRight } from "lucide-react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -376,6 +377,9 @@ FOCUS: Priorità assoluta monitoraggio spread e HY OAS, rischio contagio sistemi
 export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
   const config = scenarioConfig[scenario as keyof typeof scenarioConfig] || scenarioConfig.neutral;
   const Icon = config.icon;
+  
+  // State per indicatore tecnico espanso (mobile accordion)
+  const [expandedIndicator, setExpandedIndicator] = useState<string | null>(null);
 
   // Calcola qualificatori scenario se abbiamo i dati
   let scenarioState: ScenarioState | null = null;
@@ -1369,6 +1373,19 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
               const IndicatorIcon = indicator.icon;
               const status = indicator.status.toLowerCase();
               
+              // Map indicator label to metricKey for explanation
+              const labelLower = indicator.label.toLowerCase();
+              let metricKey: string | null = null;
+              if (labelLower.includes('balance sheet') || labelLower.includes('bilancio')) metricKey = 'balance_sheet';
+              else if (labelLower.includes('rrp')) metricKey = 'rrp';
+              else if (labelLower.includes('sofr') && labelLower.includes('effr')) metricKey = 'sofr_effr_spread';
+              else if (labelLower.includes('reserves') || labelLower.includes('riserve')) metricKey = 'reserves';
+              else if (labelLower.includes('hy oas') || labelLower.includes('high yield')) metricKey = 'hy_oas';
+              else if (labelLower.includes('vix')) metricKey = 'vix';
+              
+              const isExpanded = expandedIndicator === indicator.label;
+              const explanation = metricKey ? getExplanation(metricKey) : null;
+              
               // Determine badge color based on content
               let badgeColor = 'bg-slate-700 text-slate-300';
               if (status.includes('espansione') || status.includes('flood') || status.includes('crescita')) {
@@ -1389,37 +1406,50 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                   {/* Animated gradient background on hover */}
                   <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/5 to-emerald-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   
-                  <div className="relative p-3 flex items-start gap-3">
+                  {/* Clickable header */}
+                  <button
+                    onClick={() => metricKey && setExpandedIndicator(isExpanded ? null : indicator.label)}
+                    className="relative w-full p-3 flex items-start gap-3 text-left"
+                  >
                     {/* Icon with background */}
                     <div className="p-2 rounded-md bg-slate-800 group-hover:bg-emerald-900/30 transition-colors">
                       <IndicatorIcon className="h-4 w-4 text-slate-400 group-hover:text-emerald-400 transition-colors" />
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
                         {indicator.label}
-                        {(() => {
-                          // Map indicator label to metricKey
-                          const labelLower = indicator.label.toLowerCase();
-                          let metricKey = null;
-                          if (labelLower.includes('balance sheet') || labelLower.includes('bilancio')) metricKey = 'balance_sheet';
-                          else if (labelLower.includes('rrp')) metricKey = 'rrp';
-                          else if (labelLower.includes('sofr') && labelLower.includes('effr')) metricKey = 'sofr_effr_spread';
-                          else if (labelLower.includes('reserves') || labelLower.includes('riserve')) metricKey = 'reserves';
-                          else if (labelLower.includes('hy oas') || labelLower.includes('high yield')) metricKey = 'hy_oas';
-                          else if (labelLower.includes('vix')) metricKey = 'vix';
-                          
-                          return metricKey ? <ExplanationTooltip metricKey={metricKey} mode="minimal" size="sm" /> : null;
-                        })()}
                       </p>
                       <div className={`text-sm font-medium px-2 py-1 rounded ${badgeColor} inline-block`}>
                         {indicator.status}
                       </div>
                     </div>
                     
+                    {/* Expand arrow on the right */}
+                    {metricKey && (
+                      <div className="flex items-center self-center">
+                        {isExpanded ? (
+                          <ChevronDown className="h-5 w-5 text-emerald-400 transition-transform" />
+                        ) : (
+                          <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-slate-400 transition-colors" />
+                        )}
+                      </div>
+                    )}
+                    
                     {/* Live data indicator */}
-                    <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" style={{animationDelay: `${index * 200}ms`}}></div>
-                  </div>
+                    <div className="absolute top-2 right-8 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" style={{animationDelay: `${index * 200}ms`}}></div>
+                  </button>
+                  
+                  {/* Expandable explanation */}
+                  {isExpanded && explanation && (
+                    <div className="px-3 pb-3 border-t border-slate-700/50">
+                      <div className="mt-3 p-3 bg-slate-800/70 rounded-lg text-xs">
+                        <p className="text-slate-300 leading-relaxed">
+                          {explanation.shortExplanation}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

@@ -5,8 +5,9 @@ import { MetricsGrid } from "@/components/MetricsGrid";
 import { LiquidityMonitor } from "@/components/LiquidityMonitor";
 import { FedPolicyTracker } from "@/components/FedPolicyTracker";
 import { MarketImpact } from "@/components/MarketImpact";
+import { SPXOptionsPanel } from "@/components/SPXOptionsPanel";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
+import { AlertCircle, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { 
   fetchLatestFedData, 
   fetchHistoricalFedData, 
@@ -283,49 +284,24 @@ const Index = () => {
               </div>
             </section>
 
-            {/* Download Section */}
+            {/* SPX Options Intelligence */}
             <section className="space-y-4">
-              <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Download Report</h2>
-              <div className="bg-slate-900/80 border border-slate-800 rounded-lg p-6 hover:border-emerald-500/30 transition-all duration-300">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                  <div className="space-y-2 flex-1">
-                    <h3 className="text-lg font-semibold text-white">Report Analisi Liquidità - 02/11/25</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Analisi completa della situazione di liquidità monetaria e scenari Fed. 
-                      Include metodologia delta-based e implicazioni per i mercati.
-                    </p>
-                    <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                      <span>📄 PDF • 6 pagine</span>
-                      <span>📅 2 Novembre 2025</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3 lg:flex-shrink-0">
-                    <a
-                      href="/Report_021125.pdf"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/80 hover:bg-blue-500/90 text-white rounded-md transition-all duration-300 text-sm font-medium"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      Leggi Online
-                    </a>
-                    <a
-                      href="/Report_021125.pdf"
-                      download="Report_Liquidita_021125.pdf"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600/80 hover:bg-emerald-500/90 text-white rounded-md transition-all duration-300 text-sm font-medium"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Download
-                    </a>
-                  </div>
-                </div>
-              </div>
+              <h2 className="text-2xl font-bold border-l-4 border-purple-500 pl-4 flex items-center gap-2">
+                <BarChart3 className="h-6 w-6 text-purple-400" />
+                SPX Options Intelligence
+              </h2>
+              <SPXOptionsPanel 
+                fedScenario={latestData?.scenario}
+                fedLiquidityTrend={
+                  latestData?.d_walcl_4w && latestData.d_walcl_4w > 0 
+                    ? 'expanding' 
+                    : latestData?.d_walcl_4w && latestData.d_walcl_4w < 0 
+                      ? 'contracting' 
+                      : 'neutral'
+                }
+              />
             </section>
+
           </>
         )}
         </main>
