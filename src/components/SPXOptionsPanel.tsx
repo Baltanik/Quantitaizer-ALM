@@ -1258,7 +1258,7 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
         ═══════════════════════════════════════════════════════════════ */}
         <div className="px-4 py-2 bg-slate-900/50 border-t border-slate-700/30 flex justify-between items-center">
           <span className="text-[10px] text-slate-600">
-            Fonte: Polygon.io • {analysis.contracts_analyzed.toLocaleString()} contratti
+            {analysis.contracts_analyzed.toLocaleString()} contratti analizzati
           </span>
           <span className="text-[10px] text-slate-600">
             {lastUpdate?.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
