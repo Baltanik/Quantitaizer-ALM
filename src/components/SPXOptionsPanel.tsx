@@ -152,6 +152,83 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
   };
 
   // ============================================================
+  // COLOR HELPERS - Sistema colori coerente
+  // ============================================================
+  
+  // Colore per variazioni percentuali (verde positivo, rosso negativo)
+  const getChangeColor = (value: number | null | undefined): string => {
+    if (value === null || value === undefined) return 'text-slate-400';
+    if (value > 0) return 'text-green-400';
+    if (value < 0) return 'text-red-400';
+    return 'text-slate-400';
+  };
+
+  // Colore per variazioni INVERSE (es: VIX - sale = male, scende = bene)
+  const getInverseChangeColor = (value: number | null | undefined): string => {
+    if (value === null || value === undefined) return 'text-slate-400';
+    if (value > 0) return 'text-red-400';    // VIX sale = male
+    if (value < 0) return 'text-green-400';  // VIX scende = bene
+    return 'text-slate-400';
+  };
+
+  // Colore VIX basato sul livello assoluto
+  const getVixColor = (vix: number | null | undefined): string => {
+    if (vix === null || vix === undefined) return 'text-slate-400';
+    if (vix >= 30) return 'text-red-500';      // Panico
+    if (vix >= 25) return 'text-red-400';      // Paura alta
+    if (vix >= 20) return 'text-orange-400';   // Tensione
+    if (vix >= 15) return 'text-yellow-400';   // Normale-alto
+    return 'text-green-400';                   // Calmo
+  };
+
+  // Colore VVIX basato sul livello
+  const getVvixColor = (vvix: number | null | undefined): string => {
+    if (vvix === null || vvix === undefined) return 'text-slate-400';
+    if (vvix >= 120) return 'text-red-500';    // Caos
+    if (vvix >= 100) return 'text-red-400';    // Alta incertezza
+    if (vvix >= 90) return 'text-orange-400';  // Tensione
+    if (vvix >= 80) return 'text-yellow-400';  // Normale-alto
+    return 'text-green-400';                   // Stabile
+  };
+
+  // Colore P/C Ratio (sotto 0.7 = bullish verde, sopra 1.0 = bearish rosso)
+  const getPCRatioColor = (ratio: number | null | undefined): string => {
+    if (ratio === null || ratio === undefined) return 'text-slate-400';
+    if (ratio < 0.6) return 'text-green-500';   // Molto bullish
+    if (ratio < 0.8) return 'text-green-400';   // Bullish
+    if (ratio <= 1.0) return 'text-yellow-400'; // Neutro
+    if (ratio <= 1.2) return 'text-orange-400'; // Bearish
+    return 'text-red-400';                      // Molto bearish
+  };
+
+  // Colore GEX (positivo = stabilità blu, negativo = volatilità arancione)
+  const getGexColor = (gex: number | null | undefined): string => {
+    if (gex === null || gex === undefined) return 'text-slate-400';
+    if (gex > 1) return 'text-blue-400';        // Long gamma forte
+    if (gex > 0) return 'text-blue-300';        // Long gamma
+    if (gex > -1) return 'text-orange-300';     // Short gamma leggero
+    return 'text-orange-400';                   // Short gamma forte
+  };
+
+  // Colore per distanza da prezzo (sopra = verde, sotto = rosso)
+  const getDistanceColor = (distance: number): string => {
+    if (distance > 1) return 'text-green-400';
+    if (distance > 0) return 'text-green-300';
+    if (distance > -1) return 'text-red-300';
+    return 'text-red-400';
+  };
+
+  // Colore per Implied Move % (basso = verde calma, alto = rosso volatilità attesa)
+  const getImpliedMoveColor = (move: number | null | undefined): string => {
+    if (move === null || move === undefined) return 'text-slate-400';
+    if (move >= 3) return 'text-red-400';      // Alta volatilità attesa
+    if (move >= 2) return 'text-orange-400';   // Volatilità elevata
+    if (move >= 1.5) return 'text-yellow-400'; // Sopra la media
+    if (move >= 1) return 'text-white';        // Normale
+    return 'text-green-400';                   // Bassa volatilità
+  };
+
+  // ============================================================
   // BUILD LEVELS
   // ============================================================
 
@@ -429,7 +506,7 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
           <div className="flex items-center gap-2">
             {level.type !== 'current' && (
               <div className="text-right mr-2">
-                <div className={`text-sm font-mono ${distancePercent > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                <div className={`text-sm font-mono ${getDistanceColor(distancePercent)}`}>
                   {formatPercent(distancePercent)}
                 </div>
                 {level.extraInfo && (
@@ -642,7 +719,9 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
                   </div>
                   <div className="mb-2">
                     <div className="text-xs text-slate-500">Implied Move</div>
-                    <div className="text-lg font-mono text-white">±{analysis.straddle_0dte_implied_move_pct?.toFixed(2)}%</div>
+                    <div className={`text-lg font-mono font-bold ${getImpliedMoveColor(analysis.straddle_0dte_implied_move_pct)}`}>
+                      ±{analysis.straddle_0dte_implied_move_pct?.toFixed(2)}%
+                    </div>
                   </div>
                   <div className="pt-2 border-t border-cyan-500/20">
                     <div className="text-xs text-slate-500">Range Atteso</div>
@@ -675,7 +754,9 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
               </div>
               <div className="mb-2">
                 <div className="text-xs text-slate-500">Implied Move</div>
-                <div className="text-lg font-mono text-white">±{analysis.implied_move_pct?.toFixed(1)}%</div>
+                <div className={`text-lg font-mono font-bold ${getImpliedMoveColor(analysis.implied_move_pct)}`}>
+                  ±{analysis.implied_move_pct?.toFixed(1)}%
+                </div>
               </div>
               <div className="pt-2 border-t border-purple-500/20">
                 <div className="text-xs text-slate-500">Range fino a {analysis.expiration_date}</div>
@@ -736,14 +817,11 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
                 <div className="p-3 rounded-lg bg-slate-700/30">
                   <div className="text-xs text-slate-500 uppercase mb-1">VIX</div>
                   <div className="flex items-baseline gap-2">
-                    <span className={`text-2xl font-bold font-mono ${
-                      analysis.vix && analysis.vix > 25 ? 'text-red-400' :
-                      analysis.vix && analysis.vix > 20 ? 'text-yellow-400' : 'text-green-400'
-                    }`}>
+                    <span className={`text-2xl font-bold font-mono ${getVixColor(analysis.vix)}`}>
                       {analysis.vix?.toFixed(1) || 'N/A'}
                     </span>
                     {analysis.vix_change_pct !== null && (
-                      <span className={`text-xs font-mono ${analysis.vix_change_pct >= 0 ? 'text-red-400' : 'text-green-400'}`}>
+                      <span className={`text-xs font-mono ${getInverseChangeColor(analysis.vix_change_pct)}`}>
                         {formatPercent(analysis.vix_change_pct, 1)}
                       </span>
                     )}
@@ -753,14 +831,11 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
                 <div className="p-3 rounded-lg bg-slate-700/30">
                   <div className="text-xs text-slate-500 uppercase mb-1">VVIX</div>
                   <div className="flex items-baseline gap-2">
-                    <span className={`text-2xl font-bold font-mono ${
-                      analysis.vvix && analysis.vvix > 100 ? 'text-red-400' :
-                      analysis.vvix && analysis.vvix > 85 ? 'text-yellow-400' : 'text-green-400'
-                    }`}>
+                    <span className={`text-2xl font-bold font-mono ${getVvixColor(analysis.vvix)}`}>
                       {analysis.vvix?.toFixed(1) || 'N/A'}
                     </span>
                     {analysis.vvix_change_pct !== null && (
-                      <span className={`text-xs font-mono ${analysis.vvix_change_pct >= 0 ? 'text-red-400' : 'text-green-400'}`}>
+                      <span className={`text-xs font-mono ${getInverseChangeColor(analysis.vvix_change_pct)}`}>
                         {formatPercent(analysis.vvix_change_pct, 1)}
                       </span>
                     )}
@@ -798,12 +873,14 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
                   <div className="flex items-center gap-1 text-xs text-cyan-400 uppercase mb-1">
                     <Clock className="h-3 w-3" /> 0DTE
                   </div>
-                  <div className={`text-2xl font-bold font-mono ${
-                    analysis.daily_put_call_ratio === null ? 'text-slate-500' :
-                    analysis.daily_put_call_ratio < 0.7 ? 'text-green-400' :
-                    analysis.daily_put_call_ratio > 1.0 ? 'text-red-400' : 'text-yellow-400'
-                  }`}>
+                  <div className={`text-2xl font-bold font-mono ${getPCRatioColor(analysis.daily_put_call_ratio)}`}>
                     {analysis.daily_put_call_ratio?.toFixed(2) || 'N/A'}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    {analysis.daily_put_call_ratio !== null && (
+                      analysis.daily_put_call_ratio < 0.7 ? '📈 Bullish' :
+                      analysis.daily_put_call_ratio > 1.0 ? '📉 Bearish' : '➖ Neutro'
+                    )}
                   </div>
                 </div>
                 
@@ -811,11 +888,12 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
                   <div className="flex items-center gap-1 text-xs text-purple-400 uppercase mb-1">
                     <Calendar className="h-3 w-3" /> Mensile
                   </div>
-                  <div className={`text-2xl font-bold font-mono ${
-                    analysis.put_call_ratio_oi < 0.7 ? 'text-green-400' :
-                    analysis.put_call_ratio_oi > 1.0 ? 'text-red-400' : 'text-yellow-400'
-                  }`}>
+                  <div className={`text-2xl font-bold font-mono ${getPCRatioColor(analysis.put_call_ratio_oi)}`}>
                     {analysis.put_call_ratio_oi.toFixed(2)}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    {analysis.put_call_ratio_oi < 0.7 ? '📈 Bullish' :
+                     analysis.put_call_ratio_oi > 1.0 ? '📉 Bearish' : '➖ Neutro'}
                   </div>
                 </div>
               </div>
@@ -857,11 +935,7 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
                   <div className="flex items-center gap-1 text-xs text-cyan-400 uppercase mb-1">
                     <Clock className="h-3 w-3" /> 0DTE
                   </div>
-                  <div className={`text-2xl font-bold font-mono ${
-                    analysis.daily_gex_positioning === 'long_gamma' ? 'text-blue-400' :
-                    analysis.daily_gex_positioning === 'short_gamma' ? 'text-orange-400' :
-                    'text-slate-400'
-                  }`}>
+                  <div className={`text-2xl font-bold font-mono ${getGexColor(analysis.daily_gex)}`}>
                     {analysis.daily_gex !== null ? `${analysis.daily_gex >= 0 ? '+' : ''}${analysis.daily_gex.toFixed(1)}B` : 'N/A'}
                   </div>
                   <div className={`text-xs mt-1 ${
@@ -882,11 +956,7 @@ export function SPXOptionsPanel({ fedScenario }: SPXOptionsPanelProps) {
                   <div className="flex items-center gap-1 text-xs text-purple-400 uppercase mb-1">
                     <Calendar className="h-3 w-3" /> Mensile
                   </div>
-                  <div className={`text-2xl font-bold font-mono ${
-                    analysis.dealer_positioning === 'long_gamma' ? 'text-blue-400' :
-                    analysis.dealer_positioning === 'short_gamma' ? 'text-orange-400' :
-                    'text-slate-400'
-                  }`}>
+                  <div className={`text-2xl font-bold font-mono ${getGexColor(analysis.total_gex)}`}>
                     {analysis.total_gex >= 0 ? '+' : ''}{analysis.total_gex.toFixed(1)}B
                   </div>
                   <div className={`text-xs mt-1 ${
