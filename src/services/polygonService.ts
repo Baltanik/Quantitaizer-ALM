@@ -253,6 +253,17 @@ let lastCallTime = 0;
 const MIN_CALL_INTERVAL = 250; // 250ms tra chiamate (4 calls/sec max)
 
 async function fetchPolygon(endpoint: string, retries = 3): Promise<any> {
+  // In produzione, Polygon non supporta CORS - disabilita chiamate dirette
+  const isProduction = typeof window !== 'undefined' && 
+    window.location.hostname !== 'localhost' && 
+    !window.location.hostname.includes('127.0.0.1');
+  
+  if (isProduction) {
+    // Silently return null in production to avoid CORS errors
+    // SPX Options data would need a server-side proxy to work in production
+    return null;
+  }
+  
   // Rate limiting
   const now = Date.now();
   const timeSinceLastCall = now - lastCallTime;
