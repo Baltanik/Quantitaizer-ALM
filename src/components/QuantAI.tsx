@@ -137,38 +137,27 @@ export function QuantAI() {
   const getNextUpdate = () => {
     const now = new Date();
     const hours = now.getUTCHours();
-    const dayOfWeek = now.getUTCDay(); // 0=Dom, 1=Lun, ..., 5=Ven, 6=Sab
-    const slots = [7, 15]; // 7 UTC = 8 CET, 15 UTC = 16 CET
+    const day = now.getUTCDay(); // 0=Dom, 6=Sab
     
-    // Se è giorno lavorativo (lun-ven), controlla slot di oggi
-    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-      for (const slot of slots) {
-        if (hours < slot) {
-          const next = new Date(now);
-          next.setUTCHours(slot, 0, 0, 0);
-          return next.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-        }
-      }
+    // Se lun-ven e prima delle 15 UTC, mostra slot di oggi
+    if (day >= 1 && day <= 5) {
+      if (hours < 7) return '08:00';
+      if (hours < 15) return '16:00';
     }
     
-    // Calcola prossimo giorno lavorativo
-    let daysToAdd = 1;
-    const nextDay = (dayOfWeek + 1) % 7;
+    // Altrimenti calcola lunedì prossimo
+    let daysUntilMonday: number;
+    if (day === 0) daysUntilMonday = 1;      // Dom -> Lun
+    else if (day === 6) daysUntilMonday = 2; // Sab -> Lun
+    else if (day === 5) daysUntilMonday = 3; // Ven (dopo 15) -> Lun
+    else daysUntilMonday = 8 - day;          // Altri giorni dopo 15 -> Lun prossimo
     
-    if (nextDay === 0) daysToAdd = 1; // Dom -> Lun = +1
-    else if (nextDay === 6) daysToAdd = 2; // Sab -> Lun = +2
-    else if (dayOfWeek === 5 && hours >= slots[slots.length - 1]) daysToAdd = 3; // Ven sera -> Lun = +3
-    else if (dayOfWeek === 6) daysToAdd = 2; // Sab -> Lun = +2
-    else if (dayOfWeek === 0) daysToAdd = 1; // Dom -> Lun = +1
+    // Se è lun-gio dopo le 15, domani è lavorativo
+    if (day >= 1 && day <= 4 && hours >= 15) {
+      return 'Domani 08:00';
+    }
     
-    const nextWorkday = new Date(now);
-    nextWorkday.setDate(nextWorkday.getDate() + daysToAdd);
-    nextWorkday.setUTCHours(slots[0], 0, 0, 0);
-    
-    const dayNames = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
-    const nextDayName = dayNames[nextWorkday.getUTCDay()];
-    
-    return `${nextDayName} 08:00`;
+    return 'Lun 08:00';
   };
 
   const summaryParagraphs = analysis ? extractParagraphs(analysis.summary) : [];
