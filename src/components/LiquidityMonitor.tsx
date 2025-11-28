@@ -29,14 +29,16 @@ export function LiquidityMonitor({ currentData }: LiquidityMonitorProps) {
 
   // Calcola livello di liquidità (0-100)
   const calculateLiquidityLevel = () => {
+    // NOTE: wresbal è in MILIONI (es: 2888643 = $2.89T)
     const reserves = currentData.wresbal || 0;
     const spread = currentData.sofr_effr_spread || 0; // FIXED: Campo corretto
     const scenario = currentData.scenario;
     
-    // Normalizza riserve (2000-4000 miliardi = 0-50 punti) - più sensibile
-    const reserveScore = Math.min(Math.max((reserves - 2000) / 2000 * 50, 0), 50);
+    // Normalizza riserve ($2T-$4T = 0-50 punti)
+    // Soglie in MILIONI: 2000000 = $2T, 4000000 = $4T
+    const reserveScore = Math.min(Math.max((reserves - 2000000) / 2000000 * 50, 0), 50);
 
-    // Normalizza spread (0-30bps invertito = 0-50 punti) - più sensibile
+    // Normalizza spread (0-30bps invertito = 0-50 punti)
     // Spread è in formato decimale (0.30 = 30 bps), quindi moltiplichiamo per 100
     const spreadScore = Math.max(50 - ((spread * 100) / 30) * 50, 0);
     
@@ -86,20 +88,25 @@ export function LiquidityMonitor({ currentData }: LiquidityMonitorProps) {
   const StatusIcon = status.icon;
 
   // Metriche di liquidità con spiegazioni
+  // NOTE UNITÀ:
+  // - wresbal: MILIONI (2888643 = $2.89T) → dividere per 1000000 per T
+  // - rrpontsyd: MILIARDI (2.22 = $2.22B) → usare direttamente
+  // - sofr_effr_spread: decimale (0.17 = 17 bps) → moltiplicare per 100
   const metrics = [
     {
       label: 'Riserve Bancarie',
-      value: currentData.wresbal ? `$${(currentData.wresbal / 1000).toFixed(2)}T` : 'N/A',
+      value: currentData.wresbal ? `$${(currentData.wresbal / 1000000).toFixed(2)}T` : 'N/A',
       target: '>$2.5T',
-      isGood: (currentData.wresbal || 0) > 2500,
-      explanation: `Le riserve bancarie sono i depositi che le banche tengono presso la Fed. Attualmente ${currentData.wresbal ? (currentData.wresbal / 1000).toFixed(2) : 'N/A'}T. Sopra $2.5T = sistema bancario liquido, sotto = possibili tensioni. Durante QT le riserve scendono perché la Fed drena liquidità.`
+      isGood: (currentData.wresbal || 0) > 2500000, // 2500000M = $2.5T
+      explanation: `Le riserve bancarie sono i depositi che le banche tengono presso la Fed. Attualmente $${currentData.wresbal ? (currentData.wresbal / 1000000).toFixed(2) : 'N/A'}T. Sopra $2.5T = sistema bancario liquido, sotto = possibili tensioni. Durante QT le riserve scendono perché la Fed drena liquidità.`
     },
     {
       label: 'Reverse Repo',
-      value: currentData.rrpontsyd ? `$${(currentData.rrpontsyd / 1000).toFixed(0)}B` : 'N/A',
+      // NOTE: rrpontsyd è GIÀ in miliardi, NON dividere per 1000!
+      value: currentData.rrpontsyd !== null && currentData.rrpontsyd !== undefined ? `$${currentData.rrpontsyd.toFixed(1)}B` : 'N/A',
       target: '<$500B',
-      isGood: (currentData.rrpontsyd || 0) < 500000,
-      explanation: `RRP è dove banche/fondi parcheggiano liquidità in eccesso presso la Fed overnight. Attualmente ${currentData.rrpontsyd ? (currentData.rrpontsyd / 1000).toFixed(0) : '0'}B. RRP alto = troppa liquidità nel sistema, RRP basso = liquidità viene investita altrove.`
+      isGood: (currentData.rrpontsyd || 0) < 500, // 500B (già in miliardi)
+      explanation: `RRP è dove banche/fondi parcheggiano liquidità in eccesso presso la Fed overnight. Attualmente $${currentData.rrpontsyd?.toFixed(1) ?? '0'}B. RRP alto = troppa liquidità nel sistema, RRP basso = liquidità viene investita altrove (quasi esaurito!).`
     },
     {
       label: 'Spread SOFR-EFFR',

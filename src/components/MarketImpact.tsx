@@ -24,24 +24,34 @@ export function MarketImpact({ currentData }: MarketImpactProps) {
     );
   }
 
-  // Deriva scenario dai dati (più affidabile di currentData.scenario)
+  // Deriva scenario dai dati (fallback se currentData.scenario manca)
+  // NOTE UNITÀ:
+  // - bsDelta (d_walcl_4w): MILIONI (-31751 = -$31.8B)
+  // - rrpDelta (d_rrpontsyd_4w): MILIARDI (-49.59 = -$49.6B)
+  // - spread (sofr_effr_spread): decimale (0.17 = 17 bps)
   const deriveScenarioFromData = () => {
-    const bsDelta = currentData.d_walcl_4w || 0;
-    const rrpDelta = currentData.d_rrpontsyd_4w || 0;
+    const bsDelta = currentData.d_walcl_4w || 0;      // milioni
+    const rrpDelta = currentData.d_rrpontsyd_4w || 0; // miliardi
     const spread = currentData.sofr_effr_spread || 0;
     
-    // Logica coerente con ScenarioCard
-    if (bsDelta > 10000 && rrpDelta < -20000 && spread < 0.05) {
-      return 'stealth_qe';
-    } else if (bsDelta > 50000) {
+    // Logica coerente con edge function (soglie corrette per unità)
+    // QE: BS +$50B E Riserve +$50B
+    if (bsDelta > 50000) { // 50000M = $50B
       return 'qe';
-    } else if (bsDelta < -50000 || spread > 0.15) {
-      return 'contraction';
-    } else if (bsDelta < -10000) {
-      return 'qt';
-    } else {
-      return 'neutral';
     }
+    // QT: BS -$25B (priorità su stealth_qe e contraction)
+    if (bsDelta < -25000) { // -25000M = -$25B
+      return 'qt';
+    }
+    // STEALTH_QE: RRP drena >$30B con BS non in contrazione
+    if (rrpDelta < -30 && bsDelta > -25000 && spread < 0.05) { // -30B (già in miliardi)
+      return 'stealth_qe';
+    }
+    // CONTRACTION: spread molto alto (stress significativo)
+    if (spread > 0.20) { // 20 bps = stress significativo
+      return 'contraction';
+    }
+    return 'neutral';
   };
 
   // Analizza l'impatto sui mercati
