@@ -421,7 +421,7 @@ export function QuantAI() {
               {/* Footer */}
               <div className="mt-4 pt-3 border-t border-slate-700/30 flex items-center justify-between text-xs text-slate-500">
                 <span>Prossimo: {getNextUpdate()}</span>
-                <span className="text-slate-600">GPT-5.1</span>
+
               </div>
             </div>
           )}
