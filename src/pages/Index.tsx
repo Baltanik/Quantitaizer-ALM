@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
+import { QuantAI } from "@/components/QuantAI";
 import { ScenarioCard } from "@/components/ScenarioCard";
 import { MetricsGrid } from "@/components/MetricsGrid";
 import { LiquidityMonitor } from "@/components/LiquidityMonitor";
@@ -208,6 +209,11 @@ const Index = () => {
           </div>
         ) : (
           <>
+            {/* QuantAI - Analisi AI */}
+            <section>
+              <QuantAI />
+            </section>
+
             {/* Scenario Attuale */}
             <section className="space-y-6">
               <ScenarioCard 

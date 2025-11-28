@@ -3,6 +3,7 @@ import { Progress } from "@/components/ui/progress";
 import { Droplets, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronRight } from "lucide-react";
 import { FedData } from "@/services/fedData";
 import { useState } from "react";
+import { LIQUIDITY_THRESHOLDS, isRestrictiveScenario } from "@/config/thresholds";
 
 interface LiquidityMonitorProps {
   currentData: FedData | null;
@@ -31,22 +32,27 @@ export function LiquidityMonitor({ currentData }: LiquidityMonitorProps) {
   const calculateLiquidityLevel = () => {
     // NOTE: wresbal è in MILIONI (es: 2888643 = $2.89T)
     const reserves = currentData.wresbal || 0;
-    const spread = currentData.sofr_effr_spread || 0; // FIXED: Campo corretto
-    const scenario = currentData.scenario;
+    const spread = currentData.sofr_effr_spread || 0;
+    const scenario = currentData.scenario || 'neutral';
     
-    // Normalizza riserve ($2T-$4T = 0-50 punti)
-    // Soglie in MILIONI: 2000000 = $2T, 4000000 = $4T
-    const reserveScore = Math.min(Math.max((reserves - 2000000) / 2000000 * 50, 0), 50);
+    // Soglie da config centralizzato
+    const { RESERVES, SPREAD, SCORE } = LIQUIDITY_THRESHOLDS;
+    
+    // Normalizza riserve (critical_low -> optimal_max = 0-50 punti)
+    const reserveRange = RESERVES.optimal_max - RESERVES.critical_low;
+    const reserveScore = Math.min(
+      Math.max((reserves - RESERVES.critical_low) / reserveRange * SCORE.reserves_weight, 0), 
+      SCORE.reserves_weight
+    );
 
-    // Normalizza spread (0-30bps invertito = 0-50 punti)
-    // Spread è in formato decimale (0.30 = 30 bps), quindi moltiplichiamo per 100
-    const spreadScore = Math.max(50 - ((spread * 100) / 30) * 50, 0);
+    // Normalizza spread (0-crisis invertito = 0-50 punti)
+    const spreadScore = Math.max(
+      SCORE.spread_weight - ((spread / SPREAD.crisis) * SCORE.spread_weight), 
+      0
+    );
     
     // Penalità per scenario restrittivo
-    let scenarioPenalty = 0;
-    if (scenario === 'qt' || scenario === 'contraction') {
-      scenarioPenalty = 15; // -15 punti per scenario restrittivo
-    }
+    const scenarioPenalty = isRestrictiveScenario(scenario) ? SCORE.qt_penalty : 0;
     
     return Math.round(Math.max(reserveScore + spreadScore - scenarioPenalty, 0));
   };
@@ -87,33 +93,33 @@ export function LiquidityMonitor({ currentData }: LiquidityMonitorProps) {
   const status = getLiquidityStatus(liquidityLevel);
   const StatusIcon = status.icon;
 
-  // Metriche di liquidità con spiegazioni
-  // NOTE UNITÀ:
-  // - wresbal: MILIONI (2888643 = $2.89T) → dividere per 1000000 per T
-  // - rrpontsyd: MILIARDI (2.22 = $2.22B) → usare direttamente
-  // - sofr_effr_spread: decimale (0.17 = 17 bps) → moltiplicare per 100
+  // Metriche di liquidità con spiegazioni (soglie da config)
+  const { RESERVES, RRP, SPREAD } = LIQUIDITY_THRESHOLDS;
+  
   const metrics = [
     {
       label: 'Riserve Bancarie',
+      // wresbal in MILIONI → /1000000 per $T
       value: currentData.wresbal ? `$${(currentData.wresbal / 1000000).toFixed(2)}T` : 'N/A',
-      target: '>$2.5T',
-      isGood: (currentData.wresbal || 0) > 2500000, // 2500000M = $2.5T
-      explanation: `Le riserve bancarie sono i depositi che le banche tengono presso la Fed. Attualmente $${currentData.wresbal ? (currentData.wresbal / 1000000).toFixed(2) : 'N/A'}T. Sopra $2.5T = sistema bancario liquido, sotto = possibili tensioni. Durante QT le riserve scendono perché la Fed drena liquidità.`
+      target: `>$${(RESERVES.optimal_min / 1000000).toFixed(1)}T`,
+      isGood: (currentData.wresbal || 0) > RESERVES.optimal_min,
+      explanation: `Le riserve bancarie sono i depositi che le banche tengono presso la Fed. Attualmente $${currentData.wresbal ? (currentData.wresbal / 1000000).toFixed(2) : 'N/A'}T. Sopra $${(RESERVES.optimal_min / 1000000).toFixed(1)}T = sistema bancario liquido, sotto = possibili tensioni.`
     },
     {
       label: 'Reverse Repo',
-      // NOTE: rrpontsyd è GIÀ in miliardi, NON dividere per 1000!
+      // rrpontsyd GIÀ in MILIARDI → usare diretto
       value: currentData.rrpontsyd !== null && currentData.rrpontsyd !== undefined ? `$${currentData.rrpontsyd.toFixed(1)}B` : 'N/A',
-      target: '<$500B',
-      isGood: (currentData.rrpontsyd || 0) < 500, // 500B (già in miliardi)
-      explanation: `RRP è dove banche/fondi parcheggiano liquidità in eccesso presso la Fed overnight. Attualmente $${currentData.rrpontsyd?.toFixed(1) ?? '0'}B. RRP alto = troppa liquidità nel sistema, RRP basso = liquidità viene investita altrove (quasi esaurito!).`
+      target: `<$${RRP.low}B`,
+      isGood: (currentData.rrpontsyd || 0) < RRP.low,
+      explanation: `RRP è dove banche/fondi parcheggiano liquidità in eccesso presso la Fed. Attualmente $${currentData.rrpontsyd?.toFixed(1) ?? '0'}B. RRP alto = troppa liquidità parcheggiata, RRP basso = liquidità investita altrove.`
     },
     {
       label: 'Spread SOFR-EFFR',
+      // spread in DECIMALE → *100 per bps
       value: currentData.sofr_effr_spread ? `${(currentData.sofr_effr_spread * 100).toFixed(1)}bps` : 'N/A',
-      target: '<10bps',
-      isGood: ((currentData.sofr_effr_spread || 0) * 100) < 10,
-      explanation: `Spread tra tassi interbancari garantiti (SOFR) e non garantiti (EFFR). Attualmente ${currentData.sofr_effr_spread ? (currentData.sofr_effr_spread * 100).toFixed(1) : 'N/A'}bps. Spread basso = mercato monetario fluido, spread alto = tensioni liquidità tra banche.`
+      target: `<${(SPREAD.normal * 100).toFixed(0)}bps`,
+      isGood: (currentData.sofr_effr_spread || 0) < SPREAD.normal,
+      explanation: `Spread tra tassi interbancari garantiti (SOFR) e non garantiti (EFFR). Attualmente ${currentData.sofr_effr_spread ? (currentData.sofr_effr_spread * 100).toFixed(1) : 'N/A'}bps. Spread basso = mercato monetario fluido, spread alto = tensioni liquidità.`
     }
   ];
 

@@ -2,6 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, DollarSign, Zap, Target } from "lucide-react";
 import { FedData } from "@/services/fedData";
+import { 
+  RISK_SENTIMENT_THRESHOLDS, 
+  isExpansiveScenario, 
+  isRestrictiveScenario 
+} from "@/config/thresholds";
 
 interface MarketImpactProps {
   currentData: FedData | null;
@@ -24,40 +29,11 @@ export function MarketImpact({ currentData }: MarketImpactProps) {
     );
   }
 
-  // Deriva scenario dai dati (fallback se currentData.scenario manca)
-  // NOTE UNITÀ:
-  // - bsDelta (d_walcl_4w): MILIONI (-31751 = -$31.8B)
-  // - rrpDelta (d_rrpontsyd_4w): MILIARDI (-49.59 = -$49.6B)
-  // - spread (sofr_effr_spread): decimale (0.17 = 17 bps)
-  const deriveScenarioFromData = () => {
-    const bsDelta = currentData.d_walcl_4w || 0;      // milioni
-    const rrpDelta = currentData.d_rrpontsyd_4w || 0; // miliardi
-    const spread = currentData.sofr_effr_spread || 0;
-    
-    // Logica coerente con edge function (soglie corrette per unità)
-    // QE: BS +$50B E Riserve +$50B
-    if (bsDelta > 50000) { // 50000M = $50B
-      return 'qe';
-    }
-    // QT: BS -$25B (priorità su stealth_qe e contraction)
-    if (bsDelta < -25000) { // -25000M = -$25B
-      return 'qt';
-    }
-    // STEALTH_QE: RRP drena >$30B con BS non in contrazione
-    if (rrpDelta < -30 && bsDelta > -25000 && spread < 0.05) { // -30B (già in miliardi)
-      return 'stealth_qe';
-    }
-    // CONTRACTION: spread molto alto (stress significativo)
-    if (spread > 0.20) { // 20 bps = stress significativo
-      return 'contraction';
-    }
-    return 'neutral';
-  };
-
   // Analizza l'impatto sui mercati
+  // NOTA: Usa SEMPRE scenario dal DB (calcolato dalla edge function)
+  // Non duplicare la logica qui!
   const getMarketImpact = () => {
-    // Usa scenario derivato dai dati come fallback
-    const scenario = currentData.scenario || deriveScenarioFromData();
+    const scenario = currentData.scenario || 'neutral';
     const spread = currentData.sofr_effr_spread || 0; // FIXED: Campo corretto
     
     switch (scenario) {
@@ -101,11 +77,11 @@ export function MarketImpact({ currentData }: MarketImpactProps) {
 
   const impact = getMarketImpact();
 
-  // Settori più impattati
+  // Settori più impattati (usa helper da config)
   const getSectorImpact = () => {
-    const scenario = currentData.scenario || deriveScenarioFromData();
+    const scenario = currentData.scenario || 'neutral';
     
-    if (scenario === 'stealth_qe' || scenario === 'qe') {
+    if (isExpansiveScenario(scenario)) {
       return [
         { sector: 'Tech Growth', impact: '+', strength: 'Alto' },
         { sector: 'Real Estate', impact: '+', strength: 'Alto' },
@@ -113,7 +89,7 @@ export function MarketImpact({ currentData }: MarketImpactProps) {
         { sector: 'Utilities', impact: '-', strength: 'Basso' },
         { sector: 'Energy', impact: '+', strength: 'Medio' }
       ];
-    } else if (scenario === 'qt' || scenario === 'contraction') {
+    } else if (isRestrictiveScenario(scenario)) {
       return [
         { sector: 'Tech Growth', impact: '-', strength: 'Alto' },
         { sector: 'Real Estate', impact: '-', strength: 'Alto' },
@@ -134,32 +110,38 @@ export function MarketImpact({ currentData }: MarketImpactProps) {
 
   const sectorImpact = getSectorImpact();
 
-  // Risk-On vs Risk-Off
+  // Risk-On vs Risk-Off (usa soglie da config)
   const getRiskSentiment = () => {
-    const scenario = currentData.scenario || deriveScenarioFromData();
-    const spread = currentData.sofr_effr_spread || 0; // FIXED: Campo corretto
-    const vix = currentData.vix || 20; // Aggiungi VIX per analisi più accurata
+    const scenario = currentData.scenario || 'neutral';
+    const spread = currentData.sofr_effr_spread || 0;
+    const vix = currentData.vix || 20;
     
-    // FIXED: Soglie realistiche coerenti con ScenarioCard
-    if ((scenario === 'stealth_qe' || scenario === 'qe') && spread < 0.05 && vix < 18) {
+    const { RISK_ON, RISK_OFF } = RISK_SENTIMENT_THRESHOLDS;
+    
+    // Risk-On: scenario espansivo + spread basso + VIX basso
+    if (isExpansiveScenario(scenario) && spread < RISK_ON.spread_max && vix < RISK_ON.vix_max) {
       return { 
         sentiment: 'Risk-On', 
         badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30',
         description: 'Liquidità abbondante e volatilità bassa favoriscono risk assets' 
       };
-    } else if ((scenario === 'qt' || scenario === 'contraction') || spread > 0.10 || vix > 22) {
+    }
+    
+    // Risk-Off: scenario restrittivo O spread alto O VIX alto
+    if (isRestrictiveScenario(scenario) || spread > RISK_OFF.spread_min || vix > RISK_OFF.vix_min) {
       return { 
         sentiment: 'Risk-Off', 
         badgeClass: 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30',
         description: 'Liquidità scarsa o volatilità alta favoriscono safe haven' 
       };
-    } else {
-      return { 
-        sentiment: 'Neutrale', 
-        badgeClass: 'bg-slate-500/20 text-slate-300 border-slate-500/30 hover:bg-slate-500/30',
-        description: 'Sentiment bilanciato - condizioni miste' 
-      };
     }
+    
+    // Neutrale
+    return { 
+      sentiment: 'Neutrale', 
+      badgeClass: 'bg-slate-500/20 text-slate-300 border-slate-500/30 hover:bg-slate-500/30',
+      description: 'Sentiment bilanciato - condizioni miste' 
+    };
   };
 
   const riskSentiment = getRiskSentiment();

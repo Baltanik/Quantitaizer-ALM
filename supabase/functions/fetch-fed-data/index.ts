@@ -514,12 +514,73 @@ Deno.serve(async (req) => {
 
     console.log('Fed data saved successfully');
 
+    // === ALERT TRIGGER PER QUANTAI ===
+    // Check for alert conditions and trigger QuantAI analysis
+    const alertReasons: string[] = [];
+    
+    // 1. Scenario change detection
+    if (recordsToInsert.length >= 2) {
+      const previousScenario = recordsToInsert[recordsToInsert.length - 2]?.scenario;
+      if (previousScenario && latestData.scenario !== previousScenario) {
+        alertReasons.push(`Cambio scenario: ${previousScenario.toUpperCase()} → ${latestData.scenario.toUpperCase()}`);
+      }
+    }
+    
+    // 2. High spread stress (>15bps)
+    const spreadBps = (latestData.sofr_effr_spread || 0) * 100;
+    if (spreadBps > 15) {
+      alertReasons.push(`Spread SOFR-EFFR elevato: ${spreadBps.toFixed(0)}bps`);
+    }
+    
+    // 3. High VIX (>25)
+    if ((latestData.vix || 0) > 25) {
+      alertReasons.push(`VIX elevato: ${latestData.vix?.toFixed(1)}`);
+    }
+    
+    // 4. RRP almost exhausted (<100B)
+    if ((latestData.rrpontsyd || 0) < 100) {
+      alertReasons.push(`RRP quasi esaurito: $${latestData.rrpontsyd?.toFixed(0)}B`);
+    }
+    
+    // Trigger QuantAI if any alert condition
+    let quantaiTriggered = false;
+    if (alertReasons.length > 0) {
+      console.log('🚨 Alert conditions detected:', alertReasons);
+      
+      try {
+        const quantaiUrl = `${supabaseUrl}/functions/v1/quantai-analyze`;
+        const alertResponse = await fetch(quantaiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            trigger: 'alert',
+            reason: alertReasons.join(' | ')
+          })
+        });
+        
+        if (alertResponse.ok) {
+          console.log('✅ QuantAI alert analysis triggered');
+          quantaiTriggered = true;
+        } else {
+          console.error('⚠️ QuantAI trigger failed:', await alertResponse.text());
+        }
+      } catch (quantaiError) {
+        console.error('⚠️ QuantAI trigger error:', quantaiError);
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         recordsInserted: recordsToInsert.length,
         latestData,
-        signal 
+        signal,
+        alertTriggered: alertReasons.length > 0,
+        alertReasons: alertReasons.length > 0 ? alertReasons : undefined,
+        quantaiTriggered
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
