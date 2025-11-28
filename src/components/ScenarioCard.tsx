@@ -53,7 +53,8 @@ const scenarioConfig = {
       
       const balanceSheet = data.walcl ? (data.walcl / 1000000).toFixed(2) : 'N/A';
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
-      const rrp_delta = data.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
+      // NOTE: d_rrpontsyd_4w è GIÀ in miliardi, NON dividere per 1000
+      const rrp_delta = data.d_rrpontsyd_4w ? data.d_rrpontsyd_4w.toFixed(1) : 'N/A';
       const sofr_effr = data.sofr_effr_spread ? (data.sofr_effr_spread * 100).toFixed(1) : 'N/A';
       const vix = data.vix ?? 'N/A';
       
@@ -76,16 +77,31 @@ FOCUS: Monitorare liquidità sistema e spread, ambiente supporta asset rischiosi
         { icon: LineChart, label: "VIX", status: "N/A" }
       ];
       
+      const bsDeltaNum = data.d_walcl_4w || 0;
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
-      const rrp_delta = data.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
+      // NOTE: d_rrpontsyd_4w è GIÀ in miliardi, NON dividere per 1000
+      const rrp_delta = data.d_rrpontsyd_4w ? data.d_rrpontsyd_4w.toFixed(1) : 'N/A';
+      const rrpDeltaNum = data.d_rrpontsyd_4w || 0;
       const sofr_effr = data.sofr_effr_spread ? (data.sofr_effr_spread * 100).toFixed(1) : 'N/A';
       const hy_oas = data.hy_oas?.toFixed(1) ?? 'N/A';
       const vix = data.vix ?? 'N/A';
       const vixRisk = getVixRiskLevel(data.vix || 20);
       
+      // Determine BS status dynamically based on actual delta
+      const bsIcon = bsDeltaNum > 5000 ? TrendingUp : bsDeltaNum < -5000 ? TrendingDown : Minus;
+      const bsStatus = bsDeltaNum > 5000 ? `+${bs_delta}B (4w) Espansione` :
+                       bsDeltaNum < -5000 ? `${bs_delta}B (4w) Contrazione` :
+                       `${bsDeltaNum > 0 ? '+' : ''}${bs_delta}B (4w) Stabile`;
+      
+      // Determine RRP status dynamically
+      const rrpIcon = rrpDeltaNum < -20 ? TrendingDown : rrpDeltaNum > 20 ? TrendingUp : LineChart;
+      const rrpStatus = rrpDeltaNum < -20 ? `${rrp_delta}B Drenaggio` :
+                        rrpDeltaNum > 20 ? `+${rrp_delta}B Accumulo` :
+                        `${rrpDeltaNum > 0 ? '+' : ''}${rrp_delta}B Stabile`;
+      
       return [
-        { icon: TrendingUp, label: "Balance Sheet", status: `+${bs_delta}B (4w) Espansione` },
-        { icon: TrendingDown, label: "RRP Drain", status: `${rrp_delta}B Fed inietta` },
+        { icon: bsIcon, label: "Balance Sheet", status: bsStatus },
+        { icon: rrpIcon, label: "RRP", status: rrpStatus },
         { icon: LineChart, label: "SOFR-EFFR", status: `${sofr_effr}bps Basso stress` },
         { icon: TrendingDown, label: "HY OAS", status: `${hy_oas}% ${(data.hy_oas || 0) > 5.5 ? 'Credit Stress' : (data.hy_oas || 0) > 4 ? 'Normal' : 'Tight'}` },
         { icon: AlertTriangle, label: "VIX", status: `${vix} ${vixRisk.label}` }
@@ -125,16 +141,32 @@ FOCUS: Osservare sostenibilità espansione, liquidità massiccia storicamente pr
         { icon: LineChart, label: "VIX", status: "N/A" }
       ];
       
+      const bsDeltaNum = data.d_walcl_4w || 0;
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
+      const resDeltaNum = data.d_wresbal_4w || 0;
       const res_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
       const rrp_value = data.rrpontsyd ? (data.rrpontsyd/1000).toFixed(1) : 'N/A';
       const hy_oas = data.hy_oas?.toFixed(1) ?? 'N/A';
       const vix = data.vix ?? 'N/A';
       const vixRisk = getVixRiskLevel(data.vix || 20);
       
+      // Dynamic BS status based on actual data
+      const bsIcon = bsDeltaNum > 5000 ? TrendingUp : bsDeltaNum < -5000 ? TrendingDown : Minus;
+      const bsStatus = bsDeltaNum > 50000 ? `+${bs_delta}B AGGRESSIVA` :
+                       bsDeltaNum > 5000 ? `+${bs_delta}B Espansione` :
+                       bsDeltaNum < -5000 ? `${bs_delta}B Contrazione` :
+                       `${bsDeltaNum > 0 ? '+' : ''}${bs_delta}B Stabile`;
+      
+      // Dynamic reserves status
+      const resIcon = resDeltaNum > 20 ? TrendingUp : resDeltaNum < -20 ? TrendingDown : Minus;
+      const resStatus = resDeltaNum > 50 ? `+${res_delta}B Massiccia` :
+                        resDeltaNum > 20 ? `+${res_delta}B Crescita` :
+                        resDeltaNum < -20 ? `${res_delta}B Calo` :
+                        `${resDeltaNum > 0 ? '+' : ''}${res_delta}B Stabile`;
+      
       return [
-        { icon: TrendingUp, label: "Balance Sheet", status: `+${bs_delta}B AGGRESSIVA` },
-        { icon: TrendingUp, label: "Riserve Flood", status: `+${res_delta}B Massiccia` },
+        { icon: bsIcon, label: "Balance Sheet", status: bsStatus },
+        { icon: resIcon, label: "Riserve", status: resStatus },
         { icon: TrendingUp, label: "RRP Overflow", status: `${rrp_value}B Liquidità` },
         { icon: TrendingDown, label: "HY OAS", status: `${hy_oas}% ${(data.hy_oas || 0) > 5.5 ? 'Credit Stress' : (data.hy_oas || 0) > 4 ? 'Normal' : 'Tight'}` },
         { icon: AlertTriangle, label: "VIX", status: `${vix} ${vixRisk.label}` }
@@ -178,7 +210,8 @@ FOCUS: Monitorare velocità drenaggio liquidità, soglie Riserve critiche per ba
       const bs_delta = data.d_walcl_4w ? (data.d_walcl_4w/1000).toFixed(1) : 'N/A';
       const res_delta = data.d_wresbal_4w ? (data.d_wresbal_4w/1000).toFixed(1) : 'N/A';
       const sofr_effr = data.sofr_effr_spread ? (data.sofr_effr_spread * 100).toFixed(1) : 'N/A';
-      const rrp_delta = data.d_rrpontsyd_4w ? (data.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
+      // NOTE: d_rrpontsyd_4w è GIÀ in miliardi, NON dividere per 1000
+      const rrp_delta = data.d_rrpontsyd_4w ? data.d_rrpontsyd_4w.toFixed(1) : 'N/A';
       const hy_oas = data.hy_oas?.toFixed(1) ?? 'N/A';
       const vix = data.vix ?? 'N/A';
       const vixRisk = getVixRiskLevel(data.vix || 20);
@@ -186,7 +219,8 @@ FOCUS: Monitorare velocità drenaggio liquidità, soglie Riserve critiche per ba
       const bsDeltaNum = parseFloat(bs_delta);
       const resDeltaNum = parseFloat(res_delta);
       const sofrNum = parseFloat(sofr_effr);
-      const rrpDeltaNum = parseFloat(rrp_delta);
+      // rrpDeltaNum è in miliardi (valore raw)
+      const rrpDeltaNum = data.d_rrpontsyd_4w || 0;
       
       // Balance Sheet status - FIXED LOGIC
       let bsStatus = '';
@@ -954,9 +988,10 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
                 });
               }
               
-              if (Math.abs(rrpDelta) > 5000) {
+              // NOTE: rrpDelta (d_rrpontsyd_4w) è GIÀ in miliardi
+              if (Math.abs(rrpDelta) > 20) {
                 drivers.push({ 
-                  text: `RRP ${rrpDelta > 0 ? 'accumulo' : 'drenaggio'}: ${(rrpDelta/1000).toFixed(1)}B`,
+                  text: `RRP ${rrpDelta > 0 ? 'accumulo' : 'drenaggio'}: ${rrpDelta.toFixed(1)}B`,
                   icon: rrpDelta > 0 ? TrendingUp : TrendingDown,
                   color: rrpDelta > 0 ? 'text-blue-400' : 'text-yellow-400'
                 });
@@ -1021,7 +1056,8 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             const sofrEffr = currentData.sofr_effr_spread ?? null;
             const bsDelta = currentData.d_walcl_4w ?? null;
             const balanceSheet = currentData.walcl ? (currentData.walcl / 1000000).toFixed(2) : 'N/A';
-            const rrpDelta = currentData.d_rrpontsyd_4w ? (currentData.d_rrpontsyd_4w/1000).toFixed(1) : 'N/A';
+            // NOTE: d_rrpontsyd_4w è GIÀ in miliardi, NON dividere per 1000
+            const rrpDelta = currentData.d_rrpontsyd_4w ? currentData.d_rrpontsyd_4w.toFixed(1) : 'N/A';
             const hyOAS = currentData.hy_oas ?? null;
             
             // Determine scenario color and status
@@ -1076,23 +1112,28 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             let liquidityIcon = Activity;
             
             if (bsDelta !== null) {
+              // NOTE: bsDelta (d_walcl_4w) è in MILIONI, rrpDeltaNum è in MILIARDI
               const rrpDeltaNum = rrpDelta !== 'N/A' ? parseFloat(rrpDelta) : 0;
-              const sofrNum = sofrEffr !== null ? sofrEffr : 10; // Default pessimistico se manca
+              const sofrNum = sofrEffr !== null ? sofrEffr * 100 : 10; // Converti in bps, default pessimistico
               
-              // FIXED: Valutazione più sofisticata
-              if (bsDelta > 20 && sofrNum < 5) {
+              // Soglie corrette: bsDelta in milioni, rrpDeltaNum in miliardi, sofrNum in bps
+              if (bsDelta > 20000 && sofrNum < 5) {
+                // BS +$20B e spread <5bps = espansione forte
                 liquidityStatus = 'Espansiva Forte';
                 liquidityColor = 'text-green-400';
                 liquidityIcon = TrendingUp;
-              } else if (bsDelta > 5 || (rrpDeltaNum < -30 && sofrNum < 3)) {
+              } else if (bsDelta > 5000 || (rrpDeltaNum < -30 && sofrNum < 3)) {
+                // BS +$5B o RRP drena >$30B con spread bassi
                 liquidityStatus = 'Espansiva';
                 liquidityColor = 'text-green-400';
                 liquidityIcon = TrendingUp;
-              } else if (bsDelta < -20 || sofrNum > 10) {
+              } else if (bsDelta < -20000 || sofrNum > 10) {
+                // BS -$20B o spread >10bps = contrazione
                 liquidityStatus = 'Contrattiva';
                 liquidityColor = 'text-red-400';
                 liquidityIcon = TrendingDown;
-              } else if (Math.abs(bsDelta) < 5 && sofrNum < 5) {
+              } else if (Math.abs(bsDelta) < 5000 && sofrNum < 5) {
+                // BS stabile (±$5B) e spread bassi
                 liquidityStatus = 'Stabile (ottima)';
                 liquidityColor = 'text-blue-400';
                 liquidityIcon = Activity;
@@ -1151,23 +1192,24 @@ export function ScenarioCard({ scenario, currentData }: ScenarioCardProps) {
             let liquidityDetailDesc = 'Impossibile valutare la situazione senza dati Fed completi';
             
             if (bsDelta !== null) {
+              // NOTE: bsDelta in milioni, rrpDeltaNum in miliardi, sofrNum in bps
               const rrpDeltaNum = rrpDelta !== 'N/A' ? parseFloat(rrpDelta) : 0;
-              const sofrNum = sofrEffr !== null ? sofrEffr : 10;
+              const sofrNum = sofrEffr !== null ? sofrEffr * 100 : 10; // Converti in bps
               
-              // FIXED: Descrizioni più accurate basate su dati reali
-              if (bsDelta > 20 && sofrNum < 5) {
+              // Soglie corrette per milioni (bsDelta)
+              if (bsDelta > 20000 && sofrNum < 5) {
                 liquiditySimpleDesc = 'La Fed sta pompando soldi nel sistema';
                 liquidityDetailDesc = `La Fed ha iniettato ${(bsDelta/1000).toFixed(1)}B nelle banche - più liquidità disponibile per prestiti e investimenti. Mercato monetario fluido (spread ${sofrNum.toFixed(1)}bps).`;
-              } else if (bsDelta > 5) {
+              } else if (bsDelta > 5000) {
                 liquiditySimpleDesc = 'La Fed sta espandendo liquidità gradualmente';
                 liquidityDetailDesc = `Espansione moderata del bilancio (+${(bsDelta/1000).toFixed(1)}B) - supporto alla liquidità senza eccessi.`;
-              } else if (bsDelta < -20) {
+              } else if (bsDelta < -20000) {
                 liquiditySimpleDesc = 'La Fed sta drenando liquidità';
                 liquidityDetailDesc = `Contrazione del bilancio (${(bsDelta/1000).toFixed(1)}B) - Fed riduce la quantità di soldi in circolazione. ${sofrNum > 10 ? 'ATTENZIONE: Spread in allargamento, stress inizia.' : 'Finora senza tensioni.'}`;
-              } else if (Math.abs(bsDelta) < 5 && sofrNum < 3) {
+              } else if (Math.abs(bsDelta) < 5000 && sofrNum < 3) {
                 liquiditySimpleDesc = 'Liquidità stabile e abbondante';
                 liquidityDetailDesc = `Balance Sheet quasi invariato (${(bsDelta/1000).toFixed(1)}B), ma spread SOFR-EFFR ${sofrNum.toFixed(1)}bps indica sistema monetario perfettamente fluido. Nessun problema di liquidità.`;
-              } else if (Math.abs(bsDelta) < 5 && sofrNum < 5) {
+              } else if (Math.abs(bsDelta) < 5000 && sofrNum < 5) {
                 liquiditySimpleDesc = 'La Fed mantiene liquidità stabile';
                 liquidityDetailDesc = `Nessun cambiamento significativo nel bilancio (${(bsDelta/1000).toFixed(1)}B). Mercato monetario normale (spread ${sofrNum.toFixed(1)}bps).`;
               } else {

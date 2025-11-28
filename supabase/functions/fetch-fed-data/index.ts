@@ -433,9 +433,9 @@ Deno.serve(async (req) => {
         console.log(`   DXY Index: ${data.dxy_broad !== null && data.dxy_broad !== undefined ? data.dxy_broad.toFixed(2) : 'NULL'}`);
         
         console.log('\n📊 DELTA 4W (CRITICAL FOR SCENARIO):');
-        console.log(`   Δ Balance Sheet: ${data.d_walcl_4w !== null ? `${data.d_walcl_4w > 0 ? '+' : ''}$${(data.d_walcl_4w/1000).toFixed(1)}B` : 'NULL'}`);
-        console.log(`   Δ Reserves: ${data.d_wresbal_4w !== null ? `${data.d_wresbal_4w > 0 ? '+' : ''}$${data.d_wresbal_4w.toFixed(1)}B` : 'NULL'}`);
-        console.log(`   Δ RRP: ${data.d_rrpontsyd_4w !== null ? `${data.d_rrpontsyd_4w > 0 ? '+' : ''}$${data.d_rrpontsyd_4w.toFixed(1)}B` : 'NULL'}`);
+        console.log(`   Δ Balance Sheet: ${data.d_walcl_4w !== null ? `${data.d_walcl_4w > 0 ? '+' : ''}$${(data.d_walcl_4w/1000).toFixed(1)}B` : 'NULL'} (raw: ${data.d_walcl_4w}M)`);
+        console.log(`   Δ Reserves: ${data.d_wresbal_4w !== null ? `${data.d_wresbal_4w > 0 ? '+' : ''}$${(data.d_wresbal_4w/1000).toFixed(1)}B` : 'NULL'} (raw: ${data.d_wresbal_4w}M)`);
+        console.log(`   Δ RRP: ${data.d_rrpontsyd_4w !== null ? `${data.d_rrpontsyd_4w > 0 ? '+' : ''}$${data.d_rrpontsyd_4w.toFixed(1)}B` : 'NULL'} (already in B)`);
         console.log(`   Δ T10Y3M: ${data.d_t10y3m_4w !== null ? `${data.d_t10y3m_4w > 0 ? '+' : ''}${data.d_t10y3m_4w.toFixed(2)}%` : 'NULL'}`);
         console.log(`   Δ DXY: ${data.d_dxy_4w !== null ? `${data.d_dxy_4w > 0 ? '+' : ''}${data.d_dxy_4w.toFixed(2)}` : 'NULL'}`);
         
@@ -549,10 +549,10 @@ function determineScenario(data: any): string {
   const d_wresbal_4w = data.d_wresbal_4w ?? null;
   const d_rrpontsyd_4w = data.d_rrpontsyd_4w ?? null;
 
-  // UNITÀ DI MISURA:
-  // - d_walcl_4w: millions ($M) → delta a 4 settimane
-  // - d_wresbal_4w: billions ($B) → delta a 4 settimane
-  // - d_rrpontsyd_4w: billions ($B) → delta a 4 settimane
+  // UNITÀ DI MISURA (VERIFIED 2025-11-28):
+  // - d_walcl_4w: MILLIONS ($M) → divide by 1000 for $B
+  // - d_wresbal_4w: MILLIONS ($M) → divide by 1000 for $B (NOT billions!)
+  // - d_rrpontsyd_4w: BILLIONS ($B) → use directly, already in $B
 
   // Data validation - se manca anche solo un delta, non possiamo calcolare lo scenario
   const isValidData = 
@@ -571,13 +571,13 @@ function determineScenario(data: any): string {
   // Debug logging dettagliato
   console.log('🔍 Scenario Calculation (DELTA-BASED) - Raw Values:', {
     d_walcl_4w_millions: d_walcl_4w,
-    d_wresbal_4w_billions: d_wresbal_4w,
+    d_wresbal_4w_millions: d_wresbal_4w,
     d_rrpontsyd_4w_billions: d_rrpontsyd_4w
   });
 
   console.log('🔍 Scenario Calculation - Readable:', {
     balance_sheet_change: d_walcl_4w !== null ? `${d_walcl_4w > 0 ? '+' : ''}$${(d_walcl_4w / 1000).toFixed(1)}B` : 'NULL',
-    reserves_change: d_wresbal_4w !== null ? `${d_wresbal_4w > 0 ? '+' : ''}$${d_wresbal_4w.toFixed(1)}B` : 'NULL',
+    reserves_change: d_wresbal_4w !== null ? `${d_wresbal_4w > 0 ? '+' : ''}$${(d_wresbal_4w / 1000).toFixed(1)}B` : 'NULL',
     rrp_change: d_rrpontsyd_4w !== null ? `${d_rrpontsyd_4w > 0 ? '+' : ''}$${d_rrpontsyd_4w.toFixed(1)}B` : 'NULL'
   });
 
@@ -585,49 +585,47 @@ function determineScenario(data: any): string {
 
   // === QE AGGRESSIVO ===
   // Soglia: Bilancio +$50B E Riserve +$50B (4 settimane)
-  // Fonte: Intervento Fed significativo e coordinato
-  // Razionale: Espansione simultanea su entrambi i fronti = QE vero
-  const qeCondition = d_walcl_4w > 50000 && d_wresbal_4w > 50;
-  console.log(`   QE: ΔBS > +$50B (${d_walcl_4w > 50000 ? '✓' : '✗'} actual: ${(d_walcl_4w/1000).toFixed(1)}B) && ΔRiserve > +$50B (${d_wresbal_4w > 50 ? '✓' : '✗'} actual: ${d_wresbal_4w.toFixed(1)}B) = ${qeCondition}`);
+  // UNITÀ: d_walcl_4w e d_wresbal_4w sono in MILIONI
+  const qeCondition = d_walcl_4w > 50000 && d_wresbal_4w > 50000; // 50000M = $50B
+  console.log(`   QE: ΔBS > +$50B (${d_walcl_4w > 50000 ? '✓' : '✗'} actual: ${(d_walcl_4w/1000).toFixed(1)}B) && ΔRiserve > +$50B (${d_wresbal_4w > 50000 ? '✓' : '✗'} actual: ${(d_wresbal_4w/1000).toFixed(1)}B) = ${qeCondition}`);
   
   if (qeCondition) {
     console.log('✅ Scenario: QE - Espansione aggressiva Fed rilevata');
     return 'qe';
   }
 
-  // === STEALTH QE (Rotazione Liquidità) ===
-  // Soglia RIVISTA: Rotazione significativa (non micro-movimenti)
-  // Opzione 1: RRP drena >$30B mentre riserve stabili/crescono
-  // Opzione 2: Riserve crescono >$20B con bilancio stabile/crescita moderata
+  // === QT (QUANTITATIVE TIGHTENING) === [CHECKED FIRST - Priority over stealth signals]
+  // Soglia: Bilancio -$25B O Riserve -$50B (4 settimane)
+  // UNITÀ: d_walcl_4w e d_wresbal_4w sono in MILIONI, d_rrpontsyd_4w è in MILIARDI
+  const qtCondition = d_walcl_4w < -25000 || d_wresbal_4w < -50000; // -25000M = -$25B, -50000M = -$50B
+  console.log(`   QT: ΔBS < -$25B (${d_walcl_4w < -25000 ? '✓' : '✗'} actual: ${(d_walcl_4w/1000).toFixed(1)}B) || ΔRiserve < -$50B (${d_wresbal_4w < -50000 ? '✓' : '✗'} actual: ${(d_wresbal_4w/1000).toFixed(1)}B) = ${qtCondition}`);
+  
+  if (qtCondition) {
+    console.log('✅ Scenario: QT - Contrazione liquidità significativa rilevata');
+    return 'qt';
+  }
+
+  // === STEALTH QE (Rotazione Liquidità) === [Only if NOT QT]
+  // UNITÀ: d_walcl_4w e d_wresbal_4w in MILIONI, d_rrpontsyd_4w in MILIARDI
+  // Opzione 1: RRP drena >$30B mentre riserve stabili/crescono E BS non contrae
+  // Opzione 2: Riserve crescono >$30B con bilancio stabile/crescita moderata
   // Opzione 3: Bilancio cresce >$30B con contrazione RRP
-  // Razionale: Liquidità netta in aumento attraverso meccanismi "nascosti"
-  const rrpDrainageSignificant = d_rrpontsyd_4w < -30 && d_wresbal_4w >= -20; // RRP drena, riserve non collassano
-  const reservesGrowthModerate = d_wresbal_4w > 30 && d_walcl_4w > -20000; // Riserve crescono significativamente, BS non crolla (raised from 20 to 30)
-  const balanceSheetGrowthWithRrpDrain = d_walcl_4w > 30000 && d_rrpontsyd_4w < -20; // BS cresce con RRP in drenaggio
+  const bsNotContracting = d_walcl_4w > -25000; // BS non contrae più di -$25B
+  const rrpDrainageSignificant = d_rrpontsyd_4w < -30 && d_wresbal_4w >= -20000 && bsNotContracting; // RRP drena >$30B, riserve >= -$20B
+  const reservesGrowthModerate = d_wresbal_4w > 30000 && d_walcl_4w > -20000; // Riserve +$30B, BS >= -$20B
+  const balanceSheetGrowthWithRrpDrain = d_walcl_4w > 30000 && d_rrpontsyd_4w < -20; // BS +$30B, RRP drena >$20B
   
   const stealthQeCondition = rrpDrainageSignificant || reservesGrowthModerate || balanceSheetGrowthWithRrpDrain;
   
-  console.log(`   STEALTH_QE conditions:`);
-  console.log(`     → RRP drainage >$30B + Reserves stable: ${rrpDrainageSignificant} (ΔRRP: ${d_rrpontsyd_4w.toFixed(1)}B, ΔRes: ${d_wresbal_4w.toFixed(1)}B)`);
-  console.log(`     → Reserves growth >$30B + BS stable: ${reservesGrowthModerate} (ΔRes: ${d_wresbal_4w.toFixed(1)}B, ΔBS: ${(d_walcl_4w/1000).toFixed(1)}B)`);
-  console.log(`     → BS growth >$30B + RRP drain: ${balanceSheetGrowthWithRrpDrain} (ΔBS: ${(d_walcl_4w/1000).toFixed(1)}B, ΔRRP: ${d_rrpontsyd_4w.toFixed(1)}B)`);
+  console.log(`   STEALTH_QE conditions (BS not contracting: ${bsNotContracting}):`);
+  console.log(`     → RRP drain >$30B + Res stable + BS ok: ${rrpDrainageSignificant} (ΔRRP: ${d_rrpontsyd_4w.toFixed(1)}B, ΔRes: ${(d_wresbal_4w/1000).toFixed(1)}B, ΔBS: ${(d_walcl_4w/1000).toFixed(1)}B)`);
+  console.log(`     → Reserves +$30B + BS stable: ${reservesGrowthModerate} (ΔRes: ${(d_wresbal_4w/1000).toFixed(1)}B, ΔBS: ${(d_walcl_4w/1000).toFixed(1)}B)`);
+  console.log(`     → BS +$30B + RRP drain: ${balanceSheetGrowthWithRrpDrain} (ΔBS: ${(d_walcl_4w/1000).toFixed(1)}B, ΔRRP: ${d_rrpontsyd_4w.toFixed(1)}B)`);
   console.log(`     = FINAL: ${stealthQeCondition}`);
   
   if (stealthQeCondition) {
     console.log('✅ Scenario: STEALTH_QE - Rotazione liquidità stimolativa rilevata');
     return 'stealth_qe';
-  }
-
-  // === QT (QUANTITATIVE TIGHTENING) ===
-  // Soglia: Bilancio -$25B O Riserve -$50B (4 settimane)
-  // Fonte: Contrazione Fed significativa che impatta liquidità
-  // Razionale: Cattura QT normale Fed, non solo eventi estremi
-  const qtCondition = d_walcl_4w < -25000 || d_wresbal_4w < -50;
-  console.log(`   QT: ΔBS < -$25B (${d_walcl_4w < -25000 ? '✓' : '✗'} actual: ${(d_walcl_4w/1000).toFixed(1)}B) || ΔRiserve < -$50B (${d_wresbal_4w < -50 ? '✓' : '✗'} actual: ${d_wresbal_4w.toFixed(1)}B) = ${qtCondition}`);
-  
-  if (qtCondition) {
-    console.log('✅ Scenario: QT - Contrazione liquidità significativa rilevata');
-    return 'qt';
   }
 
   console.log('✅ Scenario: NEUTRAL - Movimenti contenuti, nessuna direzione netta chiara');
