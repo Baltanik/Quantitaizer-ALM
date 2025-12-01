@@ -253,14 +253,9 @@ let lastCallTime = 0;
 const MIN_CALL_INTERVAL = 250; // 250ms tra chiamate (4 calls/sec max)
 
 async function fetchPolygon(endpoint: string, retries = 3): Promise<any> {
-  // In produzione, Polygon non supporta CORS - disabilita chiamate dirette
-  const isProduction = typeof window !== 'undefined' && 
-    window.location.hostname !== 'localhost' && 
-    !window.location.hostname.includes('127.0.0.1');
-  
+  // In produzione, usiamo fetchOptionsViaProxy - questa funzione è solo per localhost
   if (isProduction) {
-    // Silently return null in production to avoid CORS errors
-    // SPX Options data would need a server-side proxy to work in production
+    console.warn('fetchPolygon called in production - use fetchOptionsViaProxy instead');
     return null;
   }
   
@@ -396,6 +391,37 @@ export async function getSPXPrice(): Promise<{ price: number; change_pct: number
 const SUPABASE_URL = "https://tolaojeqjcoskegelule.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvbGFvamVxamNvc2tlZ2VsdWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwMTI1MzksImV4cCI6MjA3NzU4ODUzOX0.8iJ8SHDG5Ffdu5X8ZF6-QSiyIz9iTXKm8uaLXQt_2OI";
 
+// Check if we're in production (need to use edge function proxy)
+const isProduction = typeof window !== 'undefined' && 
+  window.location.hostname !== 'localhost' && 
+  !window.location.hostname.includes('127.0.0.1');
+
+// Fetch options via Edge Function proxy (for production - bypasses CORS)
+async function fetchOptionsViaProxy(type: 'monthly' | 'daily' | 'full' = 'full'): Promise<any> {
+  try {
+    console.log(`📊 Fetching options via edge function proxy (type: ${type})...`);
+    
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/polygon-options?type=${type}`, {
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      console.error('Edge function error:', response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    console.log(`✅ Proxy returned: monthly=${data.monthly_options?.length || 0}, daily=${data.daily_options?.length || 0}`);
+    return data;
+  } catch (error) {
+    console.error('fetchOptionsViaProxy error:', error);
+    return null;
+  }
+}
+
 // Legacy alias - now uses getSPXPriceRealtime which fetches ES/SPX from edge function
 async function fetchSPXFromYahoo() {
   return getSPXPriceRealtime();
@@ -493,24 +519,53 @@ async function fetchDailyLevels(currentPrice: number, previousClose: number): Pr
   console.log(`📊 Fetching 0DTE levels for ${expiry}, ref price (prev close): ${refPrice.toFixed(2)}`);
   
   try {
-    // Fetch 0DTE options NEAR ATM (±150 points for best data)
-    const strikeMin = Math.floor(refPrice / 5) * 5 - 150;
-    const strikeMax = Math.ceil(refPrice / 5) * 5 + 150;
+    let dailyOptions: any[] = [];
     
-    // IMPORTANT: Use I:SPX for index options (not just SPX)
-    console.log(`🔑 0DTE: Using ticker format I:SPX for ${expiry}`);
-    const url = `/v3/snapshot/options/I:SPX?expiration_date=${expiry}&strike_price.gte=${strikeMin}&strike_price.lte=${strikeMax}&limit=250`;
-    const data = await fetchPolygon(url);
+    // ═══════════════════════════════════════════════════════════════
+    // PRODUCTION: Use Edge Function proxy to bypass CORS
+    // ═══════════════════════════════════════════════════════════════
+    if (isProduction) {
+      console.log('📊 0DTE Production mode: using edge function proxy');
+      const proxyData = await fetchOptionsViaProxy('daily');
+      
+      if (proxyData?.daily_options && proxyData.daily_options.length > 0) {
+        dailyOptions = proxyData.daily_options;
+        console.log(`✅ Proxy returned ${dailyOptions.length} 0DTE contracts`);
+      } else {
+        console.log('📊 No 0DTE options from proxy (market closed or no expiry today)');
+        return null;
+      }
+    }
+    // ═══════════════════════════════════════════════════════════════
+    // LOCALHOST: Direct Polygon API calls (for development)
+    // ═══════════════════════════════════════════════════════════════
+    else {
+      // Fetch 0DTE options NEAR ATM (±150 points for best data)
+      const strikeMin = Math.floor(refPrice / 5) * 5 - 150;
+      const strikeMax = Math.ceil(refPrice / 5) * 5 + 150;
+      
+      // IMPORTANT: Use I:SPX for index options (not just SPX)
+      console.log(`🔑 0DTE: Using ticker format I:SPX for ${expiry}`);
+      const url = `/v3/snapshot/options/I:SPX?expiration_date=${expiry}&strike_price.gte=${strikeMin}&strike_price.lte=${strikeMax}&limit=250`;
+      const data = await fetchPolygon(url);
+      
+      if (!data?.results || data.results.length === 0) {
+        console.log('📊 No 0DTE options found (market closed or no expiry today)');
+        return null;
+      }
+      
+      dailyOptions = data.results;
+    }
     
-    if (!data?.results || data.results.length === 0) {
-      console.log('📊 No 0DTE options found (market closed or no expiry today)');
+    if (dailyOptions.length === 0) {
+      console.log('📊 No 0DTE options found');
       return null;
     }
     
     const calls: any[] = [];
     const puts: any[] = [];
     
-    for (const opt of data.results) {
+    for (const opt of dailyOptions) {
       const type = opt.details?.contract_type;
       if (type === 'call') calls.push(opt);
       else if (type === 'put') puts.push(opt);
@@ -797,46 +852,67 @@ export async function fetchSPXOptionsChain(expirationDate?: string): Promise<Opt
   const priceEstimate = await getSPXPriceRealtime();
   const approxPrice = priceEstimate?.price || 6000;
   
-  // Filter to ±300 points from ATM to get the LIQUID contracts with high OI
-  // Polygon Options Starter plan only returns ~250-300 contracts per query
-  // Without filter, it returns random illiquid strikes with low OI
-  const strikeMin = Math.floor(approxPrice / 5) * 5 - 300;
-  const strikeMax = Math.ceil(approxPrice / 5) * 5 + 300;
-  
-  console.log(`📊 Monthly: fetching I:SPX strikes ${strikeMin}-${strikeMax} for ${expiry} (spot ~${approxPrice.toFixed(0)})`);
-  console.log(`🔑 Using ticker format: I:SPX (index options)`);
-  
-  // Fetch options with strike filter to get liquid contracts
-  // IMPORTANT: Use I:SPX for index options (not just SPX)
   let allOptions: any[] = [];
-  let nextUrl = `/v3/snapshot/options/I:SPX?expiration_date=${expiry}&strike_price.gte=${strikeMin}&strike_price.lte=${strikeMax}&limit=250`;
-  let pageCount = 0;
   
-  while (nextUrl && allOptions.length < 10000) {
-    pageCount++;
-    const data = await fetchPolygon(nextUrl);
+  // ═══════════════════════════════════════════════════════════════
+  // PRODUCTION: Use Edge Function proxy to bypass CORS
+  // ═══════════════════════════════════════════════════════════════
+  if (isProduction) {
+    console.log('📊 Production mode: using edge function proxy');
+    const proxyData = await fetchOptionsViaProxy('monthly');
     
-    if (!data?.results) {
-      console.warn(`📊 Page ${pageCount}: No results returned`);
-      break;
-    }
-    
-    console.log(`📊 Page ${pageCount}: Got ${data.results.length} contracts (total: ${allOptions.length + data.results.length})`);
-    allOptions = allOptions.concat(data.results);
-    
-    // Check for pagination
-    if (data.next_url) {
-      nextUrl = data.next_url.replace(BASE_URL, '');
+    if (proxyData?.monthly_options && proxyData.monthly_options.length > 0) {
+      allOptions = proxyData.monthly_options;
+      console.log(`✅ Proxy returned ${allOptions.length} monthly contracts`);
     } else {
-      console.log(`📊 No more pages after page ${pageCount}`);
-      break;
+      console.error('❌ Proxy returned no monthly options');
+      return null;
+    }
+  } 
+  // ═══════════════════════════════════════════════════════════════
+  // LOCALHOST: Direct Polygon API calls (for development)
+  // ═══════════════════════════════════════════════════════════════
+  else {
+    // Filter to ±300 points from ATM to get the LIQUID contracts with high OI
+    // Polygon Options Starter plan only returns ~250-300 contracts per query
+    // Without filter, it returns random illiquid strikes with low OI
+    const strikeMin = Math.floor(approxPrice / 5) * 5 - 300;
+    const strikeMax = Math.ceil(approxPrice / 5) * 5 + 300;
+    
+    console.log(`📊 Monthly: fetching I:SPX strikes ${strikeMin}-${strikeMax} for ${expiry} (spot ~${approxPrice.toFixed(0)})`);
+    console.log(`🔑 Using ticker format: I:SPX (index options)`);
+    
+    // Fetch options with strike filter to get liquid contracts
+    // IMPORTANT: Use I:SPX for index options (not just SPX)
+    let nextUrl = `/v3/snapshot/options/I:SPX?expiration_date=${expiry}&strike_price.gte=${strikeMin}&strike_price.lte=${strikeMax}&limit=250`;
+    let pageCount = 0;
+    
+    while (nextUrl && allOptions.length < 10000) {
+      pageCount++;
+      const data = await fetchPolygon(nextUrl);
+      
+      if (!data?.results) {
+        console.warn(`📊 Page ${pageCount}: No results returned`);
+        break;
+      }
+      
+      console.log(`📊 Page ${pageCount}: Got ${data.results.length} contracts (total: ${allOptions.length + data.results.length})`);
+      allOptions = allOptions.concat(data.results);
+      
+      // Check for pagination
+      if (data.next_url) {
+        nextUrl = data.next_url.replace(BASE_URL, '');
+      } else {
+        console.log(`📊 No more pages after page ${pageCount}`);
+        break;
+      }
+      
+      // Rate limiting
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
     
-    // Rate limiting
-    await new Promise(resolve => setTimeout(resolve, 200));
+    console.log(`📊 TOTAL: Fetched ${allOptions.length} monthly option contracts in ${pageCount} pages`);
   }
-  
-  console.log(`📊 TOTAL: Fetched ${allOptions.length} monthly option contracts in ${pageCount} pages`);
   
   if (allOptions.length === 0) return null;
   
